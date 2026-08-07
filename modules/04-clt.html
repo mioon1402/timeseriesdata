@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>중심극한정리 · 눈으로 보는 통계</title>
+<meta name="description" content="모집단이 아무리 이상하게 생겨도 표본평균은 종 모양이 됩니다. 직접 표본을 뽑아 확인해보세요.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%F0%9F%93%8A%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 모듈 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">모듈 04 · 중심극한정리</p>
+    <h1>이상한 모집단, 멀쩡한 평균</h1>
+    <p class="lede">
+      통계학에서 가장 신기한 사실 하나. <b>원본 데이터가 어떻게 생겼든</b>
+      거기서 뽑은 <b>표본평균들은 종 모양</b>으로 모입니다.
+      그리고 표본 크기 n을 키우면 <b>√n 배씩</b> 좁아집니다. 직접 확인해보세요.
+    </p>
+  </header>
+
+  <section class="panel">
+    <p class="panel-title">① 모집단 — 여기서 매번 n개를 뽑습니다</p>
+    <div class="canvas-wrap"><canvas id="cPop"></canvas></div>
+
+    <p class="panel-title" style="margin-top:18px">② 뽑을 때마다 나온 <b>표본평균</b>을 쌓은 히스토그램</p>
+    <div class="canvas-wrap"><canvas id="cMean"></canvas></div>
+
+    <div class="seg" role="group" aria-label="모집단 선택">
+      <label><input type="radio" name="pop" value="skew" checked><span>치우침 (긴 꼬리)</span></label>
+      <label><input type="radio" name="pop" value="uniform"><span>균등</span></label>
+      <label><input type="radio" name="pop" value="bimodal"><span>봉우리 둘</span></label>
+      <label><input type="radio" name="pop" value="dice"><span>주사위</span></label>
+      <label><input type="radio" name="pop" value="normal"><span>정규</span></label>
+    </div>
+
+    <div class="controls">
+      <label class="ctrl">
+        <span class="label-row"><span class="name">표본 크기 n (한 번에 몇 개 뽑나)</span><span class="val" id="n-val">10</span></span>
+        <input type="range" id="n" min="1" max="100" step="1" value="10">
+      </label>
+    </div>
+
+    <div class="btns">
+      <button class="btn" id="one">1회 뽑기</button>
+      <button class="btn" id="many">30회</button>
+      <button class="btn" id="lots">500회</button>
+      <button class="btn primary" id="auto">▶ 자동</button>
+      <button class="btn" id="reset">초기화</button>
+      <label class="toggle"><input type="checkbox" id="showTheory" checked> 이론 곡선</label>
+    </div>
+
+    <div class="readout">
+      <div class="stat"><span class="k">표집 횟수</span><span class="v" id="s-trials">0</span></div>
+      <div class="stat accent"><span class="k">모평균 μ</span><span class="v" id="s-mu">–</span></div>
+      <div class="stat accent"><span class="k">표본평균들의 평균</span><span class="v" id="s-mm">–</span></div>
+      <div class="stat"><span class="k">모표준편차 σ</span><span class="v" id="s-sigma">–</span></div>
+      <div class="stat warn"><span class="k">이론 σ/√n</span><span class="v" id="s-se">–</span></div>
+      <div class="stat warn"><span class="k">실제 퍼짐</span><span class="v" id="s-sem">–</span></div>
+    </div>
+
+    <div class="legend">
+      <span class="legend-item"><span class="swatch" style="background:var(--purple);opacity:.5"></span> 방금 뽑은 표본</span>
+      <span class="legend-item"><span class="swatch line" style="background:var(--warn)"></span> 그 표본의 평균</span>
+      <span class="legend-item"><span class="swatch line" style="background:var(--neg)"></span> 이론 정규곡선 N(μ, σ/√n)</span>
+    </div>
+  </section>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 모듈에서 다루는 것</b>
+      <ol>
+        <li><a href="#s1">먼저 이걸 해보세요</a></li>
+        <li><a href="#s2">중심극한정리가 말하는 것</a></li>
+        <li><a href="#s3">√n 이라는 잔인한 법칙</a></li>
+        <li><a href="#s4">표준편차 vs 표준오차 — 가장 흔한 혼동</a></li>
+        <li><a href="#s5">실무: 표본 몇 개를 모아야 하나</a></li>
+        <li><a href="#s6">CLT가 통하지 않는 경우</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s1">1. 먼저 이걸 해보세요</h2>
+    <ol>
+      <li><b>치우침(긴 꼬리)</b> 모집단을 고릅니다. 위쪽 그림은 전혀 종 모양이 아닙니다.</li>
+      <li>n을 <b>1</b>로 놓고 <b>500회</b>를 누릅니다 → 아래 히스토그램이 위 그림과 <b>똑같은 모양</b>이 됩니다. 당연합니다. 1개의 평균은 그냥 그 값이니까요.</li>
+      <li>이제 n을 <b>2 → 5 → 10 → 30</b>으로 올리면서 매번 <b>500회</b>를 눌러보세요.</li>
+    </ol>
+    <p>
+      꼬리가 점점 사라지고 대칭적인 종 모양으로 바뀝니다.
+      <b>모집단은 하나도 안 변했는데</b> 말이죠.
+      <b>주사위</b>(완전 평평한 6칸)로도 똑같이 해보세요. 더 극적입니다.
+    </p>
+
+    <h2 id="s2">2. 중심극한정리가 말하는 것</h2>
+    <p>
+      원본이 어떤 분포든(분산만 유한하다면), 표본 크기 n이 충분히 크면
+      표본평균 <span class="m">x̄</span> 의 분포는 다음에 가까워집니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">중심극한정리 (Central Limit Theorem)</div>
+      <div class="eq">
+        x̄ &nbsp;≈&nbsp; N
+        <span style="font-size:1.15em">(</span>
+        μ ,&nbsp;
+        <span class="frac"><span>σ²</span><span>n</span></span>
+        <span style="font-size:1.15em">)</span>
+        <br>
+        <span class="small">즉 &nbsp; SE = <span class="frac"><span>σ</span><span><span class="rad">√<span>n</span></span></span></span>
+        &nbsp;,&nbsp; z = <span class="frac"><span>x̄ − μ</span><span>σ/<span class="rad">√<span>n</span></span></span></span>
+        &nbsp;~&nbsp; N(0, 1)</span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">μ</span><span class="desc"><b>모평균</b> — 우리가 진짜 알고 싶지만 모르는 값</span></li>
+        <li><span class="sym">σ</span><span class="desc"><b>모표준편차</b> — 개별 데이터 하나하나의 퍼짐</span></li>
+        <li><span class="sym">n</span><span class="desc">한 번 뽑을 때의 <b>표본 크기</b> (표집 횟수가 아닙니다!)</span></li>
+        <li><span class="sym">SE</span><span class="desc"><b>표준오차</b>(standard error) — <b>표본평균</b>이 μ에서 벗어나는 정도</span></li>
+        <li><span class="sym">≈</span><span class="desc">"n이 커질수록 가까워진다"는 뜻. 유한한 n에서는 근사입니다</span></li>
+      </ul>
+    </div>
+
+    <p>세 부분으로 나눠 읽어야 합니다.</p>
+    <ul>
+      <li><b>모양은 정규분포로</b> — 원본이 뭐든 상관없이.</li>
+      <li><b>중심은 μ 그대로</b> — 표본평균은 모평균을 체계적으로 벗어나지 않습니다(편향 없음).
+          위 수치판에서 "모평균 μ"와 "표본평균들의 평균"을 비교해보세요.</li>
+      <li><b>퍼짐은 σ/√n</b> — 이게 <b>표준오차</b>입니다. 원본의 퍼짐 σ보다 <span class="m">√n</span>배 작습니다.</li>
+    </ul>
+
+    <h2 id="s3">3. √n 이라는 잔인한 법칙</h2>
+    <p>
+      "이론 σ/√n"과 "실제 퍼짐"이 거의 같은 값을 가리키는지 확인해보세요.
+      그리고 n을 4배로 늘려보세요 — 퍼짐은 <b>절반</b>이 됩니다. 4배가 아니라 2배만 좋아집니다.
+    </p>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>표본 크기 n</th><th>표준오차 (σ=50 기준)</th><th>n=10 대비</th></tr></thead>
+        <tbody>
+          <tr><td>10</td><td>15.8</td><td>기준</td></tr>
+          <tr><td>40 <span style="color:var(--text-dim)">(4배)</span></td><td>7.9</td><td><b>절반</b></td></tr>
+          <tr><td>160 <span style="color:var(--text-dim)">(16배)</span></td><td>4.0</td><td><b>1/4</b></td></tr>
+          <tr><td>1,000 <span style="color:var(--text-dim)">(100배)</span></td><td>1.6</td><td><b>1/10</b></td></tr>
+          <tr><td>100,000 <span style="color:var(--text-dim)">(만 배)</span></td><td>0.16</td><td>1/100</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="practice">
+      <b>실무 감각 · 두 얼굴의 √n</b>
+      <ul>
+        <li><b>나쁜 소식:</b> 오차를 절반으로 줄이려면 표본을 <b>4배</b> 모아야 합니다.
+            10분의 1로 줄이려면 <b>100배</b>가 필요하고요.
+            "샘플 조금만 더 모으면 정확해지겠지"가 잘 안 되는 이유입니다.
+            A/B 테스트 기간이 2주에서 8주로 늘어나는 이유도 대개 이것입니다.</li>
+        <li><b>좋은 소식:</b> 반대로 읽으면, <b>표본이 조금만 있어도 꽤 정확</b>합니다.
+            전국 유권자 4,400만 명 중 <b>단 1,000명</b>만 조사해도 오차범위 약 ±3%p가 나옵니다.
+            모집단 크기는 공식에 <b>아예 등장하지도 않습니다.</b>
+            (모집단의 5% 이상을 뽑는 경우만 유한모집단 보정이 필요합니다.)</li>
+        <li><b>수확 체감 지점:</b> n=1,000 이후로는 돈을 아무리 써도 정밀도가 잘 안 올라갑니다.
+            그 지점부터는 표본을 늘리기보다 <b>측정 오차·표본 편향을 줄이는 게</b> 훨씬 남는 장사입니다.
+            여론조사가 틀리는 건 n이 작아서가 아니라 <b>응답률과 표집 편향</b> 때문입니다.</li>
+      </ul>
+    </div>
+
+    <h2 id="s4">4. 표준편차 vs 표준오차 — 가장 흔한 혼동</h2>
+    <p>
+      이 둘을 섞어 쓰는 실수는 정말, 정말 자주 나옵니다. 논문에서도 나옵니다.
+    </p>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th></th><th>표준편차 (SD, σ 또는 s)</th><th>표준오차 (SE)</th></tr></thead>
+        <tbody>
+          <tr><td><b>무엇의 퍼짐?</b></td><td><b>개별 데이터</b> 하나하나</td><td><b>표본평균</b>이라는 추정값</td></tr>
+          <tr><td><b>위 그림에서</b></td><td>①번 그림의 폭</td><td>②번 그림의 폭</td></tr>
+          <tr><td><b>n을 늘리면</b></td><td>안 변함 (모집단 성질)</td><td><b>줄어듦</b> (σ/√n)</td></tr>
+          <tr><td><b>답하는 질문</b></td><td>"사람마다 얼마나 다른가?"</td><td>"내 평균값을 얼마나 믿을 수 있나?"</td></tr>
+          <tr><td><b>쓸 곳</b></td><td>데이터 기술, 개인차 설명</td><td>신뢰구간, 가설검정, 오차막대</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pitfall">
+      <b>그래프의 오차막대가 무엇인지 반드시 밝히세요</b>
+      같은 데이터라도 오차막대를 SD로 그리면 SE로 그린 것보다 <span class="m">√n</span>배 깁니다.
+      n=100이면 <b>10배</b> 차이입니다. 캡션에 "error bars = SE (n=100)"처럼 적지 않으면
+      독자는 그림을 해석할 수 없습니다. 표기 없이 짧은 막대를 보여주는 건
+      결과를 정밀해 보이게 만드는 흔한 눈속임입니다.
+    </div>
+
+    <h2 id="s5">5. 실무: 표본 몇 개를 모아야 하나</h2>
+    <p>
+      CLT를 뒤집으면 <b>기획 단계에서 필요한 표본 수</b>가 나옵니다.
+      "오차범위를 ±E 안으로 잡고 싶다"에서 출발합니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">표본 크기 설계 · 평균 추정</div>
+      <div class="eq">
+        n &nbsp;=&nbsp;
+        <span style="font-size:1.15em">(</span>
+        <span class="frac"><span>z × σ</span><span>E</span></span>
+        <span style="font-size:1.15em">)</span><sup>2</sup>
+      </div>
+      <ul class="where">
+        <li><span class="sym">E</span><span class="desc">허용 오차범위. "±2점 안으로 알고 싶다"의 그 2</span></li>
+        <li><span class="sym">z</span><span class="desc">신뢰수준. 95%면 <b>1.96</b>, 99%면 2.576 (모듈 03의 표)</span></li>
+        <li><span class="sym">σ</span><span class="desc">개별 데이터의 표준편차. <b>모르면 예비조사</b>나 과거 데이터로 추정</span></li>
+      </ul>
+    </div>
+
+    <div class="formula">
+      <div class="name">표본 크기 설계 · 비율 추정 (여론조사·전환율)</div>
+      <div class="eq">
+        n &nbsp;=&nbsp;
+        <span class="frac"><span>z² · p(1 − p)</span><span>E²</span></span>
+        &nbsp;&nbsp;<span class="small">→ 최악의 경우 p = 0.5 대입</span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">p</span><span class="desc">추정하려는 비율. 모르면 <b>0.5</b>를 넣습니다 — 분산이 최대라 가장 안전합니다</span></li>
+        <li><span class="sym">결과</span><span class="desc">95% 신뢰, ±3%p → <span class="m">n ≈ 1,067</span>.
+            여론조사가 늘 "1,000명"인 이유입니다</span></li>
+      </ul>
+    </div>
+
+    <div class="practice">
+      <b>바로 쓰는 계산</b>
+      <ul>
+        <li><b>±3%p / 95%</b> → n ≈ 1,067 &nbsp;|&nbsp; <b>±2%p</b> → n ≈ 2,401 &nbsp;|&nbsp; <b>±1%p</b> → n ≈ 9,604</li>
+        <li>전환율처럼 p가 작을 때(예: 3%)는 <span class="m">p(1−p)</span>가 작아져서
+            필요한 표본이 줄어듭니다. 단, <b>절대 오차</b>가 아니라 <b>상대 개선폭</b>을 보려면
+            훨씬 많이 필요합니다 — "3% → 3.3%"를 잡으려면 수만 명 단위입니다.</li>
+        <li>A/B 테스트라면 이 공식이 아니라 <b>검정력(power) 기반 설계</b>가 맞습니다.
+            "차이를 못 잡을 확률"까지 통제해야 하니까요 — 모듈 06에서 다룹니다.</li>
+        <li>Python: <code>statsmodels.stats.power.TTestIndPower().solve_power(...)</code></li>
+      </ul>
+    </div>
+
+    <h2 id="s6">6. 자주 하는 오해 / CLT가 통하지 않는 경우</h2>
+    <div class="myth">
+      <div class="bad">
+        <b>✗ 오해</b>
+        "데이터를 많이 모으면 데이터 자체가 정규분포가 된다."
+      </div>
+      <div class="good">
+        <b>✓ 사실</b>
+        원본 데이터의 분포는 n을 아무리 늘려도 그대로입니다(모듈 02에서 확인했듯이).
+        정규분포가 되는 건 <b>표본평균이라는 새로운 통계량</b>의 분포입니다.
+        위 그림에서 <b>①은 절대 안 변하고 ②만 변한다</b>는 점을 꼭 보세요.
+      </div>
+    </div>
+    <div class="pitfall">
+      <b>"n ≥ 30이면 된다"는 미신입니다</b>
+      이건 조건부 경험칙일 뿐입니다. <b>치우침</b> 모집단에서 n=5 → 30 → 100을 직접 비교해보세요.
+      n=30에서도 오른쪽 꼬리가 여전히 남아 있습니다.
+      <ul>
+        <li>원본이 <b>대칭</b>이면 n=5로도 충분히 정규에 가깝습니다.</li>
+        <li>원본이 <b>심하게 치우쳐</b> 있으면 n=100도 모자랄 수 있습니다.</li>
+        <li>판단 기준은 n이 아니라 <b>원본의 왜도</b>입니다. 애매하면 표본을 뽑아
+            위 그림처럼 직접 시뮬레이션해보는 게 가장 확실합니다(<b>부트스트랩</b>).</li>
+      </ul>
+    </div>
+
+    <div class="pitfall">
+      <b>CLT가 아예 통하지 않는 경우</b>
+      <ul>
+        <li><b>관측이 독립이 아닐 때.</b> 이게 실무에서 가장 흔한 위반입니다.
+            같은 사용자의 반복 방문, 같은 학교 학생들, 시계열의 연속된 날짜는 서로 얽혀 있습니다.
+            독립인 척하면 <b>실제 표준오차가 공식값보다 훨씬 큽니다</b> — 있지도 않은 유의성이 나옵니다.
+            해결: 사용자 단위로 집계, 군집 표준오차(clustered SE), 혼합효과모형.</li>
+        <li><b>분산이 무한할 때.</b> 멱함수 꼬리를 가진 분포(예: 파레토 지수 &lt; 2, 코시 분포)는
+            σ 자체가 정의되지 않아 CLT가 성립하지 않습니다.
+            극단적으로 편중된 네트워크·소득·도시 규모 데이터가 여기 해당할 수 있습니다.</li>
+        <li><b>표본이 무작위가 아닐 때.</b> CLT는 표집 <b>편향</b>을 고쳐주지 않습니다.
+            잘못 뽑은 100만 명이 제대로 뽑은 1,000명보다 나쁩니다.
+            2016년 미국 대선 여론조사 실패는 n이 작아서가 아니었습니다.</li>
+      </ul>
+    </div>
+
+    <div class="takeaway">
+      <b>한 줄 요약 ·</b> 개별 데이터는 제멋대로여도 평균은 얌전합니다.
+      그래서 우리는 정규분포 하나만 알면 웬만한 추론을 다 할 수 있습니다.
+    </div>
+
+    <h2>왜 이게 통계의 심장인가</h2>
+    <p>
+      우리가 실제로 알고 싶은 건 늘 모집단(전국 유권자, 전체 고객)인데,
+      손에 쥔 건 표본 하나뿐입니다. 중심극한정리는
+      <b>"표본평균이 모평균에서 얼마나 벗어날 수 있는지"를 정확히 알려줍니다.</b>
+      그 폭이 <span class="m">σ/√n</span>이고, 여기서 통계적 추론 전체가 파생됩니다.
+    </p>
+    <ul>
+      <li><b>신뢰구간</b>(모듈 05) = <span class="m">x̄ ± 1.96 × SE</span></li>
+      <li><b>가설검정</b>(모듈 06) = 관측된 차이가 SE의 몇 배인가</li>
+      <li><b>표본 설계</b>(§5) = 원하는 정밀도를 SE로 역산</li>
+    </ul>
+    <p>
+      전부 같은 하나의 공식에서 나옵니다. 이 모듈을 이해했다면 나머지는 응용입니다.
+    </p>
+
+    <div class="summary">
+      <h3>이 모듈 요약</h3>
+      <ul>
+        <li><b>CLT:</b> 원본 분포가 무엇이든 <span class="m">x̄ ≈ N(μ, σ²/n)</span>.</li>
+        <li>세 가지가 동시에 성립 — <b>모양은 정규</b>, <b>중심은 μ</b>, <b>퍼짐은 σ/√n</b>.</li>
+        <li><b>표준오차 SE = σ/√n.</b> 정밀도를 2배 올리려면 표본은 4배.</li>
+        <li><b>SD ≠ SE.</b> SD는 개인차, SE는 추정값의 불확실성. n을 늘리면 SE만 줄어든다.</li>
+        <li>표본 크기 설계: 평균 <span class="m">n=(zσ/E)²</span>, 비율 <span class="m">n=z²p(1−p)/E²</span>.</li>
+        <li>전제는 <b>독립·무작위·유한분산</b>. 특히 <b>독립성 위반</b>을 항상 먼저 의심할 것.</li>
+      </ul>
+    </div>
+
+    <p class="next-up">
+      다음 → <a href="05-confidence-interval.html">모듈 05 · 95%는 무엇의 95%인가</a><br>
+      SE를 알았으니, 이제 "얼마나 확신하는지"를 구간으로 표현합니다.
+    </p>
+  </section>
+
+</div>
+
+<script src="../assets/viz.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var rng = new V.Rng(31415);
+  var state = { pop: 'skew', n: 10, showTheory: true };
+  var means = [], last = [], lastMean = NaN;
+
+  var popPlot = new V.Plot(V.el('#cPop'), {
+    margin: { top: 14, right: 18, bottom: 28, left: 46 },
+    height: function (w) { return w < 480 ? 150 : 180; }
+  });
+
+  var meanPlot = new V.Plot(V.el('#cMean'), {
+    margin: { top: 18, right: 18, bottom: 28, left: 46 },
+    height: function (w) { return w < 480 ? 200 : 240; }
+  });
+
+  function pop() { return V.POPS[state.pop]; }
+  function se() { return pop().sd / Math.sqrt(state.n); }
+
+  /** 이산 모집단은 가능한 평균값에 정확히 맞춘 구간을 쓴다. */
+  function histSpec() {
+    var p = pop();
+    if (p.kind === 'disc' && state.n <= 14) {
+      var w = 1 / state.n;
+      return { lo: 1 - w / 2, hi: 6 + w / 2, bins: 5 * state.n + 1 };
+    }
+    return { lo: p.domain[0], hi: p.domain[1], bins: 56 };
+  }
+
+  function sampleOnce() {
+    var p = pop(), s = new Array(state.n);
+    for (var i = 0; i < state.n; i++) s[i] = p.sample(rng);
+    last = s;
+    lastMean = V.S.mean(s);
+    means.push(lastMean);
+  }
+
+  function sampleMany(k) {
+    for (var i = 0; i < k; i++) sampleOnce();
+  }
+
+  function reset() {
+    means = []; last = []; lastMean = NaN;
+  }
+
+  /* ---------------- 모집단 그림 ---------------- */
+  function drawPop() {
+    var p = pop();
+    popPlot.xDomain = p.domain.slice();
+
+    var peak = 0, i;
+    if (p.kind === 'disc') {
+      peak = 1 / 6;
+    } else {
+      for (i = 0; i <= 200; i++) {
+        var x = p.domain[0] + (p.domain[1] - p.domain[0]) * i / 200;
+        peak = Math.max(peak, p.density(x));
+      }
+    }
+    popPlot.yDomain = [0, peak * 1.35];
+    popPlot.begin();
+    popPlot.axes({ yAxis: false, xFormat: function (v) { return String(Math.round(v * 10) / 10); } });
+
+    if (p.kind === 'disc') {
+      popPlot.bars(p.values.map(function (v) {
+        return { x0: v - 0.38, x1: v + 0.38, y: 1 / 6 };
+      }), { color: V.css('--accent-soft'), stroke: V.css('--accent') });
+    } else {
+      var pts = [];
+      for (i = 0; i <= 240; i++) {
+        var xx = p.domain[0] + (p.domain[1] - p.domain[0]) * i / 240;
+        pts.push([xx, p.density(xx)]);
+      }
+      popPlot.areaUnder(pts, { color: V.css('--accent-soft') });
+      popPlot.path(pts, { color: V.css('--accent'), width: 2 });
+    }
+
+    popPlot.vline(p.mean, { color: V.css('--text-dim'), width: 1.5, dash: [5, 4] });
+    popPlot.text(p.mean, popPlot.yDomain[1], 'μ = ' + V.fmt(p.mean, 1), {
+      dy: 12, size: 11, color: V.css('--text-dim')
+    });
+
+    /* 방금 뽑은 표본을 점으로 */
+    if (last.length) {
+      var ctx = popPlot.ctx;
+      var yBase = popPlot.margin.top + popPlot.ph;
+      ctx.save();
+      ctx.fillStyle = V.css('--purple');
+      ctx.globalAlpha = V.clamp(14 / Math.sqrt(last.length), 0.3, 0.85);
+      for (var k = 0; k < last.length; k++) {
+        var px = popPlot.x(last[k]);
+        if (px < popPlot.margin.left || px > popPlot.margin.left + popPlot.pw) continue;
+        // 겹침을 줄이려고 살짝 위아래로 흩뿌린다
+        var jitter = ((k * 2654435761) % 1000) / 1000;
+        ctx.beginPath();
+        ctx.arc(px, yBase - 6 - jitter * 26, 3.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+
+      popPlot.vline(lastMean, { color: V.css('--warn'), width: 2.5 });
+    }
+  }
+
+  /* ---------------- 표본평균 히스토그램 ---------------- */
+  function drawMeans() {
+    var p = pop();
+    meanPlot.xDomain = p.domain.slice();
+
+    var spec = histSpec();
+    var h = V.S.histogram(means, spec.lo, spec.hi, spec.bins);
+
+    // 밀도 스케일로 그려야 이론 곡선을 그대로 겹칠 수 있다
+    var maxDensity = 0;
+    for (var i = 0; i < h.bins.length; i++) {
+      if (h.bins[i].density > maxDensity) maxDensity = h.bins[i].density;
+    }
+    var theoryPeak = V.normalPdf(p.mean, p.mean, se());
+    var top = Math.max(maxDensity, state.showTheory ? theoryPeak : 0);
+    meanPlot.yDomain = [0, (top > 0 ? top : 1) * 1.25];
+
+    meanPlot.begin();
+    meanPlot.axes({
+      yAxis: false,
+      xFormat: function (v) { return String(Math.round(v * 10) / 10); }
+    });
+
+    if (means.length) {
+      meanPlot.bars(h.bins.map(function (b) {
+        return { x0: b.x0, x1: b.x1, y: b.density };
+      }), {
+        color: V.css('--accent-soft'),
+        stroke: V.css('--accent'),
+        gap: spec.bins > 40 ? 0 : 0.5,
+        lineWidth: spec.bins > 40 ? 0 : 1
+      });
+    }
+
+    if (state.showTheory) {
+      var pts = [], N = 260;
+      for (var j = 0; j <= N; j++) {
+        var x = p.domain[0] + (p.domain[1] - p.domain[0]) * j / N;
+        pts.push([x, V.normalPdf(x, p.mean, se())]);
+      }
+      meanPlot.path(pts, { color: V.css('--neg'), width: 2.5 });
+    }
+
+    meanPlot.vline(p.mean, { color: V.css('--text-dim'), width: 1.5, dash: [5, 4] });
+
+    if (!means.length) {
+      var ctx = meanPlot.ctx;
+      ctx.save();
+      ctx.font = '13px ' + V.FONT;
+      ctx.fillStyle = V.css('--text-dim');
+      ctx.textAlign = 'center';
+      ctx.fillText('버튼을 눌러 표본을 뽑아보세요',
+        meanPlot.margin.left + meanPlot.pw / 2,
+        meanPlot.margin.top + meanPlot.ph / 2);
+      ctx.restore();
+    }
+  }
+
+  function updateStats() {
+    var p = pop();
+    V.setText('#s-trials', String(means.length));
+    V.setText('#s-mu', V.fmt(p.mean, 2));
+    V.setText('#s-sigma', V.fmt(p.sd, 2));
+    V.setText('#s-se', V.fmt(se(), 2));
+    V.setText('#s-mm', means.length ? V.fmt(V.S.mean(means), 2) : '–');
+    V.setText('#s-sem', means.length > 1 ? V.fmt(V.S.sdS(means), 2) : '–');
+  }
+
+  function draw() {
+    drawPop();
+    drawMeans();
+    updateStats();
+  }
+
+  /* ---------------- 자동 재생 ---------------- */
+  var loop = new V.Loop(function () {
+    sampleMany(3);
+    draw();
+    if (means.length >= 4000) toggleAuto();
+  });
+
+  function toggleAuto() {
+    var btn = document.getElementById('auto');
+    if (loop.running) {
+      loop.stop();
+      btn.textContent = '▶ 자동';
+      btn.classList.add('primary');
+    } else {
+      loop.start();
+      btn.textContent = '❚❚ 정지';
+      btn.classList.remove('primary');
+    }
+  }
+
+  /* ---------------- 바인딩 ---------------- */
+  V.radios('pop', function (v) { state.pop = v; reset(); draw(); });
+  V.range('n', function (v) { state.n = v; reset(); draw(); });
+
+  V.click('one', function () { sampleOnce(); draw(); });
+  V.click('many', function () { sampleMany(30); draw(); });
+  V.click('lots', function () { sampleMany(500); draw(); });
+  V.click('auto', toggleAuto);
+  V.click('reset', function () { if (loop.running) toggleAuto(); reset(); draw(); });
+  V.check('showTheory', function (v) { state.showTheory = v; draw(); });
+
+  V.onRedraw(draw);
+  draw();
+})();
+</script>
+</body>
+</html>

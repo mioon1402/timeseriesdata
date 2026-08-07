@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>히스토그램은 거짓말을 할 수 있다 · 눈으로 보는 통계</title>
+<meta name="description" content="같은 데이터라도 구간 폭을 바꾸면 이야기가 달라집니다. 분포의 모양을 읽는 법.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%F0%9F%93%8A%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 모듈 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">모듈 02 · 분포의 모양</p>
+    <h1>히스토그램은 거짓말을 할 수 있다</h1>
+    <p class="lede">
+      데이터를 요약하기 전에 <b>모양부터 봐야</b> 합니다.
+      그런데 그 모양은 내가 고른 구간 폭에 따라 달라집니다.
+      직접 손잡이를 돌려보면서 확인해보세요.
+    </p>
+  </header>
+
+  <section class="panel">
+    <div class="canvas-wrap"><canvas id="c"></canvas></div>
+    <div class="canvas-wrap" style="margin-top:8px"><canvas id="c2"></canvas></div>
+
+    <div class="seg" role="group" aria-label="데이터 종류">
+      <label><input type="radio" name="gen" value="normal" checked><span>종 모양</span></label>
+      <label><input type="radio" name="gen" value="skew"><span>오른쪽 치우침</span></label>
+      <label><input type="radio" name="gen" value="bimodal"><span>봉우리 둘</span></label>
+      <label><input type="radio" name="gen" value="uniform"><span>균등</span></label>
+      <label><input type="radio" name="gen" value="outlier"><span>이상치 포함</span></label>
+    </div>
+
+    <div class="controls">
+      <label class="ctrl">
+        <span class="label-row"><span class="name">데이터 개수 n</span><span class="val" id="n-val">300</span></span>
+        <input type="range" id="n" min="20" max="2000" step="10" value="300">
+      </label>
+      <label class="ctrl">
+        <span class="label-row"><span class="name">구간(bin) 개수</span><span class="val" id="bins-val">20</span></span>
+        <input type="range" id="bins" min="2" max="80" step="1" value="20">
+      </label>
+    </div>
+
+    <div class="btns">
+      <button class="btn primary" id="resample">새로 뽑기</button>
+      <button class="btn" id="auto-bins">적정 구간 수로</button>
+      <label class="toggle"><input type="checkbox" id="showBox" checked> 상자그림</label>
+      <label class="toggle"><input type="checkbox" id="showCenter" checked> 평균·중앙값</label>
+    </div>
+
+    <div class="readout">
+      <div class="stat accent"><span class="k">평균</span><span class="v" id="s-mean">–</span></div>
+      <div class="stat pos"><span class="k">중앙값</span><span class="v" id="s-med">–</span></div>
+      <div class="stat"><span class="k">표준편차</span><span class="v" id="s-sd">–</span></div>
+      <div class="stat"><span class="k">Q1</span><span class="v" id="s-q1">–</span></div>
+      <div class="stat"><span class="k">Q3</span><span class="v" id="s-q3">–</span></div>
+      <div class="stat warn"><span class="k">왜도</span><span class="v" id="s-skew">–</span></div>
+    </div>
+
+    <div class="legend">
+      <span class="legend-item"><span class="swatch line" style="background:var(--accent)"></span> 평균</span>
+      <span class="legend-item"><span class="swatch line" style="background:var(--pos)"></span> 중앙값</span>
+      <span class="legend-item"><span class="swatch" style="background:var(--neg)"></span> 상자그림 기준 이상치</span>
+    </div>
+  </section>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 모듈에서 다루는 것</b>
+      <ol>
+        <li><a href="#s1">구간 폭 하나로 결론이 바뀐다</a></li>
+        <li><a href="#s2">평균과 중앙값의 간격 = 치우침</a></li>
+        <li><a href="#s3">상자그림 읽는 법과 이상치 기준</a></li>
+        <li><a href="#s4">n이 커지면 무엇이 안정되나</a></li>
+        <li><a href="#s5">실무: 치우친 데이터를 다루는 3가지 방법</a></li>
+        <li><a href="#s6">흔한 실수</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s1">1. 구간 폭 하나로 결론이 바뀝니다</h2>
+    <p>
+      <b>봉우리 둘</b>을 고른 다음, 구간 개수를 <b>4개까지 줄여보세요.</b>
+      두 개의 봉우리가 사라지고 하나의 밋밋한 언덕처럼 보입니다.
+      반대로 <b>70개까지 늘리면</b> 이번에는 들쭉날쭉한 잡음 때문에
+      봉우리가 열 개쯤 있는 것처럼 보입니다.
+    </p>
+    <p>
+      데이터는 하나도 안 바뀌었는데 말이죠. 히스토그램은 <b>데이터 + 내가 고른 구간 폭</b>의
+      결과물이지, 데이터 그 자체가 아닙니다.
+    </p>
+    <div class="formula">
+      <div class="name">구간 폭을 고르는 두 가지 규칙</div>
+      <div class="eq">
+        <span class="small">Sturges (간단, n이 작을 때)</span><br>
+        k &nbsp;=&nbsp; ⌈ log<sub>2</sub> n ⌉ + 1
+        <br><br>
+        <span class="small">Freedman–Diaconis (이상치에 강함, 실무 기본)</span><br>
+        h &nbsp;=&nbsp; 2 ·
+        <span class="frac"><span>IQR</span><span><span class="rad">∛<span>n</span></span></span></span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">k</span><span class="desc">구간(bin)의 <b>개수</b></span></li>
+        <li><span class="sym">h</span><span class="desc">구간 하나의 <b>폭</b>. 개수는 <span class="m">(최댓값−최솟값)/h</span></span></li>
+        <li><span class="sym">IQR</span><span class="desc">Q3 − Q1. 이상치에 흔들리지 않아서 FD 규칙이 더 안전합니다</span></li>
+      </ul>
+    </div>
+
+    <div class="practice">
+      <b>실무 규칙</b>
+      <ul>
+        <li>탐색 단계에서는 <span class="m">√n</span> 근처에서 시작해 <b>두세 번 바꿔보고</b>,
+            모양이 유지되는지 확인합니다. 한 가지 폭에서만 보이는 봉우리는 대개 착시입니다.
+            (<b>적정 구간 수로</b> 버튼이 이 값을 넣어줍니다.)</li>
+        <li>남에게 보여줄 그림은 <b>Freedman–Diaconis</b>가 무난합니다.
+            <code>numpy.histogram(x, bins='fd')</code>, <code>seaborn.histplot(x, bins='fd')</code>로 바로 됩니다.</li>
+        <li>구간 폭을 고른 근거를 캡션에 적으세요. "bin=30" 한 줄이면 충분합니다.
+            그게 없으면 독자는 그림을 검증할 수 없습니다.</li>
+      </ul>
+    </div>
+
+    <h2 id="s2">2. 평균과 중앙값의 간격이 치우침을 말해줍니다</h2>
+    <p>
+      <b>종 모양</b>에서는 파란 선(평균)과 초록 선(중앙값)이 거의 겹칩니다.
+      <b>오른쪽 치우침</b>으로 바꿔보세요. 평균이 중앙값보다 <b>오른쪽</b>에 섭니다.
+      긴 꼬리 쪽으로 평균이 끌려간 것입니다(모듈 01의 시소를 떠올려보세요).
+    </p>
+    <ul>
+      <li><b>평균 &gt; 중앙값</b> → 오른쪽으로 긴 꼬리 (왜도 +)</li>
+      <li><b>평균 ≈ 중앙값</b> → 대칭에 가까움 (왜도 ≈ 0)</li>
+      <li><b>평균 &lt; 중앙값</b> → 왼쪽으로 긴 꼬리 (왜도 −)</li>
+    </ul>
+    <div class="formula">
+      <div class="name">치우침을 숫자로 · 왜도(skewness)</div>
+      <div class="eq">
+        g<sub>1</sub> &nbsp;=&nbsp;
+        <span class="frac"><span>1</span><span>n</span></span>
+        <span class="sig">Σ</span>
+        <span style="font-size:1.1em">(</span>
+        <span class="frac"><span>x<sub>i</sub> − x̄</span><span>σ</span></span>
+        <span style="font-size:1.1em">)</span><sup>3</sup>
+      </div>
+      <ul class="where">
+        <li><span class="sym">(x−x̄)/σ</span><span class="desc">z-점수. 단위를 없애서 어떤 데이터든 비교 가능하게 만듭니다(모듈 03)</span></li>
+        <li><span class="sym">세제곱</span><span class="desc"><b>부호를 살리는</b> 홀수 거듭제곱.
+            제곱(분산)은 방향을 지우지만 세제곱은 "어느 쪽으로 치우쳤나"를 남깁니다</span></li>
+        <li><span class="sym">g<sub>1</sub> &gt; 0</span><span class="desc">오른쪽 꼬리 (대략 +0.5 넘으면 눈에 띄는 치우침)</span></li>
+        <li><span class="sym">g<sub>1</sub> ≈ 0</span><span class="desc">대칭 <b>또는 좌우로 똑같이 이상한 모양</b> — 아래 경고 참고</span></li>
+      </ul>
+    </div>
+
+    <div class="pitfall">
+      <b>왜도 0이 "정규분포"라는 뜻은 아닙니다</b>
+      <b>봉우리 둘</b>을 눌러보세요. 왜도는 0에 가깝고 평균과 중앙값도 딱 겹칩니다.
+      숫자만 보면 완벽한 정규분포처럼 보이지만, 그림은 전혀 다르게 생겼습니다.
+      요약값은 <b>모양을 대신할 수 없습니다.</b> 그래서 순서는 언제나
+      <b>그림 → 숫자</b>이지, 숫자 → 그림이 아닙니다.
+    </div>
+
+    <h2 id="s3">3. 상자그림 읽는 법</h2>
+    <p>
+      아래쪽 상자그림은 히스토그램을 다섯 개 숫자로 압축한 것입니다.
+    </p>
+    <ul>
+      <li><b>상자의 왼쪽 끝 = Q1</b> (하위 25% 지점), <b>오른쪽 끝 = Q3</b> (상위 25% 지점)</li>
+      <li><b>상자 안의 굵은 선 = 중앙값</b></li>
+      <li><b>상자의 길이 = IQR</b> (가운데 50%가 차지하는 폭) — 이상치에 흔들리지 않는 퍼짐 척도</li>
+      <li><b>수염</b>은 상자 끝에서 <span class="m">1.5 × IQR</span> 안에 있는 가장 먼 데이터까지</li>
+      <li><b>빨간 점</b>은 그 밖에 있는 값 — 관례적으로 "이상치 후보"</li>
+    </ul>
+    <div class="formula">
+      <div class="name">이상치 판정 · 1.5 IQR 울타리 (Tukey)</div>
+      <div class="eq">
+        아래 울타리 &nbsp;=&nbsp; Q1 − 1.5 × IQR
+        <br>
+        위 울타리 &nbsp;=&nbsp; Q3 + 1.5 × IQR
+        <br>
+        <span class="small">IQR = Q3 − Q1</span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">1.5</span><span class="desc">마법의 수가 아닙니다. 정규분포라면 이 바깥에 약 <b>0.7%</b>만 남도록
+            Tukey가 고른 관례값입니다. 더 엄격하게 보려면 3.0을 씁니다</span></li>
+        <li><span class="sym">IQR</span><span class="desc">가운데 50%의 폭. 계산에 <b>극단값이 아예 안 들어가서</b> 이상치에 강합니다</span></li>
+      </ul>
+    </div>
+
+    <p>
+      <b>이상치 포함</b>을 눌러보세요. 표준편차는 확 뛰지만 IQR은 거의 그대로입니다.
+      "이상치에 강하다(robust)"는 말이 이런 뜻입니다.
+      그래서 <b>"평균 ± 3σ 바깥을 이상치로 본다"는 규칙은 위험합니다</b> —
+      이상치가 자기 자신을 판정하는 σ를 부풀려서, 정작 자기는 빠져나갑니다(<b>가면 효과, masking</b>).
+    </p>
+
+    <div class="takeaway">
+      <b>한 줄 요약 ·</b> 숫자를 요약하기 전에 그림을 보고,
+      그림을 믿기 전에 구간 폭을 두세 번 바꿔보세요.
+    </div>
+
+    <h2 id="s4">4. n이 커지면 무엇이 안정되나</h2>
+    <p>
+      n을 20에서 2000까지 올려보세요. 히스토그램이 점점 <b>매끄러운 이론적 모양</b>에 가까워집니다.
+      그런데 <b>퍼짐(표준편차)은 줄어들지 않습니다.</b> 여기서 헷갈리는 사람이 많습니다.
+    </p>
+    <p>
+      n이 커진다고 개별 데이터가 덜 흩어지는 게 아닙니다. 개별 데이터의 퍼짐은 그 모집단의 성질이니까요.
+      n이 커질 때 정밀해지는 건 <b>우리가 추정하는 값(평균 같은)</b>입니다.
+      그 이야기가 모듈 04(중심극한정리)의 주제입니다.
+    </p>
+
+    <h2 id="s5">5. 실무: 치우친 데이터를 다루는 3가지 방법</h2>
+    <p>
+      현업 데이터는 대부분 <b>오른쪽 치우침</b>입니다. 매출, 체류시간, 응답시간, 조회수, 보유 자산 —
+      전부 "대다수는 작고 소수가 아주 크다"는 모양이죠. 선택지는 셋입니다.
+    </p>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>방법</th><th>어떻게</th><th>언제 쓰나</th><th>주의</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><b>① 로버스트 통계로 갈아타기</b></td>
+            <td>평균 → 중앙값<br>표준편차 → IQR<br>"상위" → p95, p99</td>
+            <td>보고·모니터링 대부분.<br>가장 안전한 기본값</td>
+            <td>분위수는 더하거나 평균 낼 수 없음.<br>서버별 p95를 평균 내면 안 됩니다</td>
+          </tr>
+          <tr>
+            <td><b>② 로그 변환</b></td>
+            <td><code>log(x)</code> 또는 <code>log1p(x)</code>로 바꾼 뒤 분석</td>
+            <td>배수로 움직이는 값<br>(매출, 가격, 조회수)</td>
+            <td>0·음수 처리 필요.<br>결과 해석이 "배수"로 바뀜</td>
+          </tr>
+          <tr>
+            <td><b>③ 쪼개기</b></td>
+            <td>세그먼트별로 나눠서 각각 요약</td>
+            <td>봉우리가 둘 이상일 때<br>(신규/기존, 모바일/PC)</td>
+            <td>쪼갤 기준을 <b>데이터 보기 전에</b> 정할 것</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="practice">
+      <b>로그 변환이 왜 통하나</b>
+      매출 같은 값은 "1만 원 늘었다"보다 "20% 늘었다"가 자연스러운 단위입니다.
+      로그를 씌우면 <b>곱셈이 덧셈으로</b> 바뀌어서, 배수로 퍼진 데이터가 대칭적인 종 모양이 됩니다.
+      <b>오른쪽 치우침</b> 데이터로 직접 확인해보세요 — 로그를 씌우면 위 히스토그램이 종 모양에 가까워집니다.
+      단, 결과를 되돌릴 때 <code>exp(평균of로그)</code>는 <b>기하평균</b>이지 산술평균이 아닙니다. 보고할 때 명시하세요.
+    </div>
+
+    <h2 id="s6">6. 흔한 실수</h2>
+    <div class="pitfall">
+      <b>그림으로 속이거나 속지 않으려면</b>
+      <ol style="margin:8px 0 0;padding-left:18px">
+        <li><b>구간 폭을 바꿔가며 원하는 그림 고르기.</b> 의도가 없어도 결과적으로 그렇게 됩니다.
+            폭을 정한 근거를 먼저 정하세요.</li>
+        <li><b>y축을 0에서 시작하지 않기.</b> 히스토그램(막대)에서는 반드시 0부터입니다.
+            막대 길이가 곧 양이니까요. (선그래프는 예외가 있습니다.)</li>
+        <li><b>이상치를 보기도 전에 자동 제거.</b> 그 값이 오류인지 진짜인지 확인이 먼저입니다.
+            사기 탐지·장애 분석에서는 이상치가 <b>찾던 대상</b>입니다.</li>
+        <li><b>봉우리 둘을 하나로 요약.</b> 평균이 골짜기에 떨어져 아무도 대표하지 않게 됩니다.</li>
+        <li><b>정규성 확인 없이 정규분포 공식 적용.</b> 68-95-99.7은 대칭일 때만 맞습니다.</li>
+        <li><b>분위수를 평균 내기.</b> 서버 3대의 p95가 각각 200/300/1000ms일 때
+            전체 p95는 500ms가 <b>아닙니다.</b> 원본 데이터를 합쳐서 다시 계산해야 합니다.</li>
+      </ol>
+    </div>
+
+    <div class="summary">
+      <h3>이 모듈 요약</h3>
+      <ul>
+        <li>히스토그램은 <b>데이터 + 내가 고른 구간 폭</b>의 결과물이다. 폭을 바꿔가며 검증할 것.</li>
+        <li>구간 폭은 <span class="m">√n</span>에서 시작해, 발표용은 Freedman–Diaconis.</li>
+        <li><b>평균 &gt; 중앙값</b>이면 오른쪽 치우침. 간격이 10%를 넘으면 중앙값 기반으로 전환.</li>
+        <li>상자그림 5요소: 최솟값(수염) · Q1 · 중앙값 · Q3 · 최댓값(수염), 그 밖은 이상치 후보.</li>
+        <li><b>IQR은 이상치에 강하고 σ는 약하다.</b> 3σ 규칙은 가면 효과 때문에 위험.</li>
+        <li>치우친 데이터 → ① 로버스트 통계 ② 로그 변환 ③ 세그먼트 분리.</li>
+      </ul>
+    </div>
+
+    <p class="next-up">
+      다음 → <a href="03-normal-z.html">모듈 03 · 면적이 곧 확률이다</a><br>
+      가장 중요한 모양 하나, 정규분포를 자세히 봅니다.
+    </p>
+  </section>
+
+</div>
+
+<script src="../assets/viz.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var rng = new V.Rng(20240101);
+
+  var GENS = {
+    normal:  { domain: [0, 100],  f: function (r) { return r.normal(50, 12); } },
+    skew:    { domain: [0, 170],  f: function (r) { return 12 + r.exp(1 / 26); } },
+    bimodal: { domain: [0, 100],  f: function (r) { return r.u() < 0.5 ? r.normal(28, 7) : r.normal(72, 7); } },
+    uniform: { domain: [0, 100],  f: function (r) { return r.uniform(8, 92); } },
+    outlier: { domain: [0, 200],  f: function (r) { return r.u() < 0.04 ? r.normal(160, 12) : r.normal(45, 8); } }
+  };
+
+  var state = { gen: 'normal', n: 300, bins: 20, showBox: true, showCenter: true };
+  var data = [], sorted = [], summary = null;
+
+  var hist = new V.Plot(V.el('#c'), {
+    margin: { top: 22, right: 18, bottom: 30, left: 46 },
+    height: function (w) { return w < 480 ? 250 : 320; }
+  });
+
+  var strip = new V.Plot(V.el('#c2'), {
+    margin: { top: 8, right: 18, bottom: 22, left: 46 },
+    height: 100,
+    yDomain: [0, 1]
+  });
+
+  function resample() {
+    var g = GENS[state.gen];
+    data = new Array(state.n);
+    for (var i = 0; i < state.n; i++) data[i] = g.f(rng);
+    sorted = data.slice().sort(function (a, b) { return a - b; });
+
+    var mean = V.S.mean(data);
+    var sd = V.S.sdS(data, mean);
+    var q1 = V.S.quantile(sorted, 0.25);
+    var q3 = V.S.quantile(sorted, 0.75);
+    var iqr = q3 - q1;
+
+    // 왜도 g1 = 표준화된 편차의 세제곱 평균
+    var sk = 0, sdP = V.S.sdP(data, mean);
+    if (sdP > 0) {
+      for (var j = 0; j < data.length; j++) {
+        var z = (data[j] - mean) / sdP;
+        sk += z * z * z;
+      }
+      sk /= data.length;
+    }
+
+    summary = {
+      mean: mean, median: V.S.quantile(sorted, 0.5), sd: sd,
+      q1: q1, q3: q3, iqr: iqr, skew: sk,
+      loFence: q1 - 1.5 * iqr, hiFence: q3 + 1.5 * iqr
+    };
+  }
+
+  function suggestedBins() {
+    return V.clamp(Math.round(Math.sqrt(state.n)), 2, 80);
+  }
+
+  function draw() {
+    var dom = GENS[state.gen].domain;
+    hist.xDomain = dom.slice();
+    strip.xDomain = dom.slice();
+
+    var h = V.S.histogram(data, dom[0], dom[1], state.bins);
+    hist.yDomain = [0, Math.max(1, h.maxCount) * 1.18];
+
+    hist.begin();
+    hist.axes({
+      yTickCount: 4,
+      xFormat: function (v) { return String(Math.round(v)); },
+      yFormat: function (v) { return String(Math.round(v)); },
+      yLabel: '도수(개수)'
+    });
+
+    hist.bars(h.bins.map(function (b) { return { x0: b.x0, x1: b.x1, y: b.count }; }), {
+      color: V.css('--accent-soft'),
+      stroke: V.css('--accent'),
+      gap: h.bins.length > 45 ? 0 : 0.5,
+      lineWidth: h.bins.length > 55 ? 0 : 1
+    });
+
+    if (state.showCenter) {
+      hist.vline(summary.median, {
+        color: V.css('--pos'), width: 2.5,
+        label: '중앙값 ' + V.fmt(summary.median, 1), labelY: -18
+      });
+      hist.vline(summary.mean, {
+        color: V.css('--accent'), width: 2.5, dash: [6, 4],
+        label: '평균 ' + V.fmt(summary.mean, 1), labelY: -18
+      });
+    }
+
+    /* ---------- 아래쪽: 러그 + 상자그림 ---------- */
+    strip.begin();
+    var ctx = strip.ctx;
+
+    // 러그 플롯 (데이터 하나하나의 위치)
+    ctx.save();
+    ctx.strokeStyle = V.css('--accent');
+    ctx.globalAlpha = V.clamp(28 / Math.sqrt(state.n), 0.06, 0.55);
+    ctx.lineWidth = 1;
+    var rugTop = strip.margin.top + 2, rugBot = rugTop + 16;
+    for (var i = 0; i < data.length; i++) {
+      var px = strip.x(data[i]);
+      if (px < strip.margin.left || px > strip.margin.left + strip.pw) continue;
+      ctx.beginPath();
+      ctx.moveTo(px, rugTop);
+      ctx.lineTo(px, rugBot);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    if (state.showBox) {
+      var cy = rugBot + 26, bh = 26;
+      var s = summary;
+
+      // 수염 끝: 울타리 안쪽의 가장 먼 실제 데이터
+      var wLo = sorted[0], wHi = sorted[sorted.length - 1];
+      for (var a = 0; a < sorted.length; a++) { if (sorted[a] >= s.loFence) { wLo = sorted[a]; break; } }
+      for (var b = sorted.length - 1; b >= 0; b--) { if (sorted[b] <= s.hiFence) { wHi = sorted[b]; break; } }
+
+      ctx.save();
+      ctx.strokeStyle = V.css('--text-dim');
+      ctx.lineWidth = 1.5;
+      // 수염
+      ctx.beginPath();
+      ctx.moveTo(strip.x(wLo), cy); ctx.lineTo(strip.x(s.q1), cy);
+      ctx.moveTo(strip.x(s.q3), cy); ctx.lineTo(strip.x(wHi), cy);
+      ctx.moveTo(strip.x(wLo), cy - 7); ctx.lineTo(strip.x(wLo), cy + 7);
+      ctx.moveTo(strip.x(wHi), cy - 7); ctx.lineTo(strip.x(wHi), cy + 7);
+      ctx.stroke();
+
+      // 상자
+      var bx = strip.x(s.q1), bw = Math.max(2, strip.x(s.q3) - strip.x(s.q1));
+      ctx.fillStyle = V.css('--accent-soft');
+      ctx.fillRect(bx, cy - bh / 2, bw, bh);
+      ctx.strokeStyle = V.css('--accent');
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(bx, cy - bh / 2, bw, bh);
+
+      // 중앙값
+      ctx.strokeStyle = V.css('--pos');
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(strip.x(s.median), cy - bh / 2);
+      ctx.lineTo(strip.x(s.median), cy + bh / 2);
+      ctx.stroke();
+
+      // 이상치
+      ctx.fillStyle = V.css('--neg');
+      ctx.globalAlpha = 0.75;
+      for (var k = 0; k < data.length; k++) {
+        if (data[k] < s.loFence || data[k] > s.hiFence) {
+          ctx.beginPath();
+          ctx.arc(strip.x(data[k]), cy, 3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      ctx.restore();
+    }
+
+    strip.axes({ yAxis: false, xFormat: function (v) { return String(Math.round(v)); } });
+
+    /* ---------- 수치 ---------- */
+    V.setText('#s-mean', V.fmt(summary.mean, 1));
+    V.setText('#s-med', V.fmt(summary.median, 1));
+    V.setText('#s-sd', V.fmt(summary.sd, 1));
+    V.setText('#s-q1', V.fmt(summary.q1, 1));
+    V.setText('#s-q3', V.fmt(summary.q3, 1));
+    V.setText('#s-skew', V.fmt(summary.skew, 2));
+  }
+
+  /* ---------------- 바인딩 ---------------- */
+  var binsCtl = V.range('bins', function (v) { state.bins = v; if (summary) draw(); });
+  V.range('n', function (v) { state.n = v; resample(); draw(); });
+
+  V.radios('gen', function (v) { state.gen = v; resample(); draw(); });
+  V.click('resample', function () { resample(); draw(); });
+  V.click('auto-bins', function () { binsCtl.set(suggestedBins()); });
+  V.check('showBox', function (v) { state.showBox = v; draw(); });
+  V.check('showCenter', function (v) { state.showCenter = v; draw(); });
+
+  V.onRedraw(function () { if (summary) draw(); });
+
+  resample();
+  draw();
+})();
+</script>
+</body>
+</html>

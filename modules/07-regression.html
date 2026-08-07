@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>최소제곱은 넓이의 합이다 · 눈으로 보는 통계</title>
+<meta name="description" content="회귀선이 왜 하필 그 자리에 그어지는지, 잔차 정사각형의 넓이로 직접 확인합니다.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%F0%9F%93%8A%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 모듈 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">모듈 07 · 상관과 회귀</p>
+    <h1>최소제곱은 넓이의 합이다</h1>
+    <p class="lede">
+      "최소제곱법"이라는 이름은 비유가 아니라 <b>말 그대로</b>입니다.
+      각 점이 선에서 벗어난 거리로 <b>정사각형</b>을 그리고,
+      그 <b>넓이의 총합이 가장 작아지는</b> 선을 고르는 것.
+      직접 선을 그어서 이겨보세요.
+    </p>
+  </header>
+
+  <section class="panel">
+    <div class="canvas-wrap"><canvas id="c"></canvas></div>
+    <p class="hint">
+      점을 <b>끌어서</b> 옮기고, 빈 곳을 <b>클릭</b>해 추가하고, 점을 <b>더블클릭</b>해 지울 수 있습니다.
+    </p>
+
+    <div class="seg" role="group" aria-label="데이터 프리셋">
+      <label><input type="radio" name="preset" value="strong" checked><span>강한 양의 상관</span></label>
+      <label><input type="radio" name="preset" value="weak"><span>약한 상관</span></label>
+      <label><input type="radio" name="preset" value="neg"><span>음의 상관</span></label>
+      <label><input type="radio" name="preset" value="none"><span>관계 없음</span></label>
+      <label><input type="radio" name="preset" value="curve"><span>곡선 관계</span></label>
+      <label><input type="radio" name="preset" value="outlier"><span>이상치 하나</span></label>
+    </div>
+
+    <div class="btns">
+      <label class="toggle"><input type="checkbox" id="showSq" checked> 잔차 정사각형</label>
+      <label class="toggle"><input type="checkbox" id="myLine"> 내가 직접 선 긋기</label>
+      <button class="btn primary" id="best">최적선 보여주기</button>
+    </div>
+
+    <div class="controls" id="lineControls" style="display:none">
+      <label class="ctrl">
+        <span class="label-row"><span class="name">내 선의 기울기</span><span class="val" id="slope-val">1.0</span></span>
+        <input type="range" id="slope" min="-2.5" max="2.5" step="0.02" value="1">
+      </label>
+      <label class="ctrl">
+        <span class="label-row"><span class="name">내 선의 절편</span><span class="val" id="icept-val">10</span></span>
+        <input type="range" id="icept" min="-40" max="120" step="0.5" value="10">
+      </label>
+    </div>
+
+    <div class="readout">
+      <div class="stat"><span class="k">점 개수 n</span><span class="v" id="s-n">–</span></div>
+      <div class="stat accent"><span class="k">상관계수 r</span><span class="v" id="s-r">–</span></div>
+      <div class="stat accent"><span class="k">결정계수 r²</span><span class="v" id="s-r2">–</span></div>
+      <div class="stat"><span class="k">기울기</span><span class="v" id="s-slope">–</span></div>
+      <div class="stat"><span class="k">절편</span><span class="v" id="s-icept">–</span></div>
+      <div class="stat warn"><span class="k" id="sse-label">넓이 합 (SSE)</span><span class="v" id="s-sse">–</span></div>
+    </div>
+
+    <div class="legend">
+      <span class="legend-item"><span class="swatch line" style="background:var(--accent)"></span> 최소제곱 회귀선</span>
+      <span class="legend-item"><span class="swatch line" style="background:var(--purple)"></span> 내가 그은 선</span>
+      <span class="legend-item"><span class="swatch" style="background:var(--warn-soft);border:1px solid var(--warn)"></span> 잔차 정사각형</span>
+      <span class="legend-item"><span class="swatch" style="background:var(--pos);border-radius:50%"></span> 무게중심 (x̄, ȳ)</span>
+    </div>
+  </section>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 모듈에서 다루는 것</b>
+      <ol>
+        <li><a href="#s1">직접 선을 그어 이겨보기</a></li>
+        <li><a href="#s2">왜 하필 "제곱"인가</a></li>
+        <li><a href="#s3">회귀선 공식 — 세 줄이면 끝</a></li>
+        <li><a href="#s4">상관계수 r과 결정계수 r²</a></li>
+        <li><a href="#s5">r이 못 보는 것들</a></li>
+        <li><a href="#s6">실무: 회귀 결과를 읽고 쓰는 법</a></li>
+        <li><a href="#s7">흔한 실수</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s1">1. 직접 선을 그어 이겨보기</h2>
+    <ol>
+      <li><b>내가 직접 선 긋기</b>를 켜세요. 보라색 선과 슬라이더 두 개가 나타납니다.</li>
+      <li>기울기와 절편을 움직여 <b>주황 정사각형들의 넓이 합(SSE)</b>을 최대한 작게 만들어보세요.</li>
+      <li>더 못 줄이겠다 싶으면 <b>최적선 보여주기</b>를 누르세요.
+          파란 선이 나타나고, 그게 <b>수학적으로 넓이 합이 최소인 유일한 선</b>입니다.</li>
+    </ol>
+    <p>
+      해보면 알게 되는 게 있습니다. <b>선을 조금만 기울여도 멀리 있는 점의 사각형이 폭발적으로 커집니다.</b>
+      회귀선이 이상치에 끌려가는 이유가 여기서 눈에 보입니다.
+    </p>
+    <div class="callout">
+      <b>초록 점을 주목하세요.</b> 회귀선은 <b>반드시 무게중심 (x̄, ȳ)를 지납니다.</b>
+      점을 아무리 끌어도 그렇습니다. 최적선은 그 점을 축으로 <b>회전만</b> 하는 셈이죠.
+      모듈 01에서 본 "평균은 균형점"이 2차원으로 확장된 모습입니다.
+    </div>
+
+    <h2 id="s2">2. 왜 하필 "제곱"인가</h2>
+    <p>
+      점과 선 사이의 <b>세로 거리</b>를 <b>잔차(residual)</b>라고 합니다.
+      "선을 잘 그었다"는 건 잔차들이 전체적으로 작다는 뜻이죠. 그런데 어떻게 합칠까요?
+    </p>
+    <ul>
+      <li><b>그냥 더하기</b> → 위아래가 상쇄돼서 0. 실패입니다(모듈 01의 편차 합과 같은 이유).</li>
+      <li><b>절댓값의 합</b> → 됩니다. 실제로 이것도 쓰입니다(최소절대편차, 중앙값 회귀).
+          이상치에 강하지만 <b>해가 여러 개일 수 있고</b> 계산이 까다롭습니다.</li>
+      <li><b>제곱의 합</b> → 미분이 되고, 해가 <b>딱 하나</b>로 정해지며, 공식이 닫힌 형태로 나옵니다.</li>
+    </ul>
+    <div class="formula">
+      <div class="name">최소화 대상 · 잔차제곱합 (SSE)</div>
+      <div class="eq">
+        SSE &nbsp;=&nbsp; <span class="sig">Σ</span> e<sub>i</sub><sup>2</sup>
+        &nbsp;=&nbsp; <span class="sig">Σ</span> ( y<sub>i</sub> − ŷ<sub>i</sub> )<sup>2</sup>
+        &nbsp;=&nbsp; <span class="sig">Σ</span> ( y<sub>i</sub> − a − b·x<sub>i</sub> )<sup>2</sup>
+      </div>
+      <ul class="where">
+        <li><span class="sym">y<sub>i</sub></span><span class="desc">실제 관측값 (점의 높이)</span></li>
+        <li><span class="sym">ŷ<sub>i</sub></span><span class="desc">"와이 햇". 선이 예측한 값</span></li>
+        <li><span class="sym">e<sub>i</sub></span><span class="desc"><b>잔차</b> = 실제 − 예측. 그림의 세로 선분</span></li>
+        <li><span class="sym">e<sub>i</sub><sup>2</sup></span><span class="desc"><b>정사각형 하나의 넓이</b></span></li>
+      </ul>
+    </div>
+    <p>
+      그림에서 <b>주황 사각형 전체 넓이 = SSE</b>입니다.
+      "최소제곱법"은 이 넓이 합을 최소로 만드는 <span class="m">a</span>와 <span class="m">b</span>를
+      찾는 일이고, 그게 전부입니다.
+    </p>
+    <div class="callout">
+      <b>왜 세로 거리인가?</b> 점과 선의 <b>수직(최단) 거리</b>가 아니라 <b>세로 거리</b>를 쓰는 이유는,
+      회귀가 "<b>x를 알 때 y를 예측</b>"하는 비대칭적인 작업이기 때문입니다.
+      x에는 오차가 없다고 보고, y의 예측 오차만 줄이는 거죠.
+      그래서 <b>x와 y를 바꿔서 회귀하면 다른 선이 나옵니다.</b> (r은 안 바뀝니다.)
+      둘 다 오차가 있다면 직교회귀(주성분 회귀)를 씁니다.
+    </div>
+
+    <h2 id="s3">3. 회귀선 공식 — 세 줄이면 끝</h2>
+    <p>
+      SSE를 a와 b로 미분해서 0으로 놓으면 답이 딱 떨어집니다. 결과만 보면 이렇습니다.
+    </p>
+    <div class="formula">
+      <div class="name">단순선형회귀의 해</div>
+      <div class="eq">
+        b &nbsp;=&nbsp;
+        <span class="frac"><span><span class="sig">Σ</span>(x<sub>i</sub>−x̄)(y<sub>i</sub>−ȳ)</span><span><span class="sig">Σ</span>(x<sub>i</sub>−x̄)<sup>2</sup></span></span>
+        &nbsp;=&nbsp; r ·
+        <span class="frac"><span>s<sub>y</sub></span><span>s<sub>x</sub></span></span>
+        <br>
+        a &nbsp;=&nbsp; ȳ − b·x̄
+      </div>
+      <ul class="where">
+        <li><span class="sym">분자</span><span class="desc"><b>공분산</b>. x가 클 때 y도 크면 +, 반대면 −</span></li>
+        <li><span class="sym">분모</span><span class="desc">x의 <b>퍼짐</b>(제곱합). x가 안 퍼져 있으면 기울기를 잴 수 없습니다</span></li>
+        <li><span class="sym">a = ȳ − b·x̄</span><span class="desc">이 식을 옮기면 <span class="m">ȳ = a + b·x̄</span> —
+            <b>회귀선이 (x̄, ȳ)를 지난다</b>는 증명입니다. 그림의 초록 점이 그것</span></li>
+        <li><span class="sym">b = r·s<sub>y</sub>/s<sub>x</sub></span><span class="desc">기울기는 <b>상관계수를 단위 환산한 것</b>일 뿐</span></li>
+      </ul>
+    </div>
+
+    <h2 id="s4">4. 상관계수 r과 결정계수 r²</h2>
+    <div class="formula">
+      <div class="name">피어슨 상관계수</div>
+      <div class="eq">
+        r &nbsp;=&nbsp;
+        <span class="frac">
+          <span><span class="sig">Σ</span>(x<sub>i</sub>−x̄)(y<sub>i</sub>−ȳ)</span>
+          <span><span class="rad">√<span><span class="sig">Σ</span>(x<sub>i</sub>−x̄)<sup>2</sup> · <span class="sig">Σ</span>(y<sub>i</sub>−ȳ)<sup>2</sup></span></span></span>
+        </span>
+        <br>
+        <span class="small">−1 ≤ r ≤ +1</span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">r = +1</span><span class="desc">모든 점이 <b>우상향 직선</b> 위에 정확히</span></li>
+        <li><span class="sym">r = 0</span><span class="desc"><b>직선</b> 관계가 없음 (관계가 없다는 뜻이 아님! §5)</span></li>
+        <li><span class="sym">r = −1</span><span class="desc">모든 점이 우하향 직선 위에</span></li>
+        <li><span class="sym">단위 없음</span><span class="desc">x, y를 z-점수로 바꾼 뒤의 기울기와 같습니다.
+            그래서 cm든 원이든 비교 가능합니다</span></li>
+      </ul>
+    </div>
+    <p>
+      <b>r² (결정계수)</b>는 훨씬 해석이 쉽습니다.
+      <b>y의 변동 중 x로 설명되는 비율</b>이죠.
+    </p>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>r</th><th>r²</th><th>읽는 법</th></tr></thead>
+        <tbody>
+          <tr><td>0.9</td><td>0.81</td><td>y의 변동 중 <b>81%</b>를 x로 설명. 매우 강함</td></tr>
+          <tr><td>0.7</td><td>0.49</td><td>절반쯤 설명. 강해 보이지만 <b>절반은 여전히 모름</b></td></tr>
+          <tr><td>0.5</td><td>0.25</td><td>25%만 설명. 산점도로 보면 꽤 흩어져 보입니다</td></tr>
+          <tr><td>0.3</td><td>0.09</td><td>9%. 사회과학에서는 "의미 있음"이지만 예측에는 거의 무용</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pitfall">
+      <b>r = 0.7을 "70% 관계"로 읽으면 안 됩니다</b>
+      설명력은 <b>r²=49%</b>입니다. r은 제곱해서 읽는 습관을 들이세요.
+      r이 0.5만 되어도 산점도는 생각보다 훨씬 지저분합니다 —
+      <b>약한 상관</b> 프리셋에서 r 값과 실제 그림을 비교해보세요.
+    </div>
+
+    <h2 id="s5">5. r이 못 보는 것들</h2>
+    <p>
+      <b>곡선 관계</b> 프리셋을 눌러보세요. 점들은 명백한 규칙(포물선)을 따르는데
+      <b>r은 0에 가깝습니다.</b> r은 오직 <b>직선</b> 관계만 잽니다.
+      <b>r = 0은 "관계 없음"이 아니라 "직선 관계 없음"</b>입니다.
+    </p>
+    <p>
+      <b>이상치 하나</b>를 눌러보세요. 점 하나 때문에 r과 기울기가 완전히 달라집니다.
+      그 점을 끌어서 움직여보면 선 전체가 따라옵니다.
+    </p>
+    <div class="pitfall">
+      <b>r을 무력화시키는 4가지 상황</b>
+      <ol style="margin:8px 0 0;padding-left:18px">
+        <li><b>비선형 관계</b> — 곡선이면 r ≈ 0이 나옵니다. 반드시 산점도를 먼저 보세요.</li>
+        <li><b>이상치</b> — 점 하나가 r을 0.2에서 0.9로 바꿀 수 있습니다.</li>
+        <li><b>범위 제한(range restriction)</b> — 상위권만 뽑아 보면 상관이 사라집니다.
+            "명문대 안에서는 입시 성적과 학점의 상관이 낮다"는 게 대표적인 착시입니다.</li>
+        <li><b>집단 섞임</b> — 두 집단을 합치면 없던 상관이 생기거나 <b>부호가 뒤집힙니다</b>(모듈 08).</li>
+      </ol>
+      <p style="margin-top:10px">
+        네 가지 모두 <b>산점도를 그리면 즉시 보입니다.</b>
+        r 값만 표에 적어놓고 그림을 안 그리는 게 진짜 문제입니다.
+        (같은 r·같은 회귀식을 갖는 전혀 다른 4개 데이터셋 — <b>앤스컴 콰르텟</b> — 을 검색해보세요.)
+      </p>
+    </div>
+
+    <h2 id="s6">6. 실무: 회귀 결과를 읽고 쓰는 법</h2>
+    <div class="practice">
+      <b>계수 해석의 정확한 문장</b>
+      <p style="margin:6px 0">
+        광고비(만원) → 매출(만원) 회귀에서 <span class="m">b = 3.2</span>가 나왔다면:
+      </p>
+      <ul>
+        <li>⭕ "광고비가 1만원 <b>많은</b> 달은 매출이 평균적으로 3.2만원 <b>높았다</b>"</li>
+        <li>❌ "광고비를 1만원 <b>늘리면</b> 매출이 3.2만원 <b>늘어난다</b>"
+            — 이건 <b>인과</b> 주장입니다. 관측 데이터만으로는 못 합니다(모듈 08).</li>
+      </ul>
+      <p style="margin:8px 0 0">
+        다중회귀라면 여기에 <b>"다른 변수를 고정했을 때"</b>가 반드시 붙습니다.
+      </p>
+    </div>
+    <div class="practice">
+      <b>모델을 믿기 전에 확인할 4가지 (잔차 진단)</b>
+      <ul>
+        <li><b>잔차 vs 예측값 그림</b>에 패턴이 없어야 합니다.
+            U자 곡선이 보이면 <b>비선형</b>을 놓친 것, 깔때기 모양이면 <b>분산이 일정하지 않은 것</b>(이분산).</li>
+        <li><b>잔차의 정규성</b> — Q-Q 플롯. 예측구간을 쓸 때 중요합니다.</li>
+        <li><b>독립성</b> — 시계열이면 잔차의 자기상관을 확인(Durbin–Watson). 위반이면 표준오차가 가짜입니다.</li>
+        <li><b>영향점</b> — Cook's distance로 "혼자 선을 끌고 가는 점"을 찾습니다.</li>
+      </ul>
+    </div>
+    <div class="practice">
+      <b>외삽하지 마세요</b>
+      데이터가 x = 20~80 범위에 있는데 x = 150을 예측하는 건 근거가 없습니다.
+      그 구간에서 관계가 직선이라는 <b>증거를 본 적이 없기 때문</b>입니다.
+      회귀선은 <b>관측한 범위 안에서만</b> 유효한 요약입니다.
+      (1986년 챌린저호 사고는 관측 범위 밖 저온 구간을 외삽하지 <b>않아서</b> 생긴 참사이기도 합니다.)
+    </div>
+
+    <h2 id="s7">7. 흔한 실수</h2>
+    <div class="pitfall">
+      <b>회귀에서 자주 나오는 오류</b>
+      <ol style="margin:8px 0 0;padding-left:18px">
+        <li><b>산점도 없이 r만 보고 결론.</b> §5의 네 상황을 전부 놓칩니다.</li>
+        <li><b>r² 높으면 좋은 모델이라고 믿기.</b> 변수를 아무거나 추가해도 r²는 <b>항상 올라갑니다.</b>
+            비교할 땐 <b>수정 r²</b>나 교차검증 성능을 보세요.</li>
+        <li><b>상관을 인과로 읽기.</b> 모듈 08의 주제입니다.</li>
+        <li><b>범위 밖 외삽.</b> 위 참고.</li>
+        <li><b>평균으로의 회귀를 효과로 착각.</b> 성적이 최하위였던 학생들만 뽑아 특별지도하면
+            다음 시험에서 오릅니다 — <b>지도 안 해도 오릅니다.</b> 극단값은 다음에 덜 극단적이 되니까요.
+            이걸 통제하려면 대조군이 필요합니다.</li>
+        <li><b>y와 x를 바꿔도 같은 선이 나온다고 생각하기.</b> 안 그렇습니다(§2).</li>
+      </ol>
+    </div>
+
+    <div class="takeaway">
+      <b>한 줄 요약 ·</b> 회귀선은 <b>잔차 정사각형의 총 넓이가 최소</b>가 되는 선이고,
+      항상 <b>(x̄, ȳ)</b>를 지나며, <b>r²</b>만큼의 변동을 설명합니다.
+    </div>
+
+    <div class="summary">
+      <h3>이 모듈 요약</h3>
+      <ul>
+        <li><b>SSE = Σ(y − ŷ)²</b> = 잔차 정사각형들의 넓이 합. 이걸 최소화하는 선이 회귀선.</li>
+        <li><span class="m">b = r · s<sub>y</sub>/s<sub>x</sub></span>, <span class="m">a = ȳ − b·x̄</span> → 선은 항상 <b>(x̄, ȳ)</b>를 통과.</li>
+        <li><b>r</b>은 직선 관계의 강도(−1~+1), <b>r²</b>는 설명된 변동의 비율. <b>r은 제곱해서 읽을 것.</b></li>
+        <li><b>r = 0 ≠ 관계 없음.</b> 곡선·이상치·범위 제한·집단 섞임에 취약 → 반드시 산점도.</li>
+        <li>계수는 "다른 조건이 같을 때 <b>연관</b>"이지 <b>인과</b>가 아니다.</li>
+        <li>믿기 전에 <b>잔차 진단</b>, 쓸 때는 <b>관측 범위 안에서만</b>.</li>
+      </ul>
+    </div>
+
+    <p class="next-up">
+      다음 → <a href="08-simpson.html">모듈 08 · 방향이 뒤집히는 순간</a><br>
+      상관을 인과로 읽으면 어떤 일이 벌어지는지, 심슨의 역설로 확인합니다.
+    </p>
+  </section>
+
+</div>
+
+<script src="../assets/viz.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var rng = new V.Rng(1234567);
+
+  function gen(kind) {
+    var pts = [], i, x, y;
+    var r2 = new V.Rng(4242);
+    if (kind === 'strong') {
+      for (i = 0; i < 12; i++) { x = 8 + i * 7.2; pts.push([x, 12 + 0.85 * x + r2.normal(0, 7)]); }
+    } else if (kind === 'weak') {
+      for (i = 0; i < 16; i++) { x = 8 + i * 5.6; pts.push([x, 35 + 0.35 * x + r2.normal(0, 18)]); }
+    } else if (kind === 'neg') {
+      for (i = 0; i < 12; i++) { x = 8 + i * 7.2; pts.push([x, 92 - 0.8 * x + r2.normal(0, 8)]); }
+    } else if (kind === 'none') {
+      for (i = 0; i < 16; i++) pts.push([r2.uniform(8, 92), r2.uniform(12, 88)]);
+    } else if (kind === 'curve') {
+      for (i = 0; i < 15; i++) {
+        x = 8 + i * 6;
+        y = 88 - 0.038 * (x - 50) * (x - 50) + r2.normal(0, 4);
+        pts.push([x, y]);
+      }
+    } else { // outlier
+      for (i = 0; i < 11; i++) { x = 10 + i * 4.5; pts.push([x, 28 + 0.25 * x + r2.normal(0, 5)]); }
+      pts.push([88, 90]);
+    }
+    return pts.map(function (p) { return [V.clamp(p[0], 3, 97), V.clamp(p[1], 3, 97)]; });
+  }
+
+  var state = {
+    pts: gen('strong'),
+    showSq: true,
+    myLine: false,
+    slope: 1, icept: 10
+  };
+
+  var plot = new V.Plot(V.el('#c'), {
+    margin: { top: 18, right: 20, bottom: 34, left: 44 },
+    xDomain: [0, 100], yDomain: [0, 100],
+    height: function (w) { return Math.min(430, Math.max(280, w * 0.72)); }
+  });
+
+  function xs() { return state.pts.map(function (p) { return p[0]; }); }
+  function ys() { return state.pts.map(function (p) { return p[1]; }); }
+
+  function fit() { return V.S.linreg(xs(), ys()); }
+
+  /** 화면에 실제로 그릴 선 (내 선 모드면 내 선) */
+  function activeLine() {
+    if (state.myLine) return { slope: state.slope, intercept: state.icept };
+    var f = fit();
+    return { slope: f.slope, intercept: f.intercept };
+  }
+
+  function draw() {
+    plot.begin();
+    plot.axes({
+      xTickCount: 5, yTickCount: 5,
+      xLabel: 'x', yLabel: 'y'
+    });
+
+    var f = fit();
+    var line = activeLine();
+    var ctx = plot.ctx;
+    var mx = V.S.mean(xs()), my = V.S.mean(ys());
+
+    /* ---------- 잔차 정사각형 ---------- */
+    if (state.showSq) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(plot.margin.left, plot.margin.top, plot.pw, plot.ph);
+      ctx.clip();
+      ctx.fillStyle = V.css('--warn-soft');
+      ctx.strokeStyle = V.css('--warn');
+      ctx.lineWidth = 1.2;
+
+      for (var i = 0; i < state.pts.length; i++) {
+        var p = state.pts[i];
+        var yhat = line.intercept + line.slope * p[0];
+        var pyP = plot.y(p[1]), pyH = plot.y(yhat);
+        var side = Math.abs(pyP - pyH);
+        if (side < 1) continue;
+        var px = plot.x(p[0]);
+        // 오른쪽 공간이 부족하면 왼쪽으로 그린다
+        var right = (px + side <= plot.margin.left + plot.pw);
+        var rx = right ? px : px - side;
+        var ry = Math.min(pyP, pyH);
+        ctx.fillRect(rx, ry, side, side);
+        ctx.strokeRect(rx, ry, side, side);
+      }
+      ctx.restore();
+    }
+
+    /* ---------- 잔차 선분 ---------- */
+    ctx.save();
+    ctx.strokeStyle = V.css('--text-dim');
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([3, 3]);
+    for (var j = 0; j < state.pts.length; j++) {
+      var q = state.pts[j];
+      var yh = line.intercept + line.slope * q[0];
+      ctx.beginPath();
+      ctx.moveTo(plot.x(q[0]), plot.y(q[1]));
+      ctx.lineTo(plot.x(q[0]), plot.y(yh));
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    /* ---------- 선 ---------- */
+    function drawLine(a, b, color, width, dash) {
+      plot.path([[0, b + a * 0], [100, b + a * 100]], {
+        color: color, width: width, dash: dash
+      });
+    }
+
+    if (state.myLine) {
+      drawLine(f.slope, f.intercept, V.css('--accent'), 2, [7, 5]);
+      drawLine(state.slope, state.icept, V.css('--purple'), 3);
+    } else {
+      drawLine(f.slope, f.intercept, V.css('--accent'), 3);
+    }
+
+    /* ---------- 점 ---------- */
+    for (var k = 0; k < state.pts.length; k++) {
+      plot.dot(state.pts[k][0], state.pts[k][1], {
+        r: 6, color: V.css('--bg'), stroke: V.css('--accent'), strokeWidth: 2.5
+      });
+    }
+
+    /* ---------- 무게중심 ---------- */
+    plot.dot(mx, my, { r: 6.5, color: V.css('--pos') });
+    plot.dot(mx, my, { r: 6.5, color: 'transparent', stroke: V.css('--bg'), strokeWidth: 2 });
+
+    /* ---------- 수치 ---------- */
+    var sseActive = V.S.sse(xs(), ys(), line.slope, line.intercept);
+    var sseBest = V.S.sse(xs(), ys(), f.slope, f.intercept);
+
+    V.setText('#s-n', String(state.pts.length));
+    V.setText('#s-r', V.fmt(f.r, 3));
+    V.setText('#s-r2', V.fmt(f.r2, 3));
+    V.setText('#s-slope', V.fmt(line.slope, 3));
+    V.setText('#s-icept', V.fmt(line.intercept, 1));
+    V.setText('#s-sse', V.fmt(sseActive, 0));
+    V.setText('#sse-label', state.myLine ? '내 선의 SSE (최소 ' + V.fmt(sseBest, 0) + ')' : '넓이 합 (SSE)');
+  }
+
+  /* ---------------- 상호작용 ---------------- */
+  var canvas = V.el('#c');
+  var dragIdx = -1;
+
+  function hit(pos) {
+    for (var i = 0; i < state.pts.length; i++) {
+      var dx = plot.x(state.pts[i][0]) - pos.x;
+      var dy = plot.y(state.pts[i][1]) - pos.y;
+      if (dx * dx + dy * dy < 210) return i;
+    }
+    return -1;
+  }
+
+  function inPlot(pos) {
+    return pos.x >= plot.margin.left && pos.x <= plot.margin.left + plot.pw &&
+           pos.y >= plot.margin.top && pos.y <= plot.margin.top + plot.ph;
+  }
+
+  function clearPreset() {
+    V.els('input[name="preset"]').forEach(function (r) { r.checked = false; });
+  }
+
+  canvas.addEventListener('pointerdown', function (ev) {
+    var pos = V.pointerPos(canvas, ev);
+    var i = hit(pos);
+    if (i >= 0) {
+      dragIdx = i;
+      canvas.setPointerCapture(ev.pointerId);
+      ev.preventDefault();
+    } else if (inPlot(pos) && state.pts.length < 40) {
+      state.pts.push([V.clamp(plot.invX(pos.x), 0, 100), V.clamp(plot.invY(pos.y), 0, 100)]);
+      clearPreset();
+      draw();
+    }
+  });
+
+  canvas.addEventListener('pointermove', function (ev) {
+    var pos = V.pointerPos(canvas, ev);
+    if (dragIdx >= 0) {
+      state.pts[dragIdx] = [
+        V.clamp(plot.invX(pos.x), 0, 100),
+        V.clamp(plot.invY(pos.y), 0, 100)
+      ];
+      clearPreset();
+      draw();
+      ev.preventDefault();
+    } else {
+      canvas.style.cursor = hit(pos) >= 0 ? 'grab' : (inPlot(pos) ? 'crosshair' : 'default');
+    }
+  });
+
+  ['pointerup', 'pointercancel'].forEach(function (t) {
+    canvas.addEventListener(t, function () { dragIdx = -1; });
+  });
+
+  canvas.addEventListener('dblclick', function (ev) {
+    var i = hit(V.pointerPos(canvas, ev));
+    if (i >= 0 && state.pts.length > 3) {
+      state.pts.splice(i, 1);
+      clearPreset();
+      draw();
+    }
+  });
+
+  /* ---------------- 컨트롤 ---------------- */
+  var slopeCtl = V.range('slope', function (v) { state.slope = v; if (state.myLine) draw(); },
+    function (v) { return V.fmt(v, 2); });
+  var iceptCtl = V.range('icept', function (v) { state.icept = v; if (state.myLine) draw(); },
+    function (v) { return V.fmt(v, 1); });
+
+  V.radios('preset', function (v) { state.pts = gen(v); draw(); });
+  V.check('showSq', function (v) { state.showSq = v; draw(); });
+
+  V.check('myLine', function (v) {
+    state.myLine = v;
+    V.el('#lineControls').style.display = v ? '' : 'none';
+    draw();
+  });
+
+  V.click('best', function () {
+    var f = fit();
+    if (!state.myLine) {
+      // 내 선 모드를 켜고 최적선을 그대로 넣어준다
+      var cb = document.getElementById('myLine');
+      cb.checked = true;
+      cb.dispatchEvent(new Event('change'));
+    }
+    slopeCtl.set(V.clamp(f.slope, -2.5, 2.5));
+    iceptCtl.set(V.clamp(f.intercept, -40, 120));
+    draw();
+  });
+
+  V.onRedraw(draw);
+  draw();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>눈으로 보는 통계 · 인터랙티브 통계 교육</title>
+<meta name="description" content="공식보다 그림이 먼저. 직접 만져보며 배우는 통계 8강 — 티스토리 등 블로그에 그대로 임베드할 수 있습니다.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%F0%9F%93%8A%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/viz.css">
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <p class="eyebrow">인터랙티브 통계 교육</p>
+    <h1>눈으로 보는 통계</h1>
+    <p class="lede">
+      통계가 어려운 건 공식 때문이 아니라 <b>그 공식이 무엇을 그리고 있는지 안 보여주기 때문</b>입니다.
+      여덟 개 모듈 전부 <b>직접 만지면서</b> 배웁니다.
+      점을 끌고, 슬라이더를 돌리고, 표본을 뽑아보면 정의가 그냥 눈에 들어옵니다.
+    </p>
+    <p class="lede" style="margin-bottom:0">
+      각 모듈은 <b>직관 → 수식 → 실무 적용 → 흔한 실수</b> 순서로 구성돼 있습니다.
+      대학 교양 수준부터 실무 입문까지를 겨냥했습니다.
+    </p>
+  </header>
+
+  <div class="hub-grid" id="grid"></div>
+
+  <section class="embed-box" id="embedBox">
+    <h2 style="margin:0 0 6px;font-size:17px;">티스토리·블로그에 붙여넣기</h2>
+    <p style="margin:0 0 14px;font-size:13.5px;color:var(--text-dim)">
+      위 카드에서 <b>임베드 코드</b>를 누르면 여기에 코드가 나타납니다. 복사해서
+      티스토리 글쓰기의 <b>HTML 모드</b>(&lt;/&gt; 아이콘)에 붙여넣으세요.
+    </p>
+
+    <label for="base">① 배포된 사이트 주소 (GitHub Pages 등)</label>
+    <input type="text" id="base" spellcheck="false" placeholder="https://사용자이름.github.io/저장소이름/">
+
+    <div class="controls" style="margin-top:14px">
+      <div class="ctrl">
+        <span class="label-row"><span class="name">② 무엇을 넣을까요</span></span>
+        <div class="seg" style="margin-top:0">
+          <label><input type="radio" name="ekind" value="viz" checked><span>시각화만 (권장)</span></label>
+          <label><input type="radio" name="ekind" value="full"><span>본문까지 전부</span></label>
+        </div>
+      </div>
+      <div class="ctrl">
+        <span class="label-row"><span class="name">③ 색 테마</span></span>
+        <div class="seg" style="margin-top:0">
+          <label><input type="radio" name="etheme" value="" checked><span>자동</span></label>
+          <label><input type="radio" name="etheme" value="light"><span>밝게 고정</span></label>
+          <label><input type="radio" name="etheme" value="dark"><span>어둡게 고정</span></label>
+        </div>
+      </div>
+    </div>
+
+    <pre class="code" id="code">위 카드의 “임베드 코드” 버튼을 눌러주세요.</pre>
+    <div class="btns">
+      <button class="btn primary" id="copy">코드 복사</button>
+      <a class="btn" id="preview" href="#" target="_blank" rel="noopener">미리보기 열기</a>
+    </div>
+  </section>
+
+  <section class="notes" style="margin-top:34px">
+    <h2>어떻게 쓰면 좋은가</h2>
+    <div class="practice">
+      <b>블로그 연재용 (권장)</b>
+      <ul>
+        <li>글 하나에 모듈 하나. <b>시각화만</b> 임베드하고, 설명은 본인 문장으로 쓰세요.
+            직접 쓴 글이 남아야 블로그가 됩니다.</li>
+        <li>설명 소재가 필요하면 각 모듈 페이지의 본문(직관·수식·실무·흔한 실수)을 참고하세요.</li>
+        <li>글 맨 아래에 다음 모듈 링크를 걸면 자연스럽게 연재가 됩니다.</li>
+      </ul>
+    </div>
+    <div class="practice">
+      <b>수업·발표용</b>
+      <ul>
+        <li>모듈 페이지를 그대로 열어서 화면에 띄우면 됩니다. 설명이 함께 나옵니다.</li>
+        <li>주소 뒤에 <span class="m">?view=viz</span> 를 붙이면 시각화만 크게 나옵니다.</li>
+        <li><span class="m">?theme=dark</span> 로 어두운 강의실에 맞출 수 있습니다.</li>
+      </ul>
+    </div>
+    <div class="pitfall">
+      <b>티스토리에서 주의할 점</b>
+      <ul>
+        <li>반드시 <b>HTML 모드</b>에서 붙여넣고, 붙여넣은 뒤에는 <b>기본모드로 되돌리지 마세요.</b>
+            모드를 오가면 에디터가 태그를 정리하면서 iframe 속성이 깨질 수 있습니다.</li>
+        <li>발행 후 모바일에서도 한 번 확인하세요. 높이가 남거나 모자라면
+            코드의 <span class="m">height</span> 숫자만 조절하면 됩니다.</li>
+        <li>스크립트를 직접 붙여넣는 방식은 권하지 않습니다. iframe이면 티스토리가 건드리지 않습니다.</li>
+      </ul>
+    </div>
+    <p style="color:var(--text-dim);font-size:13.5px">
+      자세한 배포·임베드 방법은 <a href="docs/tistory-embed.md">docs/tistory-embed.md</a> 를 보세요.
+    </p>
+  </section>
+
+</div>
+
+<div class="toast" id="toast">복사되었습니다</div>
+
+<script src="assets/viz.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* 모듈 목록 — vizHeight 는 "시각화만" 임베드했을 때 권장 높이(px) */
+  var MODULES = [
+    {
+      no: '01', file: 'modules/01-center-spread.html',
+      title: '평균은 시소, 분산은 넓이',
+      desc: '점을 끌어보면 평균이 균형점이라는 게 보입니다. 분산은 편차로 만든 정사각형들의 평균 넓이입니다.',
+      tags: '평균 · 중앙값 · 분산 · 표준편차',
+      vizHeight: 950, fullHeight: 7950
+    },
+    {
+      no: '02', file: 'modules/02-distribution-shape.html',
+      title: '히스토그램은 거짓말을 할 수 있다',
+      desc: '구간 폭 하나로 봉우리가 생겼다 사라집니다. 분포의 모양을 읽는 법과 상자그림.',
+      tags: '히스토그램 · 왜도 · 사분위수 · 이상치',
+      vizHeight: 970, fullHeight: 6780
+    },
+    {
+      no: '03', file: 'modules/03-normal-z.html',
+      title: '면적이 곧 확률이다',
+      desc: '곡선을 잡아 늘려도 68-95-99.7은 그대로입니다. z-점수가 왜 만능 자인지 보입니다.',
+      tags: '정규분포 · 68-95-99.7 · z-점수 · 표준화',
+      vizHeight: 870, fullHeight: 6440
+    },
+    {
+      no: '04', file: 'modules/04-clt.html',
+      title: '이상한 모집단, 멀쩡한 평균',
+      desc: '통계학에서 가장 신기한 사실. 원본이 어떻게 생겼든 표본평균은 종 모양으로 모입니다.',
+      tags: '중심극한정리 · 표준오차 · 표본 크기 설계',
+      vizHeight: 1020, fullHeight: 7810
+    },
+    {
+      no: '05', file: 'modules/05-confidence-interval.html',
+      title: '95%는 무엇의 95%인가',
+      desc: '구간을 200개 그려보면 약 10개가 빗나갑니다. 신뢰구간의 뜻이 그냥 보입니다.',
+      tags: '신뢰구간 · 오차범위 · t분포',
+      vizHeight: 1100, fullHeight: 7470
+    },
+    {
+      no: '06', file: 'modules/06-pvalue.html',
+      title: 'p-값을 손으로 만들어보기',
+      desc: '라벨을 섞어서 귀무분포를 직접 만듭니다. 공식 없이 p-값의 정의를 그대로 봅니다.',
+      tags: '가설검정 · p-값 · 1종/2종 오류 · 검정력',
+      vizHeight: 1180, fullHeight: 8560
+    },
+    {
+      no: '07', file: 'modules/07-regression.html',
+      title: '최소제곱은 넓이의 합이다',
+      desc: '직접 선을 그어 잔차 정사각형의 넓이를 줄여보세요. 최적선을 이길 수 없습니다.',
+      tags: '상관계수 · 회귀 · r² · 잔차',
+      vizHeight: 870, fullHeight: 7070
+    },
+    {
+      no: '08', file: 'modules/08-simpson.html',
+      title: '방향이 뒤집히는 순간',
+      desc: '슬라이더 하나로 기울기의 부호가 바뀝니다. 상관을 인과로 읽으면 안 되는 이유.',
+      tags: '심슨의 역설 · 교란변수 · 인과추론',
+      vizHeight: 840, fullHeight: 7020
+    }
+  ];
+
+  var selected = null;
+
+  /* ---------- 기본 주소 자동 감지 ---------- */
+  function detectBase() {
+    var href = location.href.split('?')[0].split('#')[0];
+    href = href.replace(/index\.html$/, '');
+    if (!/\/$/.test(href)) href += '/';
+    if (location.protocol === 'file:') return '';
+    return href;
+  }
+
+  var baseInput = document.getElementById('base');
+  baseInput.value = detectBase();
+
+  function baseUrl() {
+    var v = baseInput.value.trim();
+    if (!v) return 'https://사용자이름.github.io/저장소이름/';
+    return /\/$/.test(v) ? v : v + '/';
+  }
+
+  /* ---------- 카드 ---------- */
+  var grid = document.getElementById('grid');
+  MODULES.forEach(function (m, i) {
+    var card = document.createElement('article');
+    card.className = 'card';
+    card.innerHTML =
+      '<div class="num">MODULE ' + m.no + '</div>' +
+      '<h3><a href="' + m.file + '">' + m.title + '</a></h3>' +
+      '<p>' + m.desc + '<br><span style="font-size:12px;opacity:.8">' + m.tags + '</span></p>' +
+      '<div class="card-actions">' +
+        '<a class="btn primary" href="' + m.file + '">열기</a>' +
+        '<button class="btn" data-i="' + i + '">임베드 코드</button>' +
+      '</div>';
+    grid.appendChild(card);
+  });
+
+  grid.addEventListener('click', function (ev) {
+    var btn = ev.target.closest('button[data-i]');
+    if (!btn) return;
+    selected = MODULES[parseInt(btn.getAttribute('data-i'), 10)];
+    render();
+    document.getElementById('embedBox').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  /* ---------- 코드 생성 ---------- */
+  function currentKind() {
+    var r = document.querySelector('input[name="ekind"]:checked');
+    return r ? r.value : 'viz';
+  }
+  function currentTheme() {
+    var r = document.querySelector('input[name="etheme"]:checked');
+    return r ? r.value : '';
+  }
+
+  function moduleUrl(m) {
+    var q = ['embed=1'];
+    if (currentKind() === 'viz') q.push('view=viz');
+    var th = currentTheme();
+    if (th) q.push('theme=' + th);
+    return baseUrl() + m.file + '?' + q.join('&');
+  }
+
+  function snippet(m) {
+    var url = moduleUrl(m);
+    var h = currentKind() === 'viz' ? m.vizHeight : m.fullHeight;
+    var id = 'statviz-' + m.no + '-' + Math.random().toString(36).slice(2, 7);
+    return '<!-- 눈으로 보는 통계 · 모듈 ' + m.no + ' : ' + m.title + ' -->\n' +
+      '<iframe id="' + id + '" src="' + url + '"\n' +
+      '        width="100%" height="' + h + '"\n' +
+      '        style="border:1px solid #e5e7eb;border-radius:12px;max-width:100%;display:block"\n' +
+      '        loading="lazy" title="' + m.title + '"></iframe>\n' +
+      '<script>\n' +
+      '(function(){var f=document.getElementById("' + id + '");\n' +
+      'window.addEventListener("message",function(e){\n' +
+      '  if(!f||!e.data||e.data.type!=="statviz-height")return;\n' +
+      '  if(e.source!==f.contentWindow)return;\n' +
+      '  f.style.height=Math.max(320,e.data.height)+"px";\n' +
+      '});})();\n' +
+      '<\/script>';
+  }
+
+  function render() {
+    var pre = document.getElementById('code');
+    var prev = document.getElementById('preview');
+    if (!selected) {
+      pre.textContent = '위 카드의 “임베드 코드” 버튼을 눌러주세요.';
+      prev.style.display = 'none';
+      return;
+    }
+    pre.textContent = snippet(selected);
+    prev.style.display = '';
+    prev.href = moduleUrl(selected);
+  }
+
+  document.getElementById('preview').style.display = 'none';
+
+  V.els('input[name="ekind"], input[name="etheme"]').forEach(function (r) {
+    r.addEventListener('change', render);
+  });
+  baseInput.addEventListener('input', render);
+
+  /* ---------- 복사 ---------- */
+  var toast = document.getElementById('toast');
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(function () { toast.classList.remove('show'); }, 1600);
+  }
+
+  document.getElementById('copy').addEventListener('click', function () {
+    if (!selected) { showToast('먼저 모듈을 선택하세요'); return; }
+    var text = snippet(selected);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text)
+        .then(function () { showToast('복사되었습니다'); })
+        .catch(function () { fallbackCopy(text); });
+    } else {
+      fallbackCopy(text);
+    }
+  });
+
+  function fallbackCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); showToast('복사되었습니다'); }
+    catch (e) { showToast('복사에 실패했습니다. 직접 선택해 주세요'); }
+    document.body.removeChild(ta);
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>

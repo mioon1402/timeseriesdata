@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>95%는 무엇의 95%인가 · 눈으로 보는 통계</title>
+<meta name="description" content="신뢰구간 100개를 직접 그려보면 '95% 신뢰'의 진짜 의미가 보입니다.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%F0%9F%93%8A%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 모듈 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">모듈 05 · 신뢰구간</p>
+    <h1>95%는 무엇의 95%인가</h1>
+    <p class="lede">
+      "95% 신뢰구간"은 통계에서 가장 많이 쓰이면서 가장 많이 오해받는 말입니다.
+      설명을 읽는 대신 <b>구간을 100개 그려보면</b> 뜻이 그냥 보입니다.
+      약 5개가 빗나갑니다. 그게 전부입니다.
+    </p>
+  </header>
+
+  <section class="panel">
+    <p class="panel-title">① 표본평균 x̄가 나올 수 있는 범위 — 바깥 꼬리에 떨어지면 구간이 μ를 놓칩니다</p>
+    <div class="canvas-wrap"><canvas id="cTop"></canvas></div>
+
+    <p class="panel-title" style="margin-top:18px">② 표본을 뽑을 때마다 만든 신뢰구간 (가로 막대 하나 = 조사 한 번)</p>
+    <div class="canvas-wrap"><canvas id="cCI"></canvas></div>
+
+    <div class="seg" role="group" aria-label="신뢰수준">
+      <label><input type="radio" name="conf" value="0.80"><span>80%</span></label>
+      <label><input type="radio" name="conf" value="0.90"><span>90%</span></label>
+      <label><input type="radio" name="conf" value="0.95" checked><span>95%</span></label>
+      <label><input type="radio" name="conf" value="0.99"><span>99%</span></label>
+    </div>
+
+    <div class="controls">
+      <label class="ctrl">
+        <span class="label-row"><span class="name">표본 크기 n</span><span class="val" id="n-val">25</span></span>
+        <input type="range" id="n" min="4" max="200" step="1" value="25">
+      </label>
+    </div>
+
+    <div class="btns">
+      <button class="btn" id="one">1번 조사</button>
+      <button class="btn" id="many">20번</button>
+      <button class="btn" id="lots">200번</button>
+      <button class="btn primary" id="auto">▶ 자동</button>
+      <button class="btn" id="reset">초기화</button>
+    </div>
+
+    <div class="readout">
+      <div class="stat"><span class="k">조사 횟수</span><span class="v" id="s-total">0</span></div>
+      <div class="stat pos"><span class="k">μ를 포함</span><span class="v" id="s-hit">0</span></div>
+      <div class="stat neg"><span class="k">놓침</span><span class="v" id="s-miss">0</span></div>
+      <div class="stat accent"><span class="k">실제 포함률</span><span class="v" id="s-rate">–</span></div>
+      <div class="stat"><span class="k">목표 신뢰수준</span><span class="v" id="s-conf">95%</span></div>
+      <div class="stat warn"><span class="k">구간 폭 (±)</span><span class="v" id="s-width">–</span></div>
+    </div>
+
+    <div class="legend">
+      <span class="legend-item"><span class="swatch line" style="background:var(--text)"></span> 진짜 모평균 μ = 100 (현실에서는 모르는 값)</span>
+      <span class="legend-item"><span class="swatch line" style="background:var(--pos)"></span> μ를 포함한 구간</span>
+      <span class="legend-item"><span class="swatch line" style="background:var(--neg)"></span> μ를 놓친 구간</span>
+    </div>
+  </section>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 모듈에서 다루는 것</b>
+      <ol>
+        <li><a href="#s1">먼저 이걸 해보세요</a></li>
+        <li><a href="#s2">"95%"가 붙는 자리는 구간이지 μ가 아니다</a></li>
+        <li><a href="#s3">신뢰구간 공식과 세 개의 손잡이</a></li>
+        <li><a href="#s4">σ를 모를 때 — t분포</a></li>
+        <li><a href="#s5">실무: 신뢰구간으로 의사결정하기</a></li>
+        <li><a href="#s6">흔한 실수</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s1">1. 먼저 이걸 해보세요</h2>
+    <ol>
+      <li><b>200번</b>을 누르세요. 초록 막대들 사이에 빨간 막대가 드문드문 섞입니다.</li>
+      <li>"실제 포함률"이 <b>95%</b> 근처인지 확인하세요.</li>
+      <li>신뢰수준을 <b>80%</b>로 바꾸고 다시 200번. 빨간 막대가 눈에 띄게 늘어납니다.
+          대신 <b>구간 폭이 좁아집니다.</b></li>
+      <li><b>99%</b>로 바꿔보세요. 거의 다 초록입니다. 대신 구간이 <b>훨씬 넓어져서</b>
+          "평균이 92에서 108 사이 어딘가"처럼 쓸모없는 말이 됩니다.</li>
+    </ol>
+    <div class="takeaway">
+      <b>여기서 배울 것 ·</b> 신뢰수준은 <b>정확성과 유용성의 맞바꿈</b>입니다.
+      확실해지려면 넓어지고, 좁히려면 틀릴 위험이 커집니다. 공짜는 없습니다.
+    </div>
+
+    <h2 id="s2">2. "95%"가 붙는 자리는 구간이지 μ가 아닙니다</h2>
+    <p>
+      위 그림에서 <b>검은 세로선(진짜 μ)은 한 번도 움직이지 않습니다.</b>
+      μ는 고정된 상수입니다. 우리가 모를 뿐, 흔들리는 값이 아닙니다.
+      <b>매번 달라지는 건 우리가 만든 구간</b>입니다.
+    </p>
+
+    <div class="myth">
+      <div class="bad">
+        <b>✗ 오해</b>
+        "이 구간 안에 μ가 있을 확률이 95%다."<br>
+        <span style="font-size:13px;opacity:.85">
+        → μ는 고정값이고 구간도 이미 계산돼 있습니다. 둘 다 정해진 뒤에는
+        μ가 그 안에 있거나(확률 1) 없거나(확률 0)입니다. 95%가 낄 자리가 없습니다.</span>
+      </div>
+      <div class="good">
+        <b>✓ 사실</b>
+        "이 <b>절차</b>를 반복하면, 만들어지는 구간들 중 95%가 μ를 포함한다."<br>
+        <span style="font-size:13px;opacity:.85">
+        → 95%는 <b>방법의 성적표</b>이지, 지금 손에 든 구간 하나에 대한 확률이 아닙니다.
+        위 그림에서 막대 하나하나가 아니라 <b>막대 전체를 세로로 훑어봐야</b> 보이는 성질입니다.</span>
+      </div>
+    </div>
+
+    <p>
+      비유하자면 이렇습니다. 고리던지기를 하는데 말뚝(μ)은 땅에 박혀 있고 안 움직입니다.
+      던지는 고리(신뢰구간)가 매번 다른 곳에 떨어질 뿐이죠.
+      "이 고리가 95% 확률로 말뚝을 걸었다"가 아니라
+      <b>"내 던지기 실력이 100번 중 95번은 건다"</b>가 맞는 표현입니다.
+    </p>
+    <div class="callout">
+      <b>①번 그림과 연결해서 보세요.</b> 구간이 μ를 놓치는 순간은 정확히
+      <b>표본평균 x̄가 바깥 빨간 꼬리에 떨어졌을 때</b>입니다.
+      그 꼬리의 면적이 5%이므로, 놓치는 비율도 5%가 되는 겁니다.
+      신뢰구간은 모듈 03의 "면적 = 확률"을 뒤집어 놓은 것에 불과합니다.
+    </div>
+
+    <h2 id="s3">3. 신뢰구간 공식과 세 개의 손잡이</h2>
+
+    <div class="formula">
+      <div class="name">모평균의 신뢰구간 (σ를 알 때)</div>
+      <div class="eq">
+        x̄ &nbsp;±&nbsp; z<sub>α/2</sub> ×
+        <span class="frac"><span>σ</span><span><span class="rad">√<span>n</span></span></span></span>
+        <br>
+        <span class="small">추정값 &nbsp;±&nbsp; (신뢰수준) × (표준오차)</span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">x̄</span><span class="desc">이번 표본의 평균 — <b>구간의 중심</b>. 매번 달라집니다</span></li>
+        <li><span class="sym">z<sub>α/2</sub></span><span class="desc">신뢰수준이 정하는 배수.
+            90% → 1.645, <b>95% → 1.96</b>, 99% → 2.576</span></li>
+        <li><span class="sym">σ/√n</span><span class="desc"><b>표준오차</b>(모듈 04). x̄가 μ에서 벗어나는 정도</span></li>
+        <li><span class="sym">α</span><span class="desc">틀릴 것을 감수하는 비율. 95% 신뢰 → α = 0.05</span></li>
+      </ul>
+    </div>
+
+    <p>
+      구간의 반쪽 폭 <span class="m">z × σ/√n</span> 을 <b>오차범위(margin of error)</b>라고 합니다.
+      여론조사 기사 끝의 "표본오차 ±3.1%p"가 바로 이 값입니다. 손잡이는 세 개뿐입니다.
+    </p>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>손잡이</th><th>키우면</th><th>내가 통제할 수 있나</th></tr></thead>
+        <tbody>
+          <tr><td><b>신뢰수준 (z)</b></td><td>구간이 <b>넓어짐</b> (더 안전, 덜 유용)</td><td>○ 내가 정함</td></tr>
+          <tr><td><b>표본 크기 (n)</b></td><td>구간이 <b>좁아짐</b> (√n에 반비례)</td><td>○ 돈·시간을 쓰면</td></tr>
+          <tr><td><b>데이터의 퍼짐 (σ)</b></td><td>구간이 <b>넓어짐</b></td><td>△ 측정을 정밀하게 하거나 집단을 나눠서</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      n 슬라이더를 4에서 200까지 움직여보세요. 구간 폭이 <span class="m">√n</span>에 반비례해 줄어듭니다.
+      <b>포함률은 계속 95% 근처를 유지합니다</b> — n은 <b>정밀도</b>를 바꾸지 <b>신뢰수준</b>을 바꾸지 않습니다.
+      이 둘을 구분하는 게 이 모듈의 핵심입니다.
+    </p>
+
+    <h2 id="s4">4. σ를 모를 때 — t분포</h2>
+    <p>
+      위 시뮬레이션은 σ를 안다고 가정했습니다. 현실에서는 당연히 모릅니다.
+      표본에서 계산한 <span class="m">s</span>를 대신 쓰는데, 그러면 <b>불확실성이 하나 더 늘어납니다</b> —
+      중심도 모르고 퍼짐도 모르는 상태니까요. 그 대가로 배수를 z보다 조금 크게 잡습니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">모평균의 신뢰구간 (σ를 모를 때 · 실무 표준)</div>
+      <div class="eq">
+        x̄ &nbsp;±&nbsp; t<sub>α/2, &nbsp;n−1</sub> ×
+        <span class="frac"><span>s</span><span><span class="rad">√<span>n</span></span></span></span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">s</span><span class="desc">표본표준편차 (n−1로 나눈 것, 모듈 01)</span></li>
+        <li><span class="sym">t</span><span class="desc">t분포의 임계값. 정규분포보다 <b>꼬리가 두꺼워</b> z보다 큽니다</span></li>
+        <li><span class="sym">n−1</span><span class="desc"><b>자유도</b>. n이 커질수록 t는 z에 수렴합니다</span></li>
+      </ul>
+    </div>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>n</th><th>t (95%)</th><th>z (95%)</th><th>차이</th></tr></thead>
+        <tbody>
+          <tr><td>5</td><td>2.776</td><td>1.96</td><td><b>+42%</b> 넓어짐</td></tr>
+          <tr><td>10</td><td>2.262</td><td>1.96</td><td>+15%</td></tr>
+          <tr><td>30</td><td>2.045</td><td>1.96</td><td>+4%</td></tr>
+          <tr><td>100</td><td>1.984</td><td>1.96</td><td>+1%</td></tr>
+          <tr><td>1000</td><td>1.962</td><td>1.96</td><td>거의 0</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="practice">
+      <b>실무 규칙</b>
+      <ul>
+        <li>σ를 진짜로 아는 경우는 거의 없으므로 <b>기본은 항상 t</b>입니다.
+            <code>scipy.stats.t.interval(0.95, n-1, loc=mean, scale=sem)</code></li>
+        <li>n이 30을 넘으면 z와 t의 차이는 실무상 무의미합니다. 그래도 t를 쓰면 손해 볼 게 없습니다.</li>
+        <li>n이 작고(&lt;15) 데이터가 정규분포가 아니면 t도 못 믿습니다.
+            이때는 <b>부트스트랩</b>(데이터를 복원추출로 수천 번 재표집해 구간을 직접 만드는 방법)이 안전합니다.</li>
+      </ul>
+    </div>
+
+    <h2 id="s5">5. 실무: 신뢰구간으로 의사결정하기</h2>
+    <p>
+      신뢰구간의 진짜 가치는 "유의한가 아닌가"라는 예/아니오보다
+      <b>"효과가 어느 정도 크기인가"</b>를 범위로 보여준다는 데 있습니다.
+      아래 네 가지 결과를 구분할 수 있으면 실무에서 쓸 준비가 된 겁니다.
+    </p>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>전환율 개선폭의 95% CI</th><th>p값 기준 판정</th><th>실제로 내려야 할 결론</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>[+1.2%p, +3.4%p]</code></td><td>유의함</td>
+            <td><b>도입.</b> 최악이어도 +1.2%p는 나옴</td>
+          </tr>
+          <tr>
+            <td><code>[+0.01%p, +5.0%p]</code></td><td>유의함</td>
+            <td><b>보류.</b> "유의하지만" 효과가 0에 가까울 수도 있음. 데이터를 더 모을 것</td>
+          </tr>
+          <tr>
+            <td><code>[−0.1%p, +0.1%p]</code></td><td>유의하지 않음</td>
+            <td><b>효과 없음이 입증됨.</b> 좁고 0을 감쌈 = "차이가 없다"는 강한 근거</td>
+          </tr>
+          <tr>
+            <td><code>[−8%p, +9%p]</code></td><td>유의하지 않음</td>
+            <td><b>아무것도 모름.</b> 데이터가 부족할 뿐, "효과 없음"이 <b>아님</b></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pitfall">
+      <b>3번과 4번을 구분하지 못하는 게 실무 최대의 함정입니다</b>
+      둘 다 "통계적으로 유의하지 않음"이지만 의미가 정반대입니다.
+      <b>"효과가 없다"와 "효과를 알 수 없다"는 완전히 다른 말입니다.</b>
+      p값만 보면 이 둘이 똑같아 보이고, 신뢰구간을 보면 즉시 구분됩니다.
+      이것 하나 때문에라도 결과는 p값이 아니라 <b>구간으로</b> 보고해야 합니다.
+    </div>
+    <div class="practice">
+      <b>보고서에 이렇게 쓰세요</b>
+      <ul>
+        <li>❌ "B안이 유의하게 좋았다 (p &lt; 0.05)"</li>
+        <li>⭕ "B안의 전환율이 <b>2.3%p 높았다 (95% CI: 1.2 ~ 3.4%p, n=8,400)</b>"</li>
+        <li>단위와 방향을 반드시 적으세요. "2.3% 개선"은 <b>절대 2.3%p</b>인지
+            <b>상대 2.3%</b>인지 모호합니다 — 전환율 4%에서 두 해석은 완전히 다른 이야기입니다.</li>
+        <li>구간이 실무적으로 <b>의미 있는 최소 효과</b>보다 좁은지 미리 정해두세요.
+            "±0.5%p 안으로 좁혀지기 전엔 결정하지 않는다"를 <b>실험 시작 전에</b> 못박는 게 핵심입니다.</li>
+      </ul>
+    </div>
+
+    <h2 id="s6">6. 흔한 실수</h2>
+    <div class="pitfall">
+      <b>신뢰구간에서 자주 나오는 6가지 오류</b>
+      <ol style="margin:8px 0 0;padding-left:18px">
+        <li><b>"μ가 이 안에 있을 확률 95%"라고 말하기.</b> §2 참고.
+            (그렇게 해석하고 싶다면 베이즈 신용구간(credible interval)을 쓰면 됩니다. 다른 도구입니다.)</li>
+        <li><b>두 구간이 겹치면 "차이 없음"이라고 결론짓기.</b> 틀립니다.
+            겹쳐도 차이가 유의할 수 있습니다. 비교하려면 <b>차이 자체의 신뢰구간</b>을 구해야 합니다.</li>
+        <li><b>개별 값의 범위로 착각하기.</b> "평균 키의 95% CI = [170, 172]"는
+            <b>사람들의 95%가 170~172cm</b>라는 뜻이 절대 아닙니다.
+            개별 값의 범위는 <b>예측구간</b>이고, 훨씬 넓습니다.</li>
+        <li><b>구간을 보면서 계속 데이터를 더 모으기.</b> "유의해질 때까지" 들여다보면
+            실제 오류율이 5%를 훨씬 넘습니다. 중간에 보려면 <b>순차분석</b> 보정이 필요합니다.</li>
+        <li><b>표집이 편향됐는데 구간을 믿기.</b> 신뢰구간은 <b>무작위 표집 오차만</b> 반영합니다.
+            응답 거부, 선택 편향, 측정 오류는 <b>전혀 포함되지 않습니다.</b>
+            현실의 총 오차는 항상 구간보다 큽니다.</li>
+        <li><b>관측이 독립이 아닌데 그대로 계산하기.</b> 같은 사용자의 반복 데이터를
+            독립처럼 세면 n이 부풀려져 구간이 <b>가짜로 좁아집니다</b>(모듈 04 §6).</li>
+      </ol>
+    </div>
+
+    <div class="summary">
+      <h3>이 모듈 요약</h3>
+      <ul>
+        <li>신뢰구간 = <span class="m">추정값 ± (임계값) × (표준오차)</span>.</li>
+        <li><b>95%는 절차의 장기 성적</b>이지, 눈앞의 구간 하나에 대한 확률이 아니다.</li>
+        <li>μ는 고정, <b>구간이 움직인다.</b> 놓치는 순간 = x̄가 바깥 꼬리에 떨어진 순간.</li>
+        <li>신뢰수준↑ → 넓어짐(안전하지만 덜 유용). n↑ → 좁아짐(√n에 반비례). 포함률은 그대로.</li>
+        <li>σ를 모르면 <b>t분포</b>. n&lt;30에서 특히 중요.</li>
+        <li>"유의하지 않음"에는 <b>효과 없음</b>과 <b>알 수 없음</b>, 두 가지가 있다. 구간이 그걸 구분해준다.</li>
+      </ul>
+    </div>
+
+    <p class="next-up">
+      다음 → <a href="06-pvalue.html">모듈 06 · p-값을 손으로 만들어보기</a><br>
+      수식 없이, 카드를 섞어서 p-값의 정의를 직접 만들어봅니다.
+    </p>
+  </section>
+
+</div>
+
+<script src="../assets/viz.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var MU = 100, SIGMA = 15;
+
+  var rng = new V.Rng(20250501);
+  var state = { conf: 0.95, n: 25 };
+  var intervals = [];      // 화면에 보이는 최근 구간들
+  var total = 0, hits = 0; // 누적 집계
+
+  var topPlot = new V.Plot(V.el('#cTop'), {
+    margin: { top: 14, right: 18, bottom: 28, left: 40 },
+    height: function (w) { return w < 480 ? 120 : 145; }
+  });
+
+  var ciPlot = new V.Plot(V.el('#cCI'), {
+    margin: { top: 14, right: 18, bottom: 28, left: 40 },
+    height: function (w) { return w < 480 ? 300 : 380; }
+  });
+
+  function se() { return SIGMA / Math.sqrt(state.n); }
+  function zStar() { return V.normalQuantile(1 - (1 - state.conf) / 2); }
+  function domain() {
+    var half = 4.0 * se();
+    return [MU - half, MU + half];
+  }
+  function rowCapacity() {
+    return Math.max(10, Math.floor(ciPlot.ph / 8));
+  }
+
+  function survey() {
+    var s = 0;
+    for (var i = 0; i < state.n; i++) s += rng.normal(MU, SIGMA);
+    var mean = s / state.n;
+    var half = zStar() * se();
+    var iv = { mean: mean, lo: mean - half, hi: mean + half };
+    iv.hit = (iv.lo <= MU && MU <= iv.hi);
+
+    total++;
+    if (iv.hit) hits++;
+    intervals.push(iv);
+    var cap = rowCapacity();
+    if (intervals.length > cap) intervals = intervals.slice(intervals.length - cap);
+  }
+
+  function reset() { intervals = []; total = 0; hits = 0; }
+
+  /* ---------- ① 표본평균의 분포 ---------- */
+  function drawTop() {
+    var dom = domain();
+    topPlot.xDomain = dom;
+    var peak = V.normalPdf(MU, MU, se());
+    topPlot.yDomain = [0, peak * 1.3];
+    topPlot.begin();
+
+    var pts = [], N = 240, i;
+    for (i = 0; i <= N; i++) {
+      var x = dom[0] + (dom[1] - dom[0]) * i / N;
+      pts.push([x, V.normalPdf(x, MU, se())]);
+    }
+
+    var cut = zStar() * se();
+    topPlot.areaUnder(pts, { color: V.css('--pos-soft'), from: MU - cut, to: MU + cut });
+    topPlot.areaUnder(pts, { color: V.css('--neg-soft'), to: MU - cut });
+    topPlot.areaUnder(pts, { color: V.css('--neg-soft'), from: MU + cut });
+    topPlot.path(pts, { color: V.css('--text-dim'), width: 2 });
+
+    topPlot.axes({ yAxis: false, xFormat: function (v) { return V.fmt(v, 0); } });
+    topPlot.vline(MU, { color: V.css('--text'), width: 2 });
+
+    // 가장 최근 표본평균
+    if (intervals.length) {
+      var last = intervals[intervals.length - 1];
+      topPlot.vline(last.mean, {
+        color: last.hit ? V.css('--pos') : V.css('--neg'),
+        width: 2.5, dash: [4, 3]
+      });
+      topPlot.dot(last.mean, V.normalPdf(last.mean, MU, se()), {
+        r: 5, color: last.hit ? V.css('--pos') : V.css('--neg')
+      });
+    }
+
+    var ctx = topPlot.ctx;
+    ctx.save();
+    ctx.font = '10.5px ' + V.FONT;
+    ctx.fillStyle = V.css('--neg');
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    var pct = V.fmt((1 - state.conf) / 2 * 100, 1) + '%';
+    if (topPlot.x(MU - cut) - topPlot.margin.left > 26) {
+      ctx.fillText(pct, (topPlot.margin.left + topPlot.x(MU - cut)) / 2, topPlot.margin.top + 4);
+      ctx.fillText(pct, (topPlot.x(MU + cut) + topPlot.margin.left + topPlot.pw) / 2, topPlot.margin.top + 4);
+    }
+    ctx.restore();
+  }
+
+  /* ---------- ② 신뢰구간 막대 ---------- */
+  function drawCI() {
+    ciPlot.xDomain = domain();
+    ciPlot.yDomain = [0, 1];
+    ciPlot.begin();
+    ciPlot.axes({ yAxis: false, xFormat: function (v) { return V.fmt(v, 0); } });
+
+    var ctx = ciPlot.ctx;
+    var cap = rowCapacity();
+    var rowH = ciPlot.ph / cap;
+    var top = ciPlot.margin.top;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(ciPlot.margin.left - 4, top, ciPlot.pw + 8, ciPlot.ph);
+    ctx.clip();
+    ctx.lineWidth = Math.min(4, Math.max(2, rowH - 3));
+
+    for (var i = 0; i < intervals.length; i++) {
+      var iv = intervals[i];
+      var y = top + rowH * (i + 0.5);
+      var col = iv.hit ? V.css('--pos') : V.css('--neg');
+      ctx.strokeStyle = col;
+      ctx.globalAlpha = iv.hit ? 0.65 : 1;
+
+      ctx.beginPath();
+      ctx.moveTo(ciPlot.x(iv.lo), y);
+      ctx.lineTo(ciPlot.x(iv.hi), y);
+      ctx.stroke();
+
+      // 양 끝 마개
+      var capH = Math.min(4, rowH * 0.35);
+      ctx.beginPath();
+      ctx.moveTo(ciPlot.x(iv.lo), y - capH); ctx.lineTo(ciPlot.x(iv.lo), y + capH);
+      ctx.moveTo(ciPlot.x(iv.hi), y - capH); ctx.lineTo(ciPlot.x(iv.hi), y + capH);
+      ctx.stroke();
+
+      // 중심(표본평균)
+      ctx.fillStyle = col;
+      ctx.beginPath();
+      ctx.arc(ciPlot.x(iv.mean), y, Math.min(2.6, rowH * 0.3), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+
+    ciPlot.vline(MU, { color: V.css('--text'), width: 2 });
+    ciPlot.text(MU, 1, 'μ = 100', { dy: 12, size: 11.5, color: V.css('--text') });
+
+    if (!intervals.length) {
+      ctx.save();
+      ctx.font = '13px ' + V.FONT;
+      ctx.fillStyle = V.css('--text-dim');
+      ctx.textAlign = 'center';
+      ctx.fillText('버튼을 눌러 조사를 반복해보세요',
+        ciPlot.margin.left + ciPlot.pw / 2, top + ciPlot.ph / 2);
+      ctx.restore();
+    }
+  }
+
+  function updateStats() {
+    V.setText('#s-total', String(total));
+    V.setText('#s-hit', String(hits));
+    V.setText('#s-miss', String(total - hits));
+    V.setText('#s-rate', total ? V.fmt(hits / total * 100, 1) + '%' : '–');
+    V.setText('#s-conf', V.fmt(state.conf * 100, 0) + '%');
+    V.setText('#s-width', '±' + V.fmt(zStar() * se(), 2));
+  }
+
+  function draw() { drawTop(); drawCI(); updateStats(); }
+
+  var loop = new V.Loop(function () {
+    survey();
+    draw();
+    if (total >= 20000) toggleAuto();
+  });
+
+  function toggleAuto() {
+    var btn = document.getElementById('auto');
+    if (loop.running) {
+      loop.stop();
+      btn.textContent = '▶ 자동';
+      btn.classList.add('primary');
+    } else {
+      loop.start();
+      btn.textContent = '❚❚ 정지';
+      btn.classList.remove('primary');
+    }
+  }
+
+  function run(k) { for (var i = 0; i < k; i++) survey(); draw(); }
+
+  V.radios('conf', function (v) { state.conf = parseFloat(v); reset(); draw(); });
+  V.range('n', function (v) { state.n = v; reset(); draw(); });
+  V.click('one', function () { run(1); });
+  V.click('many', function () { run(20); });
+  V.click('lots', function () { run(200); });
+  V.click('auto', toggleAuto);
+  V.click('reset', function () { if (loop.running) toggleAuto(); reset(); draw(); });
+
+  V.onRedraw(draw);
+  draw();
+})();
+</script>
+</body>
+</html>

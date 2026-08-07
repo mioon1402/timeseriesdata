@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>정규분포와 z-점수 · 눈으로 보는 통계</title>
+<meta name="description" content="종 모양 곡선 아래 면적이 곧 확률입니다. 68-95-99.7 규칙과 z-점수를 직접 만져보며 이해합니다.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%F0%9F%93%8A%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 모듈 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">모듈 03 · 정규분포</p>
+    <h1>면적이 곧 확률이다</h1>
+    <p class="lede">
+      정규분포에서 배워야 할 건 딱 두 가지입니다.
+      <b>곡선 아래 면적 = 확률</b>이라는 것, 그리고
+      <b>z-점수는 "표준편차 몇 개만큼 떨어졌나"를 세는 자</b>라는 것.
+    </p>
+  </header>
+
+  <section class="panel">
+    <div class="canvas-wrap"><canvas id="c"></canvas></div>
+    <p class="hint">회색 손잡이 <b>▲</b> 를 좌우로 끌어 구간을 바꿔보세요.</p>
+
+    <div class="seg" role="group" aria-label="확률 계산 방식">
+      <label><input type="radio" name="mode" value="between" checked><span>구간 안쪽</span></label>
+      <label><input type="radio" name="mode" value="left"><span>이 값 이하</span></label>
+      <label><input type="radio" name="mode" value="right"><span>이 값 이상</span></label>
+    </div>
+
+    <div class="controls">
+      <label class="ctrl">
+        <span class="label-row"><span class="name">평균 μ (중심 위치)</span><span class="val" id="mu-val">50</span></span>
+        <input type="range" id="mu" min="25" max="75" step="0.5" value="50">
+      </label>
+      <label class="ctrl">
+        <span class="label-row"><span class="name">표준편차 σ (퍼진 정도)</span><span class="val" id="sd-val">10</span></span>
+        <input type="range" id="sd" min="3" max="22" step="0.5" value="10">
+      </label>
+    </div>
+
+    <div class="btns">
+      <button class="btn" id="b1">μ ± 1σ</button>
+      <button class="btn" id="b2">μ ± 2σ</button>
+      <button class="btn" id="b3">μ ± 3σ</button>
+      <label class="toggle"><input type="checkbox" id="showRule" checked> 68-95-99.7 눈금</label>
+    </div>
+
+    <div class="readout">
+      <div class="stat accent"><span class="k">확률</span><span class="v" id="s-p">–</span></div>
+      <div class="stat"><span class="k">왼쪽 경계</span><span class="v" id="s-a">–</span></div>
+      <div class="stat"><span class="k">오른쪽 경계</span><span class="v" id="s-b">–</span></div>
+      <div class="stat purple"><span class="k">z (왼쪽)</span><span class="v" id="s-za">–</span></div>
+      <div class="stat purple"><span class="k">z (오른쪽)</span><span class="v" id="s-zb">–</span></div>
+    </div>
+  </section>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 모듈에서 다루는 것</b>
+      <ol>
+        <li><a href="#s1">높이가 아니라 면적이다</a></li>
+        <li><a href="#s2">68 – 95 – 99.7 규칙</a></li>
+        <li><a href="#s3">z-점수 = 표준편차를 자로 쓴 눈금</a></li>
+        <li><a href="#s4">꼬리 확률과 "이상함"의 기준</a></li>
+        <li><a href="#s5">실무: z-점수를 실제로 쓰는 곳</a></li>
+        <li><a href="#s6">세상이 다 정규분포는 아니다</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s1">1. 높이가 아니라 면적입니다</h2>
+    <p>
+      곡선의 <b>높이</b>는 확률이 아닙니다. 확률은 <b>색칠된 면적</b>입니다.
+      σ를 줄여보세요 — 곡선이 높고 뾰족해집니다. 하지만 전체 면적은 언제나 정확히 <b>1</b>입니다.
+      좁아진 만큼 높아지는 거죠. "확률이 어디론가 사라지지 않는다"는 뜻입니다.
+    </p>
+    <p>
+      그래서 <b>"정확히 키 175.0cm일 확률"은 0</b>입니다. 폭이 0인 구간의 면적은 0이니까요.
+      연속형 데이터에서는 항상 <b>구간</b>으로 물어야 합니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">정규분포의 확률밀도함수</div>
+      <div class="eq">
+        f(x) &nbsp;=&nbsp;
+        <span class="frac"><span>1</span><span>σ<span class="rad">√<span>2π</span></span></span></span>
+        &nbsp;e<sup> −<span class="frac" style="font-size:.8em"><span>1</span><span>2</span></span>
+        <span style="font-size:.9em">(</span><span class="frac" style="font-size:.78em"><span>x − μ</span><span>σ</span></span><span style="font-size:.9em">)</span><sup>2</sup></sup>
+      </div>
+      <ul class="where">
+        <li><span class="sym">μ</span><span class="desc"><b>어디에</b> 있는지 — 곡선을 좌우로 옮기는 손잡이</span></li>
+        <li><span class="sym">σ</span><span class="desc"><b>얼마나 퍼졌는지</b> — 곡선을 넓히고 눌러 펴는 손잡이</span></li>
+        <li><span class="sym">1/(σ√2π)</span><span class="desc">전체 면적을 정확히 1로 맞추는 <b>정규화 상수</b>.
+            σ가 작아지면 이 값이 커져서 곡선이 높아집니다 — 넓이가 보존되는 이유</span></li>
+        <li><span class="sym">f(x)</span><span class="desc"><b>확률이 아니라 밀도</b>입니다.
+            확률은 <span class="m">∫f(x)dx</span>, 즉 색칠한 면적</span></li>
+      </ul>
+    </div>
+
+    <p>
+      이 식을 외울 필요는 전혀 없습니다. 하지만 <b>지수 안에 <span class="m">((x−μ)/σ)²</span>가 들어 있다</b>는
+      점만은 기억할 가치가 있습니다. 이게 다음 두 절의 전부이기 때문입니다 —
+      정규분포는 <b>오직 "μ에서 σ 몇 개만큼 떨어졌나"에만 반응합니다.</b>
+    </p>
+
+    <h2 id="s2">2. 68 – 95 – 99.7</h2>
+    <p>
+      <b>μ ± 1σ</b>, <b>μ ± 2σ</b>, <b>μ ± 3σ</b> 버튼을 차례로 눌러보세요.
+    </p>
+    <ul>
+      <li><b>μ ± 1σ</b> 안에 약 <b>68%</b> — 3분의 2쯤</li>
+      <li><b>μ ± 2σ</b> 안에 약 <b>95%</b> — 대부분</li>
+      <li><b>μ ± 3σ</b> 안에 약 <b>99.7%</b> — 거의 전부</li>
+    </ul>
+    <p>
+      여기서 진짜 중요한 건 <b>μ와 σ를 아무리 바꿔도 이 비율이 안 변한다</b>는 점입니다.
+      슬라이더를 이리저리 움직여보세요. 68.27%는 그대로입니다.
+      정규분포는 <b>모양이 하나뿐</b>이고, μ와 σ는 그 모양을 옮기고 늘릴 뿐이니까요.
+    </p>
+
+    <h2 id="s3">3. z-점수 = 표준편차를 자로 쓴 눈금</h2>
+    <p>
+      그래서 정규분포 문제는 전부 <b>"평균에서 표준편차 몇 개만큼 떨어졌나"</b>로 번역됩니다.
+      그 개수가 <b>z-점수</b>입니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">표준화 · z-점수</div>
+      <div class="eq">
+        z &nbsp;=&nbsp;
+        <span class="frac"><span>x − μ</span><span>σ</span></span>
+        <br>
+        <span class="small">X ~ N(μ, σ²) &nbsp;⟹&nbsp; Z ~ N(0, 1)</span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">x − μ</span><span class="desc">평균에서 <b>얼마나</b> 떨어졌나 (원래 단위)</span></li>
+        <li><span class="sym">÷ σ</span><span class="desc">그 거리를 <b>표준편차 몇 개분</b>으로 환산 — 여기서 단위가 사라집니다</span></li>
+        <li><span class="sym">N(0,1)</span><span class="desc"><b>표준정규분포</b>. 평균 0, 표준편차 1. 세상의 모든 정규분포가 여기로 모입니다</span></li>
+      </ul>
+    </div>
+
+    <p>
+      그림의 <b>아래쪽 보라색 눈금자</b>가 바로 z축입니다.
+      μ와 σ를 어떻게 바꿔도, 위쪽 x 눈금은 계속 변하지만 아래쪽 z 눈금은 언제나 −3 … 0 … +3입니다.
+      <b>같은 그림을 두 개의 자로 재고 있을 뿐입니다.</b>
+    </p>
+    <div class="callout">
+      <b>왜 유용한가:</b> 시험 점수 78점이 잘한 건지 못한 건지는 알 수 없지만,
+      <span class="m">z = +1.8</span>이면 "상위 3.6% 근처"라고 <b>과목·시험이 달라도 똑같이</b> 말할 수 있습니다.
+      키(cm)와 몸무게(kg)처럼 단위가 다른 것도 z로 바꾸면 비교됩니다.
+    </div>
+
+    <h2 id="s4">4. 꼬리 확률과 "이상함"의 기준</h2>
+    <p>
+      <b>이 값 이상</b> 모드로 바꾸고 손잡이를 <span class="m">z = 2</span> 근처에 놓아보세요.
+      확률이 약 <b>2.3%</b>로 나옵니다. 양쪽 꼬리를 합치면 약 5%죠.
+      이 5%라는 숫자, 앞으로 계속 만나게 됩니다.
+    </p>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>z</th><th>안쪽 (μ±z 사이)</th><th>바깥 양쪽 꼬리</th><th>한쪽 꼬리</th><th>어디서 보나</th></tr></thead>
+        <tbody>
+          <tr><td><b>1.00</b></td><td>68.3%</td><td>31.7%</td><td>15.9%</td><td>"1시그마"</td></tr>
+          <tr><td><b>1.645</b></td><td>90.0%</td><td>10.0%</td><td>5.0%</td><td>단측검정 5%</td></tr>
+          <tr><td><b>1.96</b></td><td><b>95.0%</b></td><td><b>5.0%</b></td><td>2.5%</td><td><b>95% 신뢰구간</b> (모듈 05)</td></tr>
+          <tr><td><b>2.00</b></td><td>95.4%</td><td>4.6%</td><td>2.3%</td><td>"2시그마"</td></tr>
+          <tr><td><b>2.576</b></td><td>99.0%</td><td>1.0%</td><td>0.5%</td><td>99% 신뢰구간</td></tr>
+          <tr><td><b>3.00</b></td><td>99.73%</td><td>0.27%</td><td>0.13%</td><td>관리도 이탈 기준</td></tr>
+          <tr><td><b>6.00</b></td><td>99.9999998%</td><td>2 / 10억</td><td>1 / 10억</td><td>"식스 시그마"</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      <b>1.96</b>이라는 숫자를 기억해두세요. 통계를 하다 보면 지겹게 나옵니다.
+      "95% 안에 들어가려면 z가 ±1.96 이내" — 이게 신뢰구간(모듈 05)과
+      유의수준 5% 검정(모듈 06)의 출발점입니다.
+      흔히 "2σ"라고 어림잡는 게 바로 이 1.96입니다.
+    </p>
+
+    <div class="takeaway">
+      <b>한 줄 요약 ·</b> 확률은 면적이고, z-점수는 "σ 몇 개만큼 떨어졌나"이며,
+      1σ·2σ·3σ는 각각 68% · 95% · 99.7%입니다.
+    </div>
+
+    <h2 id="s5">5. 실무: z-점수를 실제로 쓰는 곳</h2>
+    <div class="practice">
+      <b>① 이상 탐지 / 모니터링</b>
+      서버 지표, 매출, 센서값이 평소 범위를 벗어났는지 판단할 때
+      <span class="m">z = (오늘값 − 평소평균) / 평소표준편차</span> 를 계산하고
+      <span class="m">|z| &gt; 3</span> 이면 알림을 보냅니다.
+      <ul>
+        <li>단, 평소평균·표준편차는 <b>이상치가 섞이지 않은 기간</b>에서 뽑아야 합니다.
+            장애 데이터가 섞이면 σ가 부풀어 다음 장애를 못 잡습니다.</li>
+        <li>치우친 지표라면 z 대신 <b>분위수 기반</b>(p99 초과)이나 로그 변환 후 z를 쓰세요.</li>
+      </ul>
+    </div>
+    <div class="practice">
+      <b>② 서로 다른 척도를 합치기 (표준화)</b>
+      머신러닝에서 <code>StandardScaler</code>가 하는 일이 정확히 이 z 변환입니다.
+      키(cm)·연봉(원)·클릭수(회)처럼 스케일이 제각각인 특성을 그대로 넣으면
+      숫자가 큰 특성이 거리 계산을 독점합니다. z로 바꾸면 <b>모두 같은 발언권</b>을 갖습니다.
+      <ul>
+        <li>거리 기반 모델(KNN, K-means, SVM)과 정규화가 걸린 회귀(Ridge, Lasso)에는 <b>필수</b>입니다.</li>
+        <li>트리 계열(랜덤포레스트, XGBoost)에는 <b>필요 없습니다</b> — 분기는 순서만 보니까요.</li>
+        <li>평균·표준편차는 <b>학습 데이터에서만</b> 계산해 검증·테스트에 적용해야 합니다.
+            전체 데이터로 스케일링하면 정보 누수(leakage)입니다.</li>
+      </ul>
+    </div>
+    <div class="practice">
+      <b>③ 품질관리 · 공정능력</b>
+      제조에서 "식스 시그마"는 규격 한계가 평균에서 <b>6σ 떨어져 있다</b>는 뜻입니다.
+      위 표대로면 불량은 10억 개당 2개 수준이죠. (실무에서 말하는 3.4 DPMO는
+      공정 중심이 장기적으로 1.5σ 흔들린다고 보정한 값입니다.)
+      공정능력지수 <span class="m">C<sub>p</sub> = (규격폭) / 6σ</span> 도 같은 발상입니다.
+    </div>
+
+    <h2 id="s6">6. 세상이 다 정규분포는 아닙니다</h2>
+    <p>
+      키·측정오차·공정 편차처럼 정규분포에 가까운 것도 많지만, 소득·조회수·대기시간은
+      전혀 정규분포가 아닙니다(모듈 02의 "오른쪽 치우침"). 그런 데이터에 68-95-99.7을 적용하면 크게 틀립니다.
+    </p>
+    <div class="pitfall">
+      <b>정규분포 가정이 위험한 순간</b>
+      <ul>
+        <li><b>꼬리가 두꺼운 데이터(fat tail).</b> 주가 수익률은 정규분포로 보면
+            "1만 년에 한 번" 수준의 폭락이 몇 년에 한 번씩 옵니다.
+            2008년 금융위기 때 여러 모델이 무너진 이유가 이것입니다.</li>
+        <li><b>경계가 있는 값.</b> 시간·개수·금액은 음수가 될 수 없습니다.
+            평균 200ms, SD 300ms에 정규분포를 씌우면 음수 응답시간이 25%나 나옵니다.</li>
+        <li><b>비율 데이터.</b> 전환율은 0~1 사이에 갇혀 있습니다. 0.02 근처에서는 정규 근사가 나쁩니다.</li>
+        <li><b>봉우리가 둘.</b> 요약값(평균·왜도)이 정규분포처럼 보여도 그림은 전혀 다릅니다.</li>
+      </ul>
+      <p style="margin-top:10px">
+        확인 방법은 간단합니다 — <b>히스토그램과 Q-Q 플롯을 먼저 그리세요.</b>
+        정규성 검정(Shapiro–Wilk 등)은 n이 크면 사소한 차이에도 무조건 "정규 아님"이라고 하므로
+        단독으로 믿지 마세요.
+      </p>
+    </div>
+    <p>
+      그럼에도 정규분포가 통계의 중심에 있는 이유는 원본 데이터가 정규분포여서가 <b>아닙니다.</b>
+      <b>표본평균이 정규분포를 따르기 때문</b>입니다. 원본이 아무리 이상해도요.
+      그게 다음 모듈의 주제이고, 통계학 전체에서 가장 중요한 정리입니다.
+    </p>
+
+    <div class="summary">
+      <h3>이 모듈 요약</h3>
+      <ul>
+        <li>확률 = <b>곡선 아래 면적</b>. 높이(밀도)는 확률이 아니다. 전체 면적은 항상 1.</li>
+        <li>정규분포는 <b>μ(위치)와 σ(폭)</b>, 두 손잡이만으로 완전히 결정된다.</li>
+        <li><span class="m">z = (x − μ)/σ</span> — 단위를 지우고 "σ 몇 개분"으로 환산.</li>
+        <li>1σ·2σ·3σ = 68% · 95% · 99.7%. 정확히 95%는 <b>z = 1.96</b>.</li>
+        <li>실무 용도: 이상 탐지, 특성 스케일링, 공정능력.</li>
+        <li>쓰기 전에 <b>히스토그램으로 정규성부터 확인.</b> 치우침·두꺼운 꼬리·경계값에는 부적합.</li>
+      </ul>
+    </div>
+
+    <p class="next-up">
+      다음 → <a href="04-clt.html">모듈 04 · 이상한 모집단, 멀쩡한 평균</a><br>
+      왜 정규분포가 이렇게까지 중요한지, 그 진짜 이유를 봅니다.
+    </p>
+  </section>
+
+</div>
+
+<script src="../assets/viz.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var state = { mu: 50, sd: 10, a: 40, b: 60, mode: 'between', showRule: true };
+
+  var plot = new V.Plot(V.el('#c'), {
+    margin: { top: 26, right: 20, bottom: 62, left: 46 },
+    xDomain: [0, 100],
+    height: function (w) { return w < 480 ? 300 : 350; }
+  });
+
+  function curve() {
+    var pts = [], N = 260;
+    for (var i = 0; i <= N; i++) {
+      var x = 0 + (100 - 0) * i / N;
+      pts.push([x, V.normalPdf(x, state.mu, state.sd)]);
+    }
+    return pts;
+  }
+
+  function probability() {
+    var F = function (x) { return V.normalCdf(x, state.mu, state.sd); };
+    if (state.mode === 'left') return F(state.a);
+    if (state.mode === 'right') return 1 - F(state.a);
+    return F(state.b) - F(state.a);
+  }
+
+  /** 현재 모드에서 화면에 보이는 손잡이 목록 */
+  function handles() {
+    return state.mode === 'between' ? [{ key: 'a', v: state.a }, { key: 'b', v: state.b }]
+                                    : [{ key: 'a', v: state.a }];
+  }
+
+  function draw() {
+    var peak = V.normalPdf(state.mu, state.mu, state.sd);
+    plot.yDomain = [0, peak * 1.2];
+    plot.begin();
+
+    var ctx = plot.ctx;
+    var pts = curve();
+
+    // 채워진 면적
+    var shade;
+    if (state.mode === 'left')  shade = { to: state.a };
+    else if (state.mode === 'right') shade = { from: state.a };
+    else shade = { from: state.a, to: state.b };
+    plot.areaUnder(pts, Object.assign({ color: V.css('--accent-soft') }, shade));
+
+    plot.axes({
+      yAxis: false,
+      xTicks: V.ticks(0, 100, 6),
+      xFormat: function (v) { return String(Math.round(v)); }
+    });
+
+    // 68-95-99.7 눈금
+    if (state.showRule) {
+      ctx.save();
+      ctx.setLineDash([3, 4]);
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = V.css('--text-dim');
+      ctx.globalAlpha = 0.6;
+      for (var k = -3; k <= 3; k++) {
+        if (k === 0) continue;
+        var xv = state.mu + k * state.sd;
+        if (xv < 0 || xv > 100) continue;
+        ctx.beginPath();
+        ctx.moveTo(plot.x(xv), plot.y(V.normalPdf(xv, state.mu, state.sd)));
+        ctx.lineTo(plot.x(xv), plot.y(0));
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // 곡선
+    plot.path(pts, { color: V.css('--accent'), width: 2.5 });
+
+    // 평균선
+    plot.vline(state.mu, { color: V.css('--text-dim'), width: 1.5, dash: [5, 4] });
+    plot.text(state.mu, peak * 1.2, 'μ', { dy: 14, size: 12, color: V.css('--text-dim') });
+
+    /* ---------- z 눈금자 ---------- */
+    var zy = plot.margin.top + plot.ph + 30;
+    ctx.save();
+    ctx.strokeStyle = V.css('--purple');
+    ctx.fillStyle = V.css('--purple');
+    ctx.lineWidth = 1.5;
+    var zLo = plot.x(V.clamp(state.mu - 3 * state.sd, 0, 100));
+    var zHi = plot.x(V.clamp(state.mu + 3 * state.sd, 0, 100));
+    ctx.beginPath();
+    ctx.moveTo(zLo, zy + 0.5);
+    ctx.lineTo(zHi, zy + 0.5);
+    ctx.stroke();
+
+    ctx.font = '10.5px ' + V.FONT;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    for (var z = -3; z <= 3; z++) {
+      var xz = state.mu + z * state.sd;
+      if (xz < 0 || xz > 100) continue;
+      var pxz = plot.x(xz);
+      ctx.beginPath();
+      ctx.moveTo(pxz, zy - 4);
+      ctx.lineTo(pxz, zy + 4);
+      ctx.stroke();
+      ctx.fillText(z > 0 ? '+' + z : String(z), pxz, zy + 6);
+    }
+    ctx.textAlign = 'left';
+    ctx.font = '700 10.5px ' + V.FONT;
+    ctx.fillText('z', plot.margin.left - 20, zy - 6);
+    ctx.restore();
+
+    /* ---------- 손잡이 ---------- */
+    var hs = handles();
+    for (var i = 0; i < hs.length; i++) {
+      var hx = plot.x(hs[i].v);
+      ctx.save();
+      ctx.strokeStyle = V.css('--text');
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(hx, plot.margin.top);
+      ctx.lineTo(hx, plot.margin.top + plot.ph + 8);
+      ctx.stroke();
+
+      ctx.fillStyle = V.css('--text');
+      ctx.beginPath();
+      ctx.moveTo(hx, plot.margin.top + plot.ph + 6);
+      ctx.lineTo(hx - 7, plot.margin.top + plot.ph + 18);
+      ctx.lineTo(hx + 7, plot.margin.top + plot.ph + 18);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    /* ---------- 확률 라벨 ---------- */
+    var p = probability();
+    var labelX = state.mode === 'left' ? (state.a + plot.xDomain[0]) / 2
+               : state.mode === 'right' ? (state.a + plot.xDomain[1]) / 2
+               : (state.a + state.b) / 2;
+    ctx.save();
+    ctx.font = '800 15px ' + V.FONT;
+    ctx.fillStyle = V.css('--accent');
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    var txt = V.fmt(p * 100, 1) + '%';
+    var tw = ctx.measureText(txt).width;
+    var tx = V.clamp(plot.x(labelX), plot.margin.left + tw / 2 + 6, plot.margin.left + plot.pw - tw / 2 - 6);
+    var ty = plot.margin.top + plot.ph * 0.55;
+    ctx.fillStyle = V.css('--bg');
+    ctx.globalAlpha = 0.85;
+    ctx.fillRect(tx - tw / 2 - 7, ty - 12, tw + 14, 24);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = V.css('--accent');
+    ctx.fillText(txt, tx, ty);
+    ctx.restore();
+
+    /* ---------- 수치 ---------- */
+    var za = (state.a - state.mu) / state.sd;
+    var zb = (state.b - state.mu) / state.sd;
+    V.setText('#s-p', V.fmt(p * 100, 2) + '%');
+
+    if (state.mode === 'between') {
+      V.setText('#s-a', V.fmt(state.a, 1));
+      V.setText('#s-b', V.fmt(state.b, 1));
+      V.setText('#s-za', V.fmt(za, 2));
+      V.setText('#s-zb', V.fmt(zb, 2));
+    } else if (state.mode === 'left') {
+      V.setText('#s-a', '−∞');
+      V.setText('#s-b', V.fmt(state.a, 1));
+      V.setText('#s-za', '−∞');
+      V.setText('#s-zb', V.fmt(za, 2));
+    } else {
+      V.setText('#s-a', V.fmt(state.a, 1));
+      V.setText('#s-b', '+∞');
+      V.setText('#s-za', V.fmt(za, 2));
+      V.setText('#s-zb', '+∞');
+    }
+  }
+
+  /* ---------------- 드래그 ---------------- */
+  var dragKey = null;
+
+  function nearest(px) {
+    var hs = handles(), best = null, bestD = 22;
+    for (var i = 0; i < hs.length; i++) {
+      var d = Math.abs(plot.x(hs[i].v) - px);
+      if (d < bestD) { bestD = d; best = hs[i].key; }
+    }
+    return best;
+  }
+
+  var canvas = V.el('#c');
+
+  canvas.addEventListener('pointerdown', function (ev) {
+    var pos = V.pointerPos(canvas, ev);
+    dragKey = nearest(pos.x);
+    if (dragKey) {
+      canvas.setPointerCapture(ev.pointerId);
+      ev.preventDefault();
+    }
+  });
+
+  canvas.addEventListener('pointermove', function (ev) {
+    var pos = V.pointerPos(canvas, ev);
+    if (!dragKey) {
+      canvas.style.cursor = nearest(pos.x) ? 'ew-resize' : 'default';
+      return;
+    }
+    var v = V.clamp(plot.invX(pos.x), 0, 100);
+    if (state.mode === 'between') {
+      if (dragKey === 'a') state.a = Math.min(v, state.b - 0.5);
+      else state.b = Math.max(v, state.a + 0.5);
+    } else {
+      state.a = v;
+    }
+    draw();
+    ev.preventDefault();
+  });
+
+  ['pointerup', 'pointercancel'].forEach(function (t) {
+    canvas.addEventListener(t, function () { dragKey = null; });
+  });
+
+  /* ---------------- 컨트롤 ---------------- */
+  function snap(k) {
+    state.mode = 'between';
+    V.els('input[name="mode"]').forEach(function (r) { r.checked = (r.value === 'between'); });
+    state.a = state.mu - k * state.sd;
+    state.b = state.mu + k * state.sd;
+    draw();
+  }
+
+  V.range('mu', function (v) {
+    var shift = v - state.mu;
+    state.mu = v;
+    state.a = V.clamp(state.a + shift, 0, 100);
+    state.b = V.clamp(state.b + shift, 0, 100);
+    draw();
+  });
+
+  V.range('sd', function (v) { state.sd = v; draw(); });
+  V.radios('mode', function (v) { state.mode = v; draw(); });
+  V.click('b1', function () { snap(1); });
+  V.click('b2', function () { snap(2); });
+  V.click('b3', function () { snap(3); });
+  V.check('showRule', function (v) { state.showRule = v; draw(); });
+
+  V.onRedraw(draw);
+  draw();
+})();
+</script>
+</body>
+</html>
