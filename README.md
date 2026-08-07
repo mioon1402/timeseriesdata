@@ -29,6 +29,86 @@
 
 ---
 
+## 2부 · 파이썬으로 직접 해보기
+
+**설치도 가입도 없이 브라우저 안에서 진짜 파이썬이 돕니다.**
+[Pyodide](https://pyodide.org)(CPython → WebAssembly) 위에서 pandas·matplotlib·seaborn이
+그대로 실행됩니다. 독자는 코드를 고쳐서 바로 다시 돌려볼 수 있습니다.
+
+가상 카페 **"밀롱 커피"** 한 곳의 2년치 데이터를 처음부터 끝까지 함께 분석합니다.
+
+| 부 | 회차 | 내용 |
+| --- | --- | --- |
+| **데이터 다루기** | P01 [처음 만나는 데이터](python/p01-first-look.html) ✅ | `read_csv` · `shape` · `info` · `describe` |
+| | P02 필요한 것만 꺼내기 | `loc`/`iloc` · 조건 필터 · 정렬 |
+| | P03 지저분한 데이터 청소하기 | 결측치 · 중복 · 자료형 변환 |
+| | P04 날짜를 날짜답게 | `to_datetime` · `dt` 접근자 |
+| **요약과 통계** | P05 숫자로 요약하기 | 기술통계 · 분산 · 변동계수 |
+| | P06 그룹별로 나눠 보기 | `groupby` · `agg` · `pivot_table` |
+| | P07 분포 확인하기 | 히스토그램 · 사분위수 · IQR |
+| | P08 두 데이터 합치기 | `merge` · `concat` |
+| **시각화** | P09 첫 그래프 그리기 | matplotlib 기초 · 한글 폰트 |
+| | P10 보기 좋은 그래프로 | 색 · 범례 · 서브플롯 |
+| | P11 seaborn으로 빠르게 | `histplot` · `boxplot` · `heatmap` |
+| **통계적 추론** | P12 상관과 회귀 | `corr` · 회귀선 · r² |
+| | P13 신뢰구간과 가설검정 | `scipy.stats` · t검정 · p값 |
+| **시계열과 예측** | P14 시계열 다루기 | `DatetimeIndex` · `resample` · `rolling` |
+| | P15 추세와 계절성 분해 | `seasonal_decompose` |
+| | P16 예측해보기 | 학습/검증 분리 · 지수평활 · ARIMA · MAE/MAPE |
+
+각 강의는 **웹에서 바로 실습**하거나 **Colab에서 열어** 자유롭게 파고들 수 있습니다.
+1부의 통계 이론과 짝을 이룹니다 (예: P05 ↔ 모듈 01, P12 ↔ 모듈 07, P13 ↔ 모듈 05·06).
+
+### 예시 데이터
+
+`scripts/gen_data.py` 가 결정론적으로 생성합니다. 실습에 필요한 성질을 일부러 심어두었습니다.
+
+| 파일 | 내용 | 심어둔 학습 포인트 |
+| --- | --- | --- |
+| `data/cafe_sales.csv` | 일별 매출 731행 | 추세(132→190명) · 요일 효과(월 146 vs 토 227) · 여름 피크 · 결측 13건 · 휴점 2일 · 방송 대박 1일 |
+| `data/cafe_sales_messy.csv` | 정리 실습용 184행 | 날짜 형식 3종 혼재 · `1,234원` 표기 · 공백 · 중복행 · `N/A`/`-` 혼용 |
+| `data/weather.csv` | 날씨 708행 | 일부 날짜 누락 → `merge` 실습 |
+| `data/menu_orders.csv` | 메뉴별 주문 6,561행 | `groupby` · `pivot_table` 실습 |
+
+기온-매출 상관 r ≈ +0.51, 방문객-매출 r ≈ +0.99 로 관계가 직관적으로 보이도록 설계했습니다.
+
+### 브라우저 안 파이썬은 어떻게 동작하나
+
+| 파일 | 역할 |
+| --- | --- |
+| `assets/pylab.js` | Pyodide 부팅, 패키지·데이터·폰트 준비, 코드 실행, 오류 해설 |
+| `assets/pycell.js` | `<div class="pycell">` 을 편집 가능한 실행 셀로 변환 |
+| `assets/pycell.css` | 셀·출력·표·오류 스타일 |
+| `assets/fonts/` | matplotlib 한글 폰트 (나눔고딕 서브셋 1.9MB, [출처](assets/fonts/NOTICE.md)) |
+
+설계상 중요한 점:
+
+- **게으른 로딩** — [실행]을 누르기 전엔 아무것도 내려받지 않습니다. 글만 읽는 독자에게 수십 MB를 강요하지 않습니다.
+- **런타임 공유** — 페이지 전체가 하나의 파이썬을 씁니다. 앞 셀의 변수가 뒤 셀에서 살아 있습니다.
+- **우아한 실패** — CDN이 막힌 환경에서는 오류 대신 안내와 Colab 링크를 보여줍니다.
+- **초보자용 오류 해설** — `KeyError` 같은 예외를 한국어 힌트로 번역합니다.
+
+```html
+<!-- 강의 안에서 이렇게 쓰면 실행 가능한 셀이 됩니다 -->
+<div class="pycell" data-packages="pandas,matplotlib" data-data="cafe_sales.csv">
+import pandas as pd
+df = pd.read_csv("cafe_sales.csv")
+df.head()
+</div>
+```
+
+### Colab 노트북
+
+`scripts/make_notebooks.py` 가 **강의 HTML에서 자동 생성**합니다.
+웹 강의를 단일 원본으로 두어 두 쪽이 어긋나지 않게 했습니다.
+
+```bash
+python3 scripts/gen_data.py        # 예시 데이터 생성
+python3 scripts/make_notebooks.py  # notebooks/*.ipynb 생성
+```
+
+---
+
 ## 바로 보기
 
 로컬에서 열려면 정적 서버가 필요합니다 (`file://`로 열면 공용 CSS/JS가 안 붙습니다).

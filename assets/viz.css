@@ -735,3 +735,12 @@ pre.code {
   .readout { grid-template-columns: repeat(auto-fit, minmax(78px, 1fr)); }
   .stat .v { font-size: 15px; }
 }
+
+/* 준비 중인 강의 카드 */
+.card.card-soon {
+  opacity: 0.62;
+  background: transparent;
+  border-style: dashed;
+}
+.card.card-soon:hover { border-color: var(--border); box-shadow: none; }
+.card.card-soon .num { color: var(--text-dim); }

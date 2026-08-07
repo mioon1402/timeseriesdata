@@ -25,7 +25,19 @@
     </p>
   </header>
 
+  <h2 style="font-size:20px;margin:0 0 6px;letter-spacing:-.02em">1부 · 눈으로 보는 통계</h2>
+  <p style="margin:0 0 16px;font-size:14px;color:var(--text-dim)">
+    공식을 외우기 전에 그림으로. 점을 끌고 슬라이더를 돌리며 개념을 몸으로 익힙니다.
+  </p>
   <div class="hub-grid" id="grid"></div>
+
+  <h2 style="font-size:20px;margin:40px 0 6px;letter-spacing:-.02em">2부 · 파이썬으로 직접 해보기</h2>
+  <p style="margin:0 0 16px;font-size:14px;color:var(--text-dim)">
+    설치 없이 <b>브라우저 안에서 진짜 파이썬이 돕니다.</b>
+    pandas로 데이터를 가공하고, 그래프를 그리고, 시계열을 예측하는 것까지 —
+    가상 카페 한 곳의 2년치 데이터를 처음부터 끝까지 함께 분석합니다.
+  </p>
+  <div class="hub-grid" id="pygrid"></div>
 
   <section class="embed-box" id="embedBox">
     <h2 style="margin:0 0 6px;font-size:17px;">티스토리·블로그에 붙여넣기</h2>
@@ -165,6 +177,74 @@
     }
   ];
 
+  /* 파이썬 실습 시리즈. done:false 는 아직 준비 중인 회차. */
+  var PY_LESSONS = [
+    { no: 'P01', file: 'python/p01-first-look.html', done: true,
+      title: '처음 만나는 데이터',
+      desc: '설치 없이 브라우저에서 pandas를 실행합니다. 데이터를 열고, 크기와 자료형을 확인하고, describe()로 요약 통계를 읽습니다.',
+      tags: 'read_csv · shape · info · describe · 평균과 중앙값' },
+    { no: 'P02', file: '', done: false,
+      title: '필요한 것만 꺼내기',
+      desc: '"비 온 날 매출만 보고 싶다"에 답하는 법. 열 선택, 조건 필터링, 정렬.',
+      tags: 'loc · iloc · 조건 필터 · sort_values' },
+    { no: 'P03', file: '', done: false,
+      title: '지저분한 데이터 청소하기',
+      desc: '날짜 형식이 뒤죽박죽이고 숫자에 쉼표와 "원"이 붙은 진짜 현실 데이터를 다듬습니다.',
+      tags: '결측치 · 중복 · 자료형 변환 · 문자열 정리' },
+    { no: 'P04', file: '', done: false,
+      title: '날짜를 날짜답게',
+      desc: '문자열을 진짜 날짜로 바꾸면 "3월만", "주말만", "월별 합계"가 한 줄로 됩니다.',
+      tags: 'to_datetime · dt 접근자 · 새 열 만들기' },
+    { no: 'P05', file: '', done: false,
+      title: '숫자로 요약하기',
+      desc: '평균·중앙값·표준편차를 직접 계산하며 그 의미를 짚습니다. 통계 모듈 01과 짝을 이룹니다.',
+      tags: '기술통계 · 분산과 표준편차 · 변동계수' },
+    { no: 'P06', file: '', done: false,
+      title: '그룹별로 나눠 보기',
+      desc: '요일별·월별·메뉴별로 쪼개면 전체 평균이 숨기던 패턴이 드러납니다.',
+      tags: 'groupby · agg · pivot_table' },
+    { no: 'P07', file: '', done: false,
+      title: '분포 확인하기',
+      desc: '히스토그램과 분위수로 데이터의 모양을 봅니다. 이상치를 찾는 기준도 함께.',
+      tags: '히스토그램 · 사분위수 · IQR · 왜도' },
+    { no: 'P08', file: '', done: false,
+      title: '두 데이터 합치기',
+      desc: '매출 데이터에 날씨 데이터를 붙입니다. 붙이다 행이 사라지는 사고를 막는 법까지.',
+      tags: 'merge · concat · join 종류' },
+    { no: 'P09', file: '', done: false,
+      title: '첫 그래프 그리기',
+      desc: 'matplotlib으로 선·막대·산점도를 그립니다. 한글이 깨지지 않게 하는 법부터.',
+      tags: 'matplotlib · plot · 축과 라벨' },
+    { no: 'P10', file: '', done: false,
+      title: '보기 좋은 그래프로',
+      desc: '색·범례·눈금을 정리해 남에게 보여줄 수 있는 그림으로 만듭니다.',
+      tags: '스타일 · 색 · 범례 · 여러 그래프 배치' },
+    { no: 'P11', file: '', done: false,
+      title: 'seaborn으로 빠르게',
+      desc: '한 줄로 분포·관계·범주 그래프를 그립니다.',
+      tags: 'seaborn · histplot · boxplot · heatmap' },
+    { no: 'P12', file: '', done: false,
+      title: '관계를 숫자로 — 상관과 회귀',
+      desc: '기온이 오르면 매출이 오를까? 상관계수를 구하고 회귀선을 그립니다. 통계 모듈 07과 짝.',
+      tags: 'corr · 회귀 · r² · 상관과 인과' },
+    { no: 'P13', file: '', done: false,
+      title: '신뢰구간과 가설검정',
+      desc: '"주말이 평일보다 정말 잘 되나?"를 통계적으로 검정합니다. 통계 모듈 05·06과 짝.',
+      tags: 'scipy.stats · t검정 · p값 · 신뢰구간' },
+    { no: 'P14', file: '', done: false,
+      title: '시계열 다루기',
+      desc: '날짜를 인덱스로 삼으면 리샘플링과 이동평균이 한 줄로 됩니다.',
+      tags: 'DatetimeIndex · resample · rolling' },
+    { no: 'P15', file: '', done: false,
+      title: '추세와 계절성 분해',
+      desc: '매출을 추세 + 주기 + 나머지로 쪼개 봅니다.',
+      tags: 'seasonal_decompose · 추세 · 주간 계절성' },
+    { no: 'P16', file: '', done: false,
+      title: '예측해보기',
+      desc: '다음 달 매출을 예측하고, 그 예측이 얼마나 맞는지 검증합니다.',
+      tags: '학습/검증 분리 · 지수평활 · ARIMA · MAE와 MAPE' }
+  ];
+
   var selected = null;
 
   /* ---------- 기본 주소 자동 감지 ---------- */
@@ -199,6 +279,25 @@
         '<button class="btn" data-i="' + i + '">임베드 코드</button>' +
       '</div>';
     grid.appendChild(card);
+  });
+
+  /* ---------- 파이썬 시리즈 카드 ---------- */
+  var pygrid = document.getElementById('pygrid');
+  PY_LESSONS.forEach(function (m) {
+    var card = document.createElement('article');
+    card.className = 'card' + (m.done ? '' : ' card-soon');
+    var action = m.done
+      ? '<a class="btn primary" href="' + m.file + '">열기</a>'
+      : '<span class="btn" aria-disabled="true" style="opacity:.5;cursor:default">준비 중</span>';
+    var heading = m.done
+      ? '<a href="' + m.file + '">' + m.title + '</a>'
+      : m.title;
+    card.innerHTML =
+      '<div class="num">' + m.no + '</div>' +
+      '<h3>' + heading + '</h3>' +
+      '<p>' + m.desc + '<br><span style="font-size:12px;opacity:.8">' + m.tags + '</span></p>' +
+      '<div class="card-actions">' + action + '</div>';
+    pygrid.appendChild(card);
   });
 
   grid.addEventListener('click', function (ev) {

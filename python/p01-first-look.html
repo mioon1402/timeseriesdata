@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>처음 만나는 데이터 · 파이썬 데이터 분석</title>
+<meta name="description" content="설치 없이 브라우저에서 바로 pandas를 실행해봅니다. 데이터를 열고, 크기를 확인하고, 요약 통계를 읽는 법.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%F0%9F%90%8D%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css">
+<link rel="stylesheet" href="../assets/pycell.css">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">파이썬 1강 · 데이터 다루기</p>
+    <h1>처음 만나는 데이터</h1>
+    <p class="lede">
+      설치할 것도, 가입할 것도 없습니다. <b>아래 코드 상자의 [실행] 버튼만 누르면</b>
+      이 페이지 안에서 진짜 파이썬이 돕니다.
+      코드를 직접 고쳐서 다시 실행해볼 수도 있습니다.
+    </p>
+  </header>
+
+  <div class="pyintro">
+    <b>실습하기 전에 딱 세 가지만</b>
+    <ul>
+      <li><b>첫 실행은 10~30초 걸립니다.</b> 파이썬과 pandas를 브라우저로 내려받는 시간입니다.
+          두 번째부터는 즉시 실행됩니다.</li>
+      <li>코드는 <b>마음대로 고쳐도 됩니다.</b> 망가뜨려도 [처음으로]를 누르면 원래대로 돌아옵니다.
+          망가뜨려 보는 게 제일 빨리 배우는 길입니다.</li>
+      <li>셀은 <b>위에서부터 순서대로</b> 실행하세요. 앞에서 만든 변수를 뒤에서 씁니다.
+          (단축키: <kbd>Ctrl</kbd>+<kbd>Enter</kbd>)</li>
+    </ul>
+  </div>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 강의에서 배우는 것</b>
+      <ol>
+        <li><a href="#s1">데이터 불러오기 — read_csv</a></li>
+        <li><a href="#s2">얼마나 큰가 — shape</a></li>
+        <li><a href="#s3">어떤 열이 있나 — info와 자료형</a></li>
+        <li><a href="#s4">숫자로 요약하기 — describe</a></li>
+        <li><a href="#s5">요약값을 읽는 법 (통계 이론)</a></li>
+        <li><a href="#s6">직접 해보기</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s1">1. 데이터 불러오기</h2>
+    <p>
+      우리가 다룰 데이터는 가상의 카페 <b>"밀롱 커피"</b>의 2년치 영업 기록입니다.
+      하루에 몇 명이 왔고, 얼마를 벌었고, 그날 날씨는 어땠는지가 들어 있습니다.
+    </p>
+    <p>
+      파이썬에서 표 형태 데이터를 다루는 도구는 <b>pandas</b>입니다.
+      엑셀을 코드로 다룬다고 생각하면 거의 맞습니다.
+    </p>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="1-1. 데이터 열어보기">
+    import pandas as pd
+
+    df = pd.read_csv("cafe_sales.csv")
+    df.head()
+    </div>
+
+    <p>세 줄이 각각 무슨 일을 했는지 뜯어봅시다.</p>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>코드</th><th>뜻</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>import pandas as pd</code></td>
+            <td>pandas 라는 도구를 가져오되, 앞으로 <code>pd</code> 라는 짧은 이름으로 부르겠다는 선언.
+                거의 모든 파이썬 코드가 이 관례를 씁니다.</td>
+          </tr>
+          <tr>
+            <td><code>pd.read_csv("...")</code></td>
+            <td>CSV 파일을 읽어 <b>데이터프레임(DataFrame)</b> 으로 만듭니다.
+                데이터프레임 = 행과 열이 있는 표.</td>
+          </tr>
+          <tr>
+            <td><code>df.head()</code></td>
+            <td>맨 위 <b>5줄만</b> 보여줍니다. 데이터가 수만 줄이어도 화면이 터지지 않게 하는 습관.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="practice">
+      <b>고쳐보기</b>
+      <ul>
+        <li><code>df.head()</code> → <code>df.head(10)</code> 로 바꾸면 10줄이 나옵니다.</li>
+        <li><code>df.tail()</code> 로 바꾸면 <b>마지막</b> 5줄이 나옵니다. 데이터가 어디서 끝나는지 확인할 때 씁니다.</li>
+        <li><code>df.sample(5)</code> 는 <b>무작위로</b> 5줄을 뽑습니다.
+            앞뒤만 보면 놓치는 문제를 발견할 때 좋습니다.</li>
+      </ul>
+    </div>
+
+    <h2 id="s2">2. 얼마나 큰 데이터인가</h2>
+    <p>
+      분석을 시작하기 전에 항상 확인해야 하는 첫 숫자는 <b>"몇 행 몇 열인가"</b>입니다.
+    </p>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="1-2. 크기 확인">
+    print("행과 열:", df.shape)
+    print("행 개수:", len(df))
+    print("열 이름:", list(df.columns))
+    </div>
+
+    <p>
+      <code>df.shape</code> 는 <code>(731, 7)</code> 처럼 나옵니다. <b>731행 7열</b>이라는 뜻이죠.
+      731일 = 약 2년치입니다. 날짜가 하루도 빠지지 않았다는 것도 이 숫자로 짐작할 수 있습니다.
+    </p>
+    <div class="pitfall">
+      <b>행 개수를 꼭 확인하세요</b>
+      실무에서 가장 흔한 사고 중 하나가 <b>데이터가 잘린 줄 모르고 분석하는 것</b>입니다.
+      엑셀에서 내보내다 만 파일, 쿼리에 걸린 <code>LIMIT 1000</code>, 필터가 남아 있는 시트…
+      "2년치인데 왜 300행이지?" 를 <b>맨 처음에</b> 물어야 나중에 결론을 뒤집지 않습니다.
+    </div>
+
+    <h2 id="s3">3. 어떤 열이 있고, 각 열은 무슨 타입인가</h2>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="1-3. 열 정보 훑어보기">
+    df.info()
+    </div>
+
+    <p>여기서 세 가지를 읽어야 합니다.</p>
+    <ul>
+      <li><b>Non-Null Count</b> — 값이 채워진 개수. 731이 아닌 열이 있다면 <b>결측치</b>가 있다는 뜻입니다.
+          위 결과에서 <code>sales</code>와 <code>avg_temp</code>를 보세요.</li>
+      <li><b>Dtype</b> — 자료형. <code>int64</code>는 정수, <code>float64</code>는 실수,
+          <code>object</code>는 대개 문자열입니다.</li>
+      <li><b>memory usage</b> — 메모리 사용량. 데이터가 커지면 신경 써야 합니다.</li>
+    </ul>
+
+    <div class="callout">
+      <b>왜 <code>date</code> 열이 <code>object</code>(문자열)일까요?</b><br>
+      pandas는 CSV를 읽을 때 날짜를 <b>자동으로 알아보지 못합니다.</b>
+      우리 눈에는 <code>2024-01-01</code> 이 날짜지만, 컴퓨터에게는 그냥 열 글자짜리 문자열입니다.
+      그래서 지금 상태로는 "3월 데이터만 골라줘" 같은 걸 할 수 없습니다.
+      이걸 진짜 날짜로 바꾸는 방법은 <b>4강</b>에서 다룹니다.
+    </div>
+
+    <p>
+      결측치가 정확히 몇 개인지는 이렇게 셉니다.
+    </p>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="1-4. 결측치 세어보기">
+    df.isna().sum()
+    </div>
+
+    <p>
+      <code>isna()</code>는 각 칸이 비어 있으면 True, 아니면 False인 표를 만듭니다.
+      파이썬에서 True는 1, False는 0으로 취급되므로 <code>sum()</code>을 하면
+      <b>열마다 빈 칸이 몇 개인지</b> 세어집니다. 자주 쓰는 관용구니 통째로 외워두세요.
+    </p>
+
+    <h2 id="s4">4. 숫자로 요약하기 — describe</h2>
+    <p>
+      pandas에는 숫자 열 전체의 기초 통계를 한 번에 내주는 기능이 있습니다.
+    </p>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="1-5. 기초 통계 한 방에">
+    df.describe()
+    </div>
+
+    <p>여덟 줄이 나옵니다. 각각이 무엇인지 알아야 데이터를 읽을 수 있습니다.</p>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>줄</th><th>뜻</th><th>무엇을 확인하나</th></tr></thead>
+        <tbody>
+          <tr><td><code>count</code></td><td>값이 있는 개수</td><td>결측치가 얼마나 되나</td></tr>
+          <tr><td><code>mean</code></td><td>평균</td><td>대략 어느 수준인가</td></tr>
+          <tr><td><code>std</code></td><td>표준편차</td><td>얼마나 들쭉날쭉한가</td></tr>
+          <tr><td><code>min</code></td><td>최솟값</td><td><b>말이 되는 값인가</b> (음수·0이 나오면 의심)</td></tr>
+          <tr><td><code>25%</code></td><td>1사분위수 (Q1)</td><td>하위 25% 경계</td></tr>
+          <tr><td><code>50%</code></td><td>중앙값</td><td>딱 한가운데 값</td></tr>
+          <tr><td><code>75%</code></td><td>3사분위수 (Q3)</td><td>상위 25% 경계</td></tr>
+          <tr><td><code>max</code></td><td>최댓값</td><td><b>이상치가 있나</b></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 id="s5">5. 요약값을 읽는 법</h2>
+    <p>
+      숫자가 나왔다고 끝이 아닙니다. <b>이 숫자들이 무엇을 말하는지</b> 읽을 줄 알아야 합니다.
+      여기서부터가 통계입니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">평균과 표준편차</div>
+      <div class="eq">
+        x̄ &nbsp;=&nbsp;
+        <span class="frac"><span>1</span><span>n</span></span>
+        <span class="sig">Σ</span> x<sub>i</sub>
+        &nbsp;&nbsp;&nbsp;&nbsp;
+        s &nbsp;=&nbsp;
+        <span class="rad">√<span>
+          <span class="frac"><span>1</span><span>n−1</span></span>
+          <span class="sig">Σ</span> ( x<sub>i</sub> − x̄ )<sup>2</sup>
+        </span></span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">x̄</span><span class="desc"><b>평균</b>. 모든 값을 더해 개수로 나눈 값 — 데이터가 균형을 이루는 지점</span></li>
+        <li><span class="sym">s</span><span class="desc"><b>표준편차</b>. 각 값이 평균에서 <b>평균적으로 얼마나 떨어져 있는지</b></span></li>
+        <li><span class="sym">n−1</span><span class="desc">표본에서 계산할 때 쓰는 분모.
+            pandas 의 <code>std()</code>는 기본이 <b>n−1</b> 입니다</span></li>
+      </ul>
+    </div>
+
+    <p>
+      표준편차가 왜 "평균에서 떨어진 정도"인지 그림으로 보고 싶다면
+      <a href="../modules/01-center-spread.html">통계 모듈 01 · 평균은 시소, 분산은 넓이</a>를 먼저 보세요.
+      점을 끌어보면 5초 만에 이해됩니다.
+    </p>
+
+    <div class="takeaway">
+      <b>실무에서 제일 먼저 보는 것 ·</b> <code>mean</code> 과 <code>50%</code>(중앙값)를 <b>비교</b>하세요.
+      둘이 비슷하면 좌우대칭에 가까운 데이터, 평균이 훨씬 크면 <b>오른쪽으로 긴 꼬리</b>가 있다는 신호입니다.
+    </div>
+
+    <p>
+      직접 확인해봅시다. 매출의 평균과 중앙값을 나란히 놓고 봅니다.
+    </p>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="1-6. 평균 vs 중앙값">
+    mean = df["sales"].mean()
+    median = df["sales"].median()
+
+    print(f"평균   {mean:,.0f}원")
+    print(f"중앙값 {median:,.0f}원")
+    print(f"차이   {mean - median:,.0f}원  ({(mean/median - 1) * 100:+.1f}%)")
+    </div>
+
+    <p>
+      평균이 중앙값보다 조금 높게 나올 겁니다. 왜일까요?
+      <code>describe()</code>의 <code>min</code>과 <code>max</code>를 다시 보세요.
+      <b>매출이 0원인 날</b>과 <b>유난히 폭발한 날</b>이 섞여 있습니다.
+      실제로 이 데이터에는 임시 휴점 이틀과 방송에 소개된 하루가 들어 있습니다.
+    </p>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="1-7. 극단적인 날 찾아보기">
+    # 방문객이 가장 많았던 날 3일
+    print("=== 최고 ===")
+    print(df.nlargest(3, "visitors")[["date", "weekday", "visitors", "sales"]])
+
+    # 가장 적었던 날 3일
+    print()
+    print("=== 최저 ===")
+    print(df.nsmallest(3, "visitors")[["date", "weekday", "visitors", "sales"]])
+    </div>
+
+    <div class="pitfall">
+      <b>이상치를 발견하면 지우기 전에 물어보세요</b>
+      <ul>
+        <li><b>왜 이런 값이 나왔나?</b> 휴점? 시스템 오류? 진짜 대박?</li>
+        <li>0원인 날은 <b>"장사가 안 된 날"이 아니라 "장사를 안 한 날"</b>입니다.
+            둘을 섞어서 평균을 내면 "우리 카페 평균 매출"이 실제보다 낮게 나옵니다.</li>
+        <li>방송에 나온 날을 지우면 매출이 안정돼 보이지만,
+            <b>마케팅 효과를 분석하려면 그날이 제일 중요한 데이터</b>입니다.</li>
+      </ul>
+      <p style="margin-top:8px">
+        이상치 처리에 정답은 없습니다. 다만 <b>무엇을 왜 뺐는지 기록으로 남기는 것</b>은 정답입니다.
+      </p>
+    </div>
+
+    <h2 id="s6">6. 직접 해보기</h2>
+    <p>
+      아래 셀은 비어 있습니다. 위에서 배운 걸 조합해서 직접 답을 찾아보세요.
+      <b>틀려도 됩니다.</b> 오류가 나면 무엇이 문제인지 힌트가 함께 나옵니다.
+    </p>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="연습 · 여기에 직접 써보세요">
+    # 문제 1. 방문객 수(visitors)의 평균과 표준편차를 출력해보세요.
+    #        힌트: df["visitors"].mean() , .std()
+
+
+    # 문제 2. 기온(avg_temp)의 최댓값과 최솟값은?
+
+
+    # 문제 3. 매출(sales)이 가장 높았던 날 5일을 뽑아보세요.
+    #        힌트: df.nlargest(5, "열이름")
+    </div>
+
+    <details style="margin:18px 0">
+      <summary style="cursor:pointer;font-weight:600;color:var(--accent)">모범 답안 보기</summary>
+      <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="모범 답안">
+      # 문제 1
+      print(f"방문객 평균 {df['visitors'].mean():.1f}명")
+      print(f"방문객 표준편차 {df['visitors'].std():.1f}명")
+
+      # 문제 2
+      print(f"최고기온 {df['avg_temp'].max()}도, 최저기온 {df['avg_temp'].min()}도")
+
+      # 문제 3
+      df.nlargest(5, "sales")[["date", "weekday", "visitors", "sales"]]
+      </div>
+      <p style="font-size:13.5px;color:var(--text-dim)">
+        문제 1의 답을 보면 <b>평균 약 170명, 표준편차 약 45명</b>쯤 나옵니다.
+        이건 "보통 날은 170명 안팎이고, 대체로 125~215명 사이에서 움직인다"는 뜻입니다
+        (평균 ± 1 표준편차). 표준편차를 이렇게 <b>범위로 번역해서 읽는 습관</b>을 들이세요.
+      </p>
+    </details>
+
+    <div class="colab-cta">
+      <div class="colab-text">
+        <b>더 자유롭게 해보고 싶다면</b>
+        Google Colab에서 같은 데이터로 실습할 수 있습니다.
+        파일 저장, 라이브러리 추가 설치, 긴 코드 작성이 편합니다. (구글 로그인 필요)
+      </div>
+      <a class="btn" id="colab-link" href="#" target="_blank" rel="noopener">Colab에서 열기</a>
+    </div>
+
+    <div class="summary">
+      <h3>1강 요약</h3>
+      <ul>
+        <li><code>pd.read_csv()</code> 로 표를 <b>데이터프레임</b>으로 읽는다.</li>
+        <li><code>head()</code> · <code>tail()</code> · <code>sample()</code> 로 눈으로 먼저 확인한다.</li>
+        <li><code>shape</code> 로 크기를, <code>info()</code> 로 자료형과 결측치를 확인한다.</li>
+        <li><code>isna().sum()</code> 은 열별 결측치 개수를 세는 관용구.</li>
+        <li><code>describe()</code> 로 기초 통계를 한 번에 본다.</li>
+        <li><b>평균과 중앙값을 비교</b>해 치우침을 감지하고, <b>min/max로 이상치</b>를 의심한다.</li>
+        <li>이상치는 <b>지우기 전에 이유를 먼저</b> 확인한다.</li>
+      </ul>
+    </div>
+
+    <p class="next-up">
+      다음 → <b>2강 · 필요한 것만 꺼내기</b> (열 선택, 조건 필터링, 정렬)<br>
+      "비 온 날의 매출만 보고 싶다" 같은 질문에 답하는 법을 배웁니다.
+    </p>
+  </section>
+
+</div>
+
+<script src="../assets/viz.js"></script>
+<script src="../assets/pylab.js"></script>
+<script src="../assets/pycell.js"></script>
+<script>
+/* Colab 링크는 배포 위치에 따라 달라지므로 실행 시점에 만든다. */
+(function () {
+  var REPO = 'mioon1402/timeseriesdata';
+  var BRANCH = 'main';
+  var NOTEBOOK = 'notebooks/p01-first-look.ipynb';
+  var a = document.getElementById('colab-link');
+  if (a) a.href = 'https://colab.research.google.com/github/' + REPO + '/blob/' + BRANCH + '/' + NOTEBOOK;
+})();
+</script>
+</body>
+</html>

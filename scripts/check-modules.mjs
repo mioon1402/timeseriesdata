@@ -39,7 +39,11 @@ const PAGES = [
   'modules/06-pvalue.html',
   'modules/07-regression.html',
   'modules/08-simpson.html',
+  'python/p01-first-look.html',
 ];
+
+/** 캔버스가 없어도 정상인 페이지 (파이썬 실습 강의 등) */
+const NO_CANVAS = new Set(['index.html', 'python/p01-first-look.html']);
 
 const args = process.argv.slice(2);
 const MEASURE = args.includes('--measure');
@@ -179,7 +183,7 @@ const run = async () => {
       })
     );
 
-    const blank = drawn.filter((v) => v === 0).length;
+    const blank = NO_CANVAS.has(page) ? 0 : drawn.filter((v) => v === 0).length;
     const ok = errors.length === 0 && blank === 0;
     if (!ok) failed++;
     console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${page.padEnd(34)} canvas=[${drawn.join(', ')}]`);
