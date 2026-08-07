@@ -43,7 +43,10 @@
     var original = extractCode(node);
     var packages = (node.dataset.packages || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
     var dataFiles = (node.dataset.data || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
-    var needsFont = node.dataset.font === '1' || packages.indexOf('matplotlib') >= 0 || packages.indexOf('seaborn') >= 0;
+    /* 그래프를 그리는 셀인지는 실행 시점에 코드까지 보고 판단한다(아래 run 참고). */
+    if (node.dataset.font === '1' && packages.indexOf('matplotlib') < 0) {
+      packages.push('matplotlib');
+    }
 
     node.textContent = '';
     node.classList.add('pycell-ready');
@@ -137,19 +140,44 @@
       out.textContent = '';
       out.classList.remove('has-content');
 
-      var first = !global.PyLab.state.pyodide;
+      var P = global.PyLab;
+      var first = !P.state.pyodide;
       setStatus(first ? '파이썬을 준비하는 중… 처음 한 번은 10~30초 걸립니다' : '실행 중…', first ? 5 : null, 'busy');
 
-      var P = global.PyLab;
+      /* 셀에 선언한 패키지 + 학습자가 직접 써 넣은 import 를 합친다. */
+      var want = packages.slice();
+      P.detectPackages(ta.value).forEach(function (p) {
+        if (want.indexOf(p) < 0) want.push(p);
+      });
+      var wantsPlot = want.indexOf('matplotlib') >= 0 || want.indexOf('seaborn') >= 0;
+      if (want.indexOf('seaborn') >= 0 && want.indexOf('matplotlib') < 0) {
+        want.push('matplotlib');   // seaborn 은 matplotlib 위에서 돈다
+      }
+
+      /* 순서가 중요하다: 패키지를 먼저 깔아야 그 뒤 초기화 코드가 import 할 수 있다. */
+      var phase = 'boot';
       P.boot()
-        .then(function (py) { return P.ensureBootstrap(py).then(function () { return py; }); })
-        .then(function (py) { return P.ensurePackages(py, packages).then(function () { return py; }); })
-        .then(function (py) { return P.ensureData(py, dataFiles).then(function () { return py; }); })
         .then(function (py) {
-          if (!needsFont) return py;
-          return P.ensureFont(py).then(function () { return py; });
+          phase = 'packages';
+          return P.ensurePackages(py, want).then(function () { return py; });
         })
         .then(function (py) {
+          phase = 'setup';
+          return P.ensureBootstrap(py).then(function () { return py; });
+        })
+        .then(function (py) {
+          if (!wantsPlot) return py;
+          /* 그래프를 그리는 셀은 항상 한글 폰트를 등록한다. 안 하면 라벨이 □□□ 가 된다. */
+          return P.ensureMatplotlib(py)
+            .then(function () { return P.ensureFont(py); })
+            .then(function () { return py; });
+        })
+        .then(function (py) {
+          phase = 'data';
+          return P.ensureData(py, dataFiles).then(function () { return py; });
+        })
+        .then(function (py) {
+          phase = 'run';
           setStatus('실행 중…', null, 'busy');
           return P.runCode(py, ta.value);
         })
@@ -158,7 +186,7 @@
           setStatus('', null, res.error ? 'error' : 'done');
         })
         .catch(function (err) {
-          renderFatal(err);
+          renderFatal(err, phase);
           setStatus('', null, 'error');
         })
         .then(function () {
@@ -211,15 +239,27 @@
       }
     }
 
-    function renderFatal(err) {
+    var FATAL_MESSAGE = {
+      boot: '⚠️ 파이썬 실행기를 불러오지 못했습니다. 네트워크가 막혀 있거나 CDN 접속이 차단된 환경일 수 있습니다.',
+      packages: '⚠️ 파이썬 라이브러리를 내려받지 못했습니다. 연결을 확인하고 다시 눌러보세요.',
+      setup: '⚠️ 실행 환경을 준비하는 중 문제가 생겼습니다.',
+      data: '⚠️ 예시 데이터 파일을 불러오지 못했습니다.',
+      run: '⚠️ 코드를 실행하는 중 예기치 못한 문제가 생겼습니다.'
+    };
+
+    function renderFatal(err, phase) {
       out.classList.add('has-content');
       var box = el('div', 'pycell-error');
-      box.appendChild(el('p', 'pycell-hint',
-        '⚠️ 파이썬 실행기를 불러오지 못했습니다. 네트워크가 막혀 있거나 CDN 접속이 차단된 환경일 수 있습니다.'));
-      box.appendChild(el('p', null, '아래 “Colab에서 열기” 버튼으로 같은 실습을 진행할 수 있습니다.'));
+      box.appendChild(el('p', 'pycell-hint', FATAL_MESSAGE[phase] || FATAL_MESSAGE.run));
+
+      if (phase === 'boot' || phase === 'packages') {
+        box.appendChild(el('p', null,
+          '잠시 후 [실행]을 다시 눌러보세요. 계속 안 되면 아래 “Colab에서 열기”로 같은 실습을 진행할 수 있습니다.'));
+      }
+
       var det = el('details');
       det.appendChild(el('summary', null, '자세한 내용'));
-      det.appendChild(el('pre', null, String(err && err.message || err)));
+      det.appendChild(el('pre', null, String((err && err.message) || err)));
       box.appendChild(det);
       out.appendChild(box);
     }

@@ -80,31 +80,37 @@
   /* ---------------------------------------------------------
      2. 패키지 / 데이터 / 폰트 준비
      --------------------------------------------------------- */
+  /**
+   * 패키지를 하나씩 준비한다.
+   *
+   * Pyodide 배포판에 무엇이 들어 있는지는 버전마다 다르다(예: seaborn 은
+   * 있을 때도 없을 때도 있다). 그래서 목록을 하드코딩하지 않고,
+   * 먼저 loadPackage 를 시도한 뒤 실패하면 micropip 으로 PyPI 에서 받는다.
+   * 이렇게 하면 Pyodide 버전을 올려도 이 코드를 고칠 일이 없다.
+   */
   function ensurePackages(py, names) {
     var need = names.filter(function (n) { return !state.loadedPackages[n]; });
     if (!need.length) return Promise.resolve();
 
-    // 배포판에 없는 것은 micropip 으로 PyPI 에서 받는다 (순수 파이썬 패키지)
-    var MICROPIP_ONLY = { seaborn: 1, plotly: 1, openpyxl: 1 };
-    var builtin = need.filter(function (n) { return !MICROPIP_ONLY[n]; });
-    var viaPip = need.filter(function (n) { return MICROPIP_ONLY[n]; });
-
     emit('라이브러리를 준비하는 중… (' + need.join(', ') + ')', 45);
 
-    var chain = builtin.length ? py.loadPackage(builtin) : Promise.resolve();
-
-    if (viaPip.length) {
-      chain = chain
-        .then(function () { return py.loadPackage('micropip'); })
+    return need.reduce(function (chain, name) {
+      return chain
         .then(function () {
-          var mp = py.pyimport('micropip');
-          return mp.install(viaPip);
-        });
-    }
-
-    return chain.then(function () {
-      need.forEach(function (n) { state.loadedPackages[n] = true; });
-    });
+          return py.loadPackage(name).catch(function () {
+            // 배포판에 없는 패키지 — 순수 파이썬이라면 PyPI 에서 받을 수 있다
+            emit(name + ' 을 PyPI 에서 받는 중…', 55);
+            return py.loadPackage('micropip').then(function () {
+              var mp = py.pyimport('micropip');
+              return mp.install(name).then(
+                function () { mp.destroy(); },
+                function (e) { mp.destroy(); throw e; }
+              );
+            });
+          });
+        })
+        .then(function () { state.loadedPackages[name] = true; });
+    }, Promise.resolve());
   }
 
   /** CSV 를 Pyodide 가상 파일시스템에 올려 pd.read_csv('파일명') 이 그냥 되게 한다. */
@@ -157,19 +163,20 @@
   /* ---------------------------------------------------------
      3. 실행 환경 초기화 (한 번만)
      --------------------------------------------------------- */
-  var BOOTSTRAP = [
-    'import sys, io, base64, builtins',
-    'import matplotlib',
-    'matplotlib.use("AGG")',                     // 화면이 없으므로 이미지로만 그린다
-    'import matplotlib.pyplot as plt',
-    'matplotlib.rcParams["figure.figsize"] = (7.2, 4.0)',
-    'matplotlib.rcParams["figure.dpi"] = 110',
-    'matplotlib.rcParams["axes.grid"] = True',
-    'matplotlib.rcParams["grid.alpha"] = 0.3',
-    'matplotlib.rcParams["axes.spines.top"] = False',
-    'matplotlib.rcParams["axes.spines.right"] = False',
+  /*
+     핵심 준비 코드에는 matplotlib 을 넣지 않는다.
+     pandas 만 쓰는 강의에서 matplotlib(수십 MB)을 강제로 받게 하면 안 되고,
+     아직 로드하지도 않은 모듈을 import 하면 그 자리에서 터진다.
+  */
+  var CORE_BOOTSTRAP = [
+    'import sys, io, base64',
     '',
     'def _pylab_figures():',
+    '    """matplotlib 이 없으면 그냥 빈 목록을 돌려준다."""',
+    '    try:',
+    '        import matplotlib.pyplot as plt',
+    '    except ImportError:',
+    '        return []',
     '    out = []',
     '    for num in plt.get_fignums():',
     '        fig = plt.figure(num)',
@@ -185,20 +192,80 @@
     '        return None',
     '    try:',
     '        import pandas as pd',
+    '        frame = None',
     '        if isinstance(value, pd.DataFrame):',
-    '            return {"kind": "html", "data": value.to_html(max_rows=20, border=0)}',
-    '        if isinstance(value, pd.Series):',
-    '            return {"kind": "html", "data": value.to_frame().to_html(max_rows=20, border=0)}',
+    '            frame = value',
+    '        elif isinstance(value, pd.Series):',
+    '            frame = value.to_frame()',
+    '        if frame is not None:',
+    '            # pandas 버전에 따라 to_html 인자가 달라질 수 있어 방어적으로 처리한다',
+    '            try:',
+    '                return {"kind": "html", "data": frame.to_html(max_rows=20, border=0)}',
+    '            except Exception:',
+    '                try:',
+    '                    return {"kind": "html", "data": frame.to_html()}',
+    '                except Exception:',
+    '                    return {"kind": "text", "data": repr(value)}',
     '    except ImportError:',
     '        pass',
-    '    return {"kind": "text", "data": repr(value)}',
+    '    try:',
+    '        return {"kind": "text", "data": repr(value)}',
+    '    except Exception:',
+    '        return {"kind": "text", "data": "<표시할 수 없는 값>"}',
+  ].join('\n');
+
+  /* matplotlib 이 실제로 로드된 뒤에만 실행한다. */
+  var MPL_SETUP = [
+    'import matplotlib',
+    'matplotlib.use("AGG")',                     // 화면이 없으므로 이미지로만 그린다
+    'import matplotlib.pyplot as plt',
+    'matplotlib.rcParams["figure.figsize"] = (7.2, 4.0)',
+    'matplotlib.rcParams["figure.dpi"] = 110',
+    'matplotlib.rcParams["axes.grid"] = True',
+    'matplotlib.rcParams["grid.alpha"] = 0.3',
+    'matplotlib.rcParams["axes.spines.top"] = False',
+    'matplotlib.rcParams["axes.spines.right"] = False',
   ].join('\n');
 
   var bootstrapped = false;
+  var mplReady = false;
 
   function ensureBootstrap(py) {
     if (bootstrapped) return Promise.resolve();
-    return py.runPythonAsync(BOOTSTRAP).then(function () { bootstrapped = true; });
+    return py.runPythonAsync(CORE_BOOTSTRAP).then(function () { bootstrapped = true; });
+  }
+
+  function ensureMatplotlib(py) {
+    if (mplReady) return Promise.resolve();
+    return py.runPythonAsync(MPL_SETUP).then(function () { mplReady = true; });
+  }
+
+  /*
+     코드에 적힌 import 문을 보고 필요한 패키지를 알아낸다.
+     학습자가 직접 `import matplotlib.pyplot as plt` 라고 써 넣어도
+     그냥 동작하게 하기 위한 안전장치다.
+  */
+  var IMPORT_MAP = {
+    numpy: 'numpy', np: 'numpy',
+    pandas: 'pandas', pd: 'pandas',
+    matplotlib: 'matplotlib', pylab: 'matplotlib',
+    seaborn: 'seaborn',
+    scipy: 'scipy',
+    sklearn: 'scikit-learn',
+    statsmodels: 'statsmodels',
+    PIL: 'pillow',
+    sympy: 'sympy',
+  };
+
+  function detectPackages(code) {
+    var found = {};
+    var re = /^[ \t]*(?:import|from)[ \t]+([A-Za-z_][\w]*)/gm;
+    var m;
+    while ((m = re.exec(code)) !== null) {
+      var pkg = IMPORT_MAP[m[1]];
+      if (pkg) found[pkg] = true;
+    }
+    return Object.keys(found);
   }
 
   /* ---------------------------------------------------------
@@ -244,7 +311,9 @@
         }
       }
 
-      var figs = py.runPython('_pylab_figures()').toJs();
+      var figProxy = py.runPython('_pylab_figures()');
+      var figs = figProxy.toJs();
+      figProxy.destroy();
 
       return {
         stdout: stdout.join(''),
@@ -260,7 +329,8 @@
      --------------------------------------------------------- */
   var ERROR_HINTS = [
     [/NameError: name '(\w+)'/, '$1 이라는 이름을 아직 만들지 않았습니다. 철자를 확인하거나, 위 셀을 먼저 실행했는지 보세요.'],
-    [/ModuleNotFoundError: No module named '(\w+)'/, '$1 라이브러리가 이 셀에 준비돼 있지 않습니다.'],
+    [/ModuleNotFoundError: No module named '(\w+)'/,
+      '$1 라이브러리를 불러오지 못했습니다. 이 강의에서 다루지 않는 라이브러리이거나, 브라우저에서 지원하지 않는 것일 수 있습니다.'],
     [/FileNotFoundError.*'([^']+)'/, '$1 파일을 찾을 수 없습니다. 파일명을 확인하세요.'],
     [/KeyError: '([^']+)'/, "'$1' 이라는 열(column)이 없습니다. df.columns 로 실제 열 이름을 확인해보세요."],
     [/IndentationError/, '들여쓰기가 맞지 않습니다. 같은 블록은 칸 수를 똑같이 맞춰야 합니다.'],
@@ -295,6 +365,8 @@
     ensureData: ensureData,
     ensureFont: ensureFont,
     ensureBootstrap: ensureBootstrap,
+    ensureMatplotlib: ensureMatplotlib,
+    detectPackages: detectPackages,
     runCode: runCode,
     onProgress: onProgress,
     hintFor: hintFor,
