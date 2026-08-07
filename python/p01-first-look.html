@@ -131,18 +131,42 @@
     <p>여기서 세 가지를 읽어야 합니다.</p>
     <ul>
       <li><b>Non-Null Count</b> — 값이 채워진 개수. 731이 아닌 열이 있다면 <b>결측치</b>가 있다는 뜻입니다.
-          위 결과에서 <code>sales</code>와 <code>avg_temp</code>를 보세요.</li>
-      <li><b>Dtype</b> — 자료형. <code>int64</code>는 정수, <code>float64</code>는 실수,
-          <code>object</code>는 대개 문자열입니다.</li>
+          위 결과에서 <code>sales</code>(727)와 <code>avg_temp</code>(722)를 보세요.
+          각각 4개, 9개가 비어 있습니다.</li>
+      <li><b>Dtype</b> — 자료형. 아래 표를 참고하세요.</li>
       <li><b>memory usage</b> — 메모리 사용량. 데이터가 커지면 신경 써야 합니다.</li>
     </ul>
 
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>Dtype</th><th>뜻</th><th>이 데이터에서</th></tr></thead>
+        <tbody>
+          <tr><td><code>int64</code></td><td>정수</td><td><code>visitors</code> — 사람 수는 소수가 될 수 없죠</td></tr>
+          <tr><td><code>float64</code></td><td>실수(소수점)</td><td><code>sales</code>, <code>avg_temp</code>, <code>rain_mm</code></td></tr>
+          <tr><td><code>str</code></td><td>문자열</td><td><code>date</code>, <code>weekday</code></td></tr>
+          <tr><td><code>bool</code></td><td>참/거짓</td><td><code>is_holiday</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
     <div class="callout">
-      <b>왜 <code>date</code> 열이 <code>object</code>(문자열)일까요?</b><br>
+      <b>잠깐, <code>sales</code>가 왜 실수(<code>float64</code>)일까요?</b><br>
+      매출은 원 단위 정수인데 말이죠. 이유는 <b>결측치 때문</b>입니다.
+      pandas에서 빈 칸은 <code>NaN</code>(Not a Number)으로 채워지는데, 이건 실수형입니다.
+      그래서 정수 열에 결측이 하나라도 있으면 <b>열 전체가 실수로 승격</b>됩니다.
+      "왜 갑자기 소수점이 붙었지?" 싶을 때는 결측치를 의심하세요.
+    </div>
+
+    <div class="callout">
+      <b>왜 <code>date</code> 열이 문자열일까요?</b><br>
       pandas는 CSV를 읽을 때 날짜를 <b>자동으로 알아보지 못합니다.</b>
       우리 눈에는 <code>2024-01-01</code> 이 날짜지만, 컴퓨터에게는 그냥 열 글자짜리 문자열입니다.
       그래서 지금 상태로는 "3월 데이터만 골라줘" 같은 걸 할 수 없습니다.
       이걸 진짜 날짜로 바꾸는 방법은 <b>4강</b>에서 다룹니다.
+      <br><br>
+      참고로 문자열 dtype 표기는 pandas 버전에 따라 다릅니다.
+      <b>pandas 3.0부터는 <code>str</code></b>, 그 이전 버전은 <code>object</code>로 나옵니다.
+      둘 다 "문자열"이라는 뜻이니 놀라지 마세요.
     </div>
 
     <p>
@@ -301,9 +325,11 @@
       df.nlargest(5, "sales")[["date", "weekday", "visitors", "sales"]]
       </div>
       <p style="font-size:13.5px;color:var(--text-dim)">
-        문제 1의 답을 보면 <b>평균 약 170명, 표준편차 약 45명</b>쯤 나옵니다.
-        이건 "보통 날은 170명 안팎이고, 대체로 125~215명 사이에서 움직인다"는 뜻입니다
-        (평균 ± 1 표준편차). 표준편차를 이렇게 <b>범위로 번역해서 읽는 습관</b>을 들이세요.
+        문제 1의 답은 <b>평균 176.5명, 표준편차 48.7명</b>입니다.
+        이건 "보통 날은 176명 안팎이고, 대체로 <b>128~225명</b> 사이에서 움직인다"는 뜻입니다
+        (평균 ± 1 표준편차 ≈ 전체의 3분의 2, 모듈 03 참고).
+        표준편차를 이렇게 <b>범위로 번역해서 읽는 습관</b>을 들이세요.
+        숫자 하나보다 범위가 훨씬 많은 걸 말해줍니다.
       </p>
     </details>
 

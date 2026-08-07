@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>필요한 것만 꺼내기 · 파이썬 데이터 분석</title>
+<meta name="description" content="열 고르기, 조건으로 행 걸러내기, 정렬. '비 온 날 매출만 보고 싶다'에 답하는 법.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%F0%9F%90%8D%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css?v=92187514af">
+<link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">파이썬 2강 · 데이터 다루기</p>
+    <h1>필요한 것만 꺼내기</h1>
+    <p class="lede">
+      데이터 분석의 90%는 <b>"이 조건에 맞는 것만 보여줘"</b>입니다.
+      비 온 날만, 주말만, 매출 상위 10일만.
+      이걸 자유자재로 할 수 있으면 나머지는 응용입니다.
+    </p>
+  </header>
+
+  <div class="pyintro">
+    <b>1강을 안 보셨다면</b>
+    <ul>
+      <li>첫 실행은 10~30초 걸립니다(파이썬을 내려받는 시간). 두 번째부터는 즉시 실행됩니다.</li>
+      <li>코드는 마음대로 고쳐보세요. [처음으로]를 누르면 되돌아옵니다.</li>
+      <li>셀은 <b>위에서부터 순서대로</b> 실행하세요. (단축키 <kbd>Ctrl</kbd>+<kbd>Enter</kbd>)</li>
+    </ul>
+  </div>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 강의에서 배우는 것</b>
+      <ol>
+        <li><a href="#s1">열 꺼내기 — 대괄호 한 겹과 두 겹의 차이</a></li>
+        <li><a href="#s2">조건으로 행 고르기 — 원리부터</a></li>
+        <li><a href="#s3">조건 여러 개 붙이기 (제일 많이 틀리는 곳)</a></li>
+        <li><a href="#s4">자주 쓰는 조건 도구 — isin, between, 문자열</a></li>
+        <li><a href="#s5">정렬하기</a></li>
+        <li><a href="#s6">loc과 iloc</a></li>
+        <li><a href="#s7">실전: 비가 매출에 영향을 줄까?</a></li>
+        <li><a href="#s8">직접 해보기 · 흔한 실수</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s1">1. 열 꺼내기</h2>
+    <p>
+      먼저 데이터를 다시 불러옵니다. 그리고 열 하나를 꺼내볼 텐데,
+      <b>대괄호를 한 겹 쓰느냐 두 겹 쓰느냐</b>에 따라 결과의 종류가 달라집니다.
+    </p>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="2-1. 대괄호 한 겹 vs 두 겹">
+    import pandas as pd
+    df = pd.read_csv("cafe_sales.csv")
+
+    한겹 = df["sales"]                       # Series (1차원)
+    두겹 = df[["date", "weekday", "sales"]]  # DataFrame (2차원 표)
+
+    print("한 겹:", type(한겹).__name__)
+    print("두 겹:", type(두겹).__name__)
+    print()
+    print(한겹.head(3))
+    </div>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th></th><th>Series (한 겹)</th><th>DataFrame (두 겹)</th></tr></thead>
+        <tbody>
+          <tr><td><b>모양</b></td><td>값이 한 줄로 늘어선 것</td><td>행과 열이 있는 표</td></tr>
+          <tr><td><b>쓰는 법</b></td><td><code>df["sales"]</code></td><td><code>df[["sales"]]</code></td></tr>
+          <tr><td><b>계산</b></td><td><code>.mean()</code> → 숫자 하나</td><td><code>.mean()</code> → 열별 결과</td></tr>
+          <tr><td><b>언제</b></td><td>한 열만 계산할 때</td><td>여러 열을 함께 보거나 저장할 때</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="practice">
+      <b>기억할 것</b>
+      안쪽 대괄호는 <b>"목록"</b>이라는 뜻입니다. <code>df[["a", "b"]]</code> 는
+      "a와 b라는 <b>목록</b>을 달라"는 말이고, 목록을 주면 표가 돌아옵니다.
+      그래서 열이 하나여도 표로 받고 싶으면 <code>df[["sales"]]</code> 처럼 씁니다.
+    </div>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="2-2. 여러 열 골라 보기">
+    df[["date", "weekday", "sales"]].head()
+    </div>
+
+    <h2 id="s2">2. 조건으로 행 고르기</h2>
+    <p>
+      이제 핵심입니다. "방문객이 250명 이상이었던 날"만 보고 싶다고 합시다.
+      <b>먼저 조건 자체가 무엇을 만드는지</b> 봐야 이해가 됩니다.
+    </p>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="2-3. 조건은 True/False 목록을 만든다">
+    조건 = df["visitors"] >= 250
+
+    print(조건.head())
+    print()
+    print("전체 길이:", len(조건))
+    print("True 개수:", 조건.sum())
+    </div>
+
+    <p>
+      <code>df["visitors"] >= 250</code> 는 숫자를 돌려주는 게 아니라
+      <b>행마다 True/False가 적힌 731칸짜리 목록</b>을 만듭니다.
+      이걸 <b>불리언 마스크(boolean mask)</b>라고 부릅니다. 체에 비유하면 정확합니다 —
+      True인 칸만 구멍이 뚫린 체를 만든 거죠.
+    </p>
+    <p>
+      이제 그 체를 데이터에 씌우면 통과한 행만 남습니다.
+    </p>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="2-4. 체를 씌워 걸러내기">
+    busy = df[df["visitors"] >= 250]
+
+    print("250명 이상인 날:", len(busy), "일")
+    busy[["date", "weekday", "visitors", "sales"]].head()
+    </div>
+
+    <p>
+      결과를 보면 <b>토요일이 유난히 많습니다.</b> 왼쪽 번호(인덱스)가 187, 208, 215…처럼
+      띄엄띄엄한 것도 눈여겨보세요. <b>원래 행 번호가 그대로 따라옵니다.</b>
+      1강에서 본 731행 중 조건을 통과한 것만 남았다는 증거입니다.
+    </p>
+
+    <h2 id="s3">3. 조건 여러 개 붙이기</h2>
+    <p>
+      "비 온 주말"처럼 조건이 둘 이상이면 기호로 잇습니다.
+      <b>여기가 초보자가 가장 많이 틀리는 지점</b>이니 천천히 봅시다.
+    </p>
+
+    <div class="formula">
+      <div class="name">조건 결합 기호</div>
+      <div class="eq" style="font-size:16px;line-height:2.2">
+        &amp; &nbsp;=&nbsp; 그리고 (AND) &nbsp;&nbsp;·&nbsp;&nbsp;
+        | &nbsp;=&nbsp; 또는 (OR) &nbsp;&nbsp;·&nbsp;&nbsp;
+        ~ &nbsp;=&nbsp; 아닌 것 (NOT)
+        <br>
+        <span class="small">각 조건은 <b>반드시 괄호</b>로 감쌀 것</span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">&amp;</span><span class="desc">파이썬의 <code>and</code> 가 <b>아닙니다.</b> pandas 에서는 <code>and</code> 를 쓰면 오류가 납니다</span></li>
+        <li><span class="sym">괄호</span><span class="desc"><code>&amp;</code> 가 <code>&gt;=</code> 보다 <b>먼저</b> 계산되기 때문에 필수입니다. 안 쓰면 엉뚱한 오류가 납니다</span></li>
+      </ul>
+    </div>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="2-5. 비 온 주말 찾기">
+    비온주말 = df[(df["weekday"].isin(["토", "일"])) & (df["rain_mm"] > 0)]
+    print("비 온 주말:", len(비온주말), "일")
+    print(비온주말[["date", "weekday", "rain_mm", "visitors"]].head(3))
+
+    # 또는(OR) — 무더위였거나 공휴일이었던 날
+    특별한날 = df[(df["avg_temp"] > 30) | (df["is_holiday"])]
+    print()
+    print("무더위 또는 공휴일:", len(특별한날), "일")
+
+    # 아닌 것(NOT) — 공휴일이 아닌 날
+    print("공휴일이 아닌 날:", len(df[~df["is_holiday"]]), "일")
+    </div>
+
+    <div class="pitfall">
+      <b>이 세 가지 실수가 전부입니다</b>
+      <div class="tbl-wrap" style="margin:8px 0 0">
+        <table class="tbl">
+          <thead><tr><th>잘못</th><th>무슨 일이 일어나나</th><th>고침</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><code>df[a and b]</code></td>
+              <td><code>ValueError: The truth value of a Series is ambiguous</code></td>
+              <td><code>&amp;</code> 를 쓰세요</td>
+            </tr>
+            <tr>
+              <td><code>df[df.a &gt; 1 &amp; df.b &lt; 2]</code></td>
+              <td>괄호가 없어 <code>1 &amp; df.b</code> 가 먼저 계산됨 → 이상한 오류</td>
+              <td><code>df[(df.a &gt; 1) &amp; (df.b &lt; 2)]</code></td>
+            </tr>
+            <tr>
+              <td><code>df[df.a != None]</code></td>
+              <td>결측치가 안 걸러짐</td>
+              <td><code>df[df.a.notna()]</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="margin-top:10px">
+        <b>왜 <code>and</code> 가 안 되나?</b> 파이썬의 <code>and</code> 는 값 <b>하나</b>가
+        참인지 거짓인지 묻는 말입니다. 그런데 우리가 넘긴 건 731개짜리 목록이죠.
+        "731개가 참이냐"는 질문에 pandas 는 답할 수 없어서 "애매하다(ambiguous)"고 하는 겁니다.
+        <code>&amp;</code> 는 <b>칸마다 하나씩</b> 비교하는 기호라 목록에 쓸 수 있습니다.
+      </p>
+    </div>
+
+    <h2 id="s4">4. 자주 쓰는 조건 도구</h2>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="2-6. isin · between · 문자열">
+    # isin — 목록 안에 있는가
+    봄 = df[df["date"].str[5:7].isin(["03", "04", "05"])]
+    print("3~5월:", len(봄), "일")
+
+    # between — 범위 안에 있는가 (양쪽 끝 포함)
+    쾌적 = df[df["avg_temp"].between(20, 25)]
+    print("기온 20~25도:", len(쾌적), "일")
+
+    # 문자열 다루기 — .str 을 붙이면 글자로 다룰 수 있다
+    print("2025년 데이터:", len(df[df["date"].str.startswith("2025")]), "일")
+    </div>
+
+    <p>
+      <code>df["date"].str[5:7]</code> 는 날짜 문자열 <code>2024-01-01</code> 의
+      6~7번째 글자, 즉 <code>01</code>(월)을 잘라낸 것입니다.
+      지금은 날짜가 문자열이라 이렇게 잘라 써야 하지만,
+      <b>4강에서 진짜 날짜로 바꾸면</b> <code>df["date"].dt.month == 3</code> 처럼 훨씬 깔끔해집니다.
+    </p>
+
+    <h2 id="s5">5. 정렬하기</h2>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="2-7. sort_values">
+    # 매출 높은 순
+    print(df.sort_values("sales", ascending=False)[["date", "weekday", "sales"]].head(3))
+
+    # 두 기준으로 — 요일 순서대로, 각 요일 안에서는 매출 높은 순
+    print()
+    print(df.sort_values(["weekday", "sales"], ascending=[True, False])
+            [["weekday", "date", "sales"]].head(3))
+    </div>
+
+    <div class="practice">
+      <b>정렬 대신 쓰면 좋은 것</b>
+      "상위 몇 개"만 필요하다면 <code>nlargest</code> / <code>nsmallest</code> 가 더 간결하고 빠릅니다.
+      <ul>
+        <li><code>df.nlargest(5, "sales")</code> — 매출 상위 5일</li>
+        <li><code>df.nsmallest(5, "visitors")</code> — 방문객 하위 5일</li>
+      </ul>
+      전체를 줄 세울 필요가 없을 때는 이쪽을 쓰세요.
+    </div>
+
+    <h2 id="s6">6. loc과 iloc</h2>
+    <p>
+      지금까지는 <code>df[조건]</code> 으로 행만 골랐습니다.
+      <b>행과 열을 동시에</b> 지정하려면 <code>loc</code> 을 씁니다.
+    </p>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="2-8. loc — 이름으로 고르기">
+    # df.loc[행조건, 열목록]
+    df.loc[df["visitors"] > 300, ["date", "weekday", "visitors", "sales"]]
+    </div>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="2-9. iloc — 위치 번호로 고르기">
+    # 앞에서 3행, 앞에서 3열
+    df.iloc[:3, :3]
+    </div>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th></th><th><code>loc</code></th><th><code>iloc</code></th></tr></thead>
+        <tbody>
+          <tr><td><b>기준</b></td><td><b>이름</b>(라벨)과 조건</td><td><b>위치 번호</b> (0부터)</td></tr>
+          <tr><td><b>예</b></td><td><code>df.loc[0, "sales"]</code></td><td><code>df.iloc[0, 3]</code></td></tr>
+          <tr><td><b>범위 끝</b></td><td><b>포함</b> — <code>loc[0:2]</code> 는 3개</td><td><b>미포함</b> — <code>iloc[0:2]</code> 는 2개</td></tr>
+          <tr><td><b>언제</b></td><td>대부분의 경우 (조건 필터링에 필수)</td><td>"앞에서 n개"처럼 위치로 셀 때</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pitfall">
+      <b>범위 끝 규칙이 다릅니다</b>
+      <code>loc</code> 은 끝을 <b>포함</b>하고 <code>iloc</code> 은 <b>포함하지 않습니다.</b>
+      파이썬의 일반 슬라이싱(<code>iloc</code>)에 익숙하다면 <code>loc</code> 이 예외처럼 느껴지는데,
+      <code>loc</code> 은 "이름"으로 고르는 것이라 "그 이름까지"가 자연스럽기 때문입니다.
+      헷갈리면 <b>결과 개수를 세어 확인</b>하는 습관을 들이세요.
+    </div>
+
+    <h2 id="s7">7. 실전: 비가 매출에 영향을 줄까?</h2>
+    <p>
+      배운 걸로 진짜 질문에 답해봅시다.
+      "비 오는 날은 손님이 줄어드나?" — 필터링만 할 줄 알면 바로 확인됩니다.
+    </p>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="2-10. 비 온 날 vs 안 온 날">
+    비온날 = df[df["rain_mm"] > 0]["visitors"]
+    맑은날 = df[df["rain_mm"] == 0]["visitors"]
+
+    print(f"비 온 날    {len(비온날):3d}일   평균 {비온날.mean():.1f}명")
+    print(f"비 안 온 날 {len(맑은날):3d}일   평균 {맑은날.mean():.1f}명")
+    print()
+    print(f"차이 {맑은날.mean() - 비온날.mean():.1f}명 "
+          f"({(비온날.mean() / 맑은날.mean() - 1) * 100:+.1f}%)")
+    </div>
+
+    <p>
+      비 온 날은 평균 <b>163.5명</b>, 안 온 날은 <b>180.3명</b>.
+      약 <b>9% 적습니다.</b> 그럴듯한 결과죠.
+    </p>
+
+    <div class="pitfall">
+      <b>하지만 여기서 멈추면 안 됩니다</b>
+      <p style="margin:6px 0">두 가지를 더 물어야 합니다.</p>
+      <ol style="margin:8px 0 0;padding-left:18px">
+        <li>
+          <b>이 차이가 우연일 수는 없나?</b> 162일과 569일을 비교했는데,
+          똑같은 모집단에서 뽑아도 이 정도 차이는 그냥 나올 수 있습니다.
+          이걸 판단하는 게 <b>가설검정</b>입니다 —
+          <a href="../modules/06-pvalue.html">모듈 06에서 카드를 섞어 직접 만들어볼 수 있고</a>,
+          파이썬으로 계산하는 법은 <b>13강</b>에서 다룹니다.
+        </li>
+        <li>
+          <b>진짜 원인이 비가 맞나?</b> 여름에 비가 자주 오는데, 여름은 원래 손님이 많은 계절입니다.
+          계절을 무시하고 비만 보면 효과가 과소평가될 수 있습니다.
+          이런 <b>교란변수</b> 문제가 <a href="../modules/08-simpson.html">모듈 08(심슨의 역설)</a>의 주제입니다.
+        </li>
+      </ol>
+      <p style="margin-top:10px">
+        <b>필터링으로 얻은 숫자는 "질문의 시작"이지 "답"이 아닙니다.</b>
+        이 감각이 데이터 분석가와 엑셀 사용자를 가릅니다.
+      </p>
+    </div>
+
+    <h2 id="s8">8. 직접 해보기</h2>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="연습 · 직접 써보세요">
+    # 문제 1. 주말(토·일) 중 매출이 가장 높았던 3일을 뽑아보세요.
+    #        힌트: isin 으로 주말을 고르고 nlargest
+
+
+    # 문제 2. 공휴일의 평균 방문객과, 공휴일이 아닌 날의 평균 방문객을 비교해보세요.
+    #        힌트: df["is_holiday"] 는 이미 True/False 입니다
+
+
+    # 문제 3. 기온이 30도를 넘은 날은 며칠이고, 그날들의 평균 매출은 얼마인가요?
+    </div>
+
+    <details style="margin:18px 0">
+      <summary style="cursor:pointer;font-weight:600;color:var(--accent)">모범 답안 보기</summary>
+      <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="모범 답안">
+      # 문제 1
+      주말 = df[df["weekday"].isin(["토", "일"])]
+      print(주말.nlargest(3, "sales")[["date", "weekday", "sales"]])
+
+      # 문제 2
+      공휴일 = df[df["is_holiday"]]["visitors"].mean()
+      평일 = df[~df["is_holiday"]]["visitors"].mean()
+      print(f"\n공휴일 {공휴일:.1f}명 / 그 외 {평일:.1f}명 → {공휴일 - 평일:+.1f}명")
+
+      # 문제 3
+      무더위 = df[df["avg_temp"] > 30]
+      print(f"\n30도 초과: {len(무더위)}일, 평균 매출 {무더위['sales'].mean():,.0f}원")
+      </div>
+      <p style="font-size:13.5px;color:var(--text-dim)">
+        문제 2의 답은 <b>공휴일 197.5명 / 그 외 175.5명</b>, 약 22명 많습니다.
+        그런데 공휴일은 20일 남짓밖에 안 됩니다.
+        <b>표본이 적을수록 평균은 흔들립니다</b>(모듈 04의 σ/√n).
+        "22명 차이"를 곧이곧대로 믿기 전에 표본 수를 함께 보는 습관을 들이세요.
+      </p>
+    </details>
+
+    <div class="colab-cta">
+      <div class="colab-text">
+        <b>더 자유롭게 해보고 싶다면</b>
+        Google Colab에서 같은 데이터로 실습할 수 있습니다. (구글 로그인 필요)
+      </div>
+      <a class="btn" id="colab-link" href="#" target="_blank" rel="noopener">Colab에서 열기</a>
+    </div>
+
+    <div class="summary">
+      <h3>2강 요약</h3>
+      <ul>
+        <li><code>df["a"]</code> 는 <b>Series</b>, <code>df[["a","b"]]</code> 는 <b>DataFrame</b>.</li>
+        <li>조건식은 <b>True/False 목록(마스크)</b>을 만들고, <code>df[마스크]</code> 로 걸러낸다.</li>
+        <li>조건 결합은 <code>&amp;</code> <code>|</code> <code>~</code> — <b>각 조건을 괄호로</b> 감쌀 것.
+            <code>and</code>/<code>or</code> 는 쓸 수 없다.</li>
+        <li><code>isin</code>(목록에 있나) · <code>between</code>(범위 안인가) · <code>.str</code>(문자열 다루기).</li>
+        <li>정렬은 <code>sort_values</code>, 상위 몇 개만이면 <code>nlargest</code>.</li>
+        <li><code>loc</code> 은 이름·조건으로(끝 포함), <code>iloc</code> 은 위치로(끝 미포함).</li>
+        <li><b>필터링해서 나온 숫자는 답이 아니라 질문의 시작이다.</b>
+            우연일 가능성과 교란변수를 항상 함께 생각할 것.</li>
+      </ul>
+    </div>
+
+    <p class="next-up">
+      다음 → <b>3강 · 지저분한 데이터 청소하기</b><br>
+      날짜 형식이 뒤죽박죽이고 숫자에 "원"이 붙은 <b>진짜 현실 데이터</b>를 다듬습니다.
+    </p>
+  </section>
+
+</div>
+
+<script src="../assets/viz.js?v=312b9476b0"></script>
+<script src="../assets/pylab.js?v=869ae9b12b"></script>
+<script src="../assets/pycell.js?v=6dacc4c6ce"></script>
+<script>
+(function () {
+  var REPO = 'mioon1402/timeseriesdata';
+  var BRANCH = 'main';
+  var NOTEBOOK = 'notebooks/p02-select-filter.ipynb';
+  var a = document.getElementById('colab-link');
+  if (a) a.href = 'https://colab.research.google.com/github/' + REPO + '/blob/' + BRANCH + '/' + NOTEBOOK;
+})();
+</script>
+</body>
+</html>
