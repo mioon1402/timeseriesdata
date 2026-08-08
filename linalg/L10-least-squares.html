@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>최소제곱법과 회귀 · 선형대수</title>
+<meta name="description" content="해가 없는 방정식에 Aᵀ를 곱하면 풀립니다. 선형회귀가 왜 '투영'인지 데이터로 확인합니다.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%E2%9E%97%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css?v=b7dfb076b2">
+<link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">선형대수 10강 · 직교성과 최소제곱법</p>
+    <h1>최소제곱법과 회귀</h1>
+    <p class="lede">
+      현실 데이터로 만든 방정식은 <b>거의 항상 해가 없습니다.</b>
+      점 100개를 지나는 직선 같은 건 존재하지 않으니까요.
+      그런데 양변에 <span class="m">A<sup>T</sup></span> 를 곱하는 <b>단 한 번의 조작</b>으로
+      풀리는 방정식이 됩니다. 그리고 그 답이 바로 <b>선형회귀</b>입니다.
+    </p>
+  </header>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 강의에서 배우는 것</b>
+      <ol>
+        <li><a href="#s0">기초 다지기 — 왜 해가 없는가</a></li>
+        <li><a href="#s1">"가장 가까운" 을 정의하기</a></li>
+        <li><a href="#s2">정규방정식</a></li>
+        <li><a href="#s3">직선 맞추기 (직접 해보기)</a></li>
+        <li><a href="#s4">왜 하필 제곱인가</a></li>
+        <li><a href="#s5">numpy 로 확인하기</a></li>
+        <li><a href="#s6">실무: 언제 무너지는가</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s0">0. 기초 다지기 — 왜 해가 없는가</h2>
+    <p>
+      점 네 개 <span class="m">(0,1), (1,2), (2,2), (3,5)</span> 를 <b>전부 지나는</b>
+      직선 <span class="m">y = ct + d</span> 를 찾는다고 합시다.
+    </p>
+
+    <div class="callout" style="font-family:var(--mono);font-size:13px;line-height:1.9">
+      c·0 + d = 1<br>
+      c·1 + d = 2<br>
+      c·2 + d = 2<br>
+      c·3 + d = 5
+    </div>
+
+    <p>
+      <b>미지수는 2개(c, d)인데 식은 4개</b>입니다.
+      이런 걸 <b>과결정계(Overdetermined system)</b> 라고 합니다.
+      1·2번 식만 보면 <span class="m">c=1, d=1</span> 인데, 3번 식에 넣으면
+      <span class="m">2+1=3 ≠ 2</span> 로 어긋납니다. <b>해가 없습니다.</b>
+    </p>
+
+    <div class="formula">
+      <div class="name">행렬로 쓰면</div>
+      <div class="eq">
+        <span class="mat" style="--cols:2">
+          <span>0</span><span>1</span>
+          <span>1</span><span>1</span>
+          <span>2</span><span>1</span>
+          <span>3</span><span>1</span>
+        </span>
+        <span class="mat"><span>c</span><span>d</span></span>
+        &nbsp;=&nbsp;
+        <span class="mat"><span>1</span><span>2</span><span>2</span><span>5</span></span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">A</span><span class="desc">4×2 — <b>키가 큰 행렬</b>.
+            열이 2개뿐이니 열공간은 <b>4차원 공간 속의 2차원 평면</b>입니다</span></li>
+        <li><span class="sym">b</span><span class="desc">4차원 벡터. 그 얇은 평면 위에 있을 확률은
+            <b>사실상 0</b> — 그래서 해가 없습니다(6강)</span></li>
+      </ul>
+    </div>
+
+    <div class="takeaway">
+      <b>실무의 기본 상황 ·</b> 데이터가 많을수록(<span class="m">m</span> 이 클수록)
+      해는 <b>더 확실히 없어집니다.</b>
+      그러니 "해를 구한다"가 아니라 <b>"가장 덜 틀리는 값을 고른다"</b> 로
+      문제를 바꿔야 합니다. 그게 최소제곱법입니다.
+    </div>
+
+    <h2 id="s1">1. "가장 가까운" 을 정의하기</h2>
+    <p>
+      <span class="m">b</span> 에 도달할 수 없다면, <b>도달할 수 있는 곳 중 가장 가까운 데</b>까지 갑시다.
+      "가장 가깝다"는 <b>오차 벡터의 길이</b>가 최소라는 뜻입니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">최소제곱 문제</div>
+      <div class="eq" style="font-size:16px">
+        ‖ e ‖<sup>2</sup> = ‖ b − A x ‖<sup>2</sup> &nbsp;를 최소로 만드는 x̂ 를 찾아라
+      </div>
+      <ul class="where">
+        <li><span class="sym">‖e‖²</span><span class="desc">= 각 오차를 <b>제곱해서 더한 것</b>.
+            그래서 <b>최소제곱</b>(least squares)입니다</span></li>
+        <li><span class="sym">9강과 같음</span><span class="desc">도달 가능한 곳 = <b>열공간</b>.
+            가장 가까운 점 = <b>b 를 열공간으로 투영한 것</b>. <b>이미 푼 문제</b>입니다</span></li>
+      </ul>
+    </div>
+
+    <div class="takeaway">
+      <b>한 줄 요약 ·</b> 풀 수 없는 <span class="m">Ax = b</span> 대신
+      <b>풀 수 있는 <span class="m">Ax̂ = p</span></b> 를 풉니다.
+      여기서 <span class="m">p</span> 는 <b>b 의 그림자</b>(9강)입니다.
+    </div>
+
+    <h2 id="s2">2. 정규방정식</h2>
+
+    <div class="formula">
+      <div class="name">정규방정식 (Normal Equation)</div>
+      <div class="eq" style="font-size:17px">
+        <b>A<sup>T</sup>A x̂ = A<sup>T</sup>b</b>
+      </div>
+      <ul class="where">
+        <li><span class="sym">유도</span><span class="desc">오차가 열공간과 직교
+            ⟹ <span class="m">A<sup>T</sup>(b − Ax̂) = 0</span> ⟹ 정리하면 위 식 (9강과 동일)</span></li>
+        <li><span class="sym">크기</span><span class="desc"><span class="m">A<sup>T</sup>A</span> 는
+            <b>n×n 정사각·대칭</b>입니다. 4×2 였던 문제가 <b>2×2</b> 로 줄었습니다</span></li>
+        <li><span class="sym">가역 조건</span><span class="desc">A의 <b>열이 선형독립</b>이면
+            <span class="m">A<sup>T</sup>A</span> 는 가역입니다. 실무에서 이게 깨지는 경우가 §6</span></li>
+      </ul>
+    </div>
+
+    <div class="callout">
+      <b>왜 <span class="m">A<sup>T</sup></span> 를 곱하니 풀리는가</b><br>
+      마법이 아닙니다. <span class="m">A<sup>T</sup></span> 를 곱하는 것은
+      <b>"오차의 열공간 성분만 보겠다"</b>는 뜻입니다.
+      <br><br>
+      <span class="m">b</span> 를 <b>p(열공간) + e(좌영공간)</b> 로 쪼개면(9강),
+      <span class="m">A<sup>T</sup>b = A<sup>T</sup>p + A<sup>T</sup>e = A<sup>T</sup>p + 0</span> —
+      <b>도달 불가능한 성분 <span class="m">e</span> 가 저절로 지워집니다.</b>
+      남은 건 원래부터 풀 수 있던 문제죠.
+    </div>
+
+    <h2 id="s3">3. 직선 맞추기</h2>
+    <p>
+      아래 <b>점을 끌어</b> 보세요. 최소제곱 직선과 <b>잔차(세로 막대)</b> 가 따라 움직입니다.
+    </p>
+
+    <div class="panel">
+      <div class="canvas-wrap"><canvas id="cv"></canvas></div>
+      <p class="hint">점을 끌어 옮기거나, 빈 곳을 <b>클릭</b>해 점을 추가해보세요.</p>
+
+      <div class="btns">
+        <button class="btn" id="reset">처음 데이터로</button>
+        <button class="btn" id="outlier">이상치 하나 던지기</button>
+        <label class="toggle"><input type="checkbox" id="sq"> 잔차의 "제곱" 을 넓이로 보기</label>
+      </div>
+
+      <div class="readout">
+        <div class="stat accent"><span class="k">기울기 c</span><span class="v" id="r-c">–</span></div>
+        <div class="stat accent"><span class="k">절편 d</span><span class="v" id="r-d">–</span></div>
+        <div class="stat warn"><span class="k">잔차 제곱합 ‖e‖²</span><span class="v" id="r-sse">–</span></div>
+        <div class="stat pos"><span class="k">R²</span><span class="v" id="r-r2">–</span></div>
+        <div class="stat"><span class="k">잔차의 합</span><span class="v" id="r-sum">–</span></div>
+        <div class="stat purple"><span class="k">점 개수</span><span class="v" id="r-n">–</span></div>
+      </div>
+    </div>
+
+    <div class="takeaway">
+      <b>잔차의 합이 항상 0 ·</b> 이건 우연이 아닙니다.
+      <span class="m">A<sup>T</sup>e = 0</span> 인데 A의 <b>둘째 열이 전부 1</b>(절편 항)이므로
+      그 성분이 <span class="m">Σeᵢ = 0</span> 을 뜻합니다.
+      <b>절편을 넣은 회귀에서는 잔차 평균이 반드시 0</b> 인 이유입니다.
+    </div>
+
+    <div class="pitfall">
+      <b>[이상치 하나 던지기] 를 눌러보세요</b>
+      점 하나가 멀리 떨어지면 <b>직선 전체가 그쪽으로 끌려갑니다.</b>
+      오차를 <b>제곱</b>하기 때문에 멀리 있는 점이 <b>제곱만큼</b> 큰 발언권을 갖거든요.
+      <br><br>
+      최소제곱법의 가장 큰 약점입니다. 대안은 <b>절댓값 오차</b>(L1 회귀),
+      <b>Huber 손실</b>, 또는 <b>이상치 제거 후 재적합</b>입니다.
+    </div>
+
+    <h2 id="s4">4. 왜 하필 제곱인가</h2>
+    <p>
+      절댓값을 쓰면 이상치에 강한데, 왜 통계와 공학은 제곱을 택했을까요?
+      이유가 셋 있습니다.
+    </p>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>이유</th><th>설명</th></tr></thead>
+        <tbody>
+          <tr><td><b>기하가 맞아떨어진다</b></td>
+              <td>제곱합 = <b>유클리드 거리의 제곱</b>. 그래서 "가장 가까운 = 수직 투영"이 성립합니다.
+                  절댓값을 쓰면 이 아름다운 그림이 깨집니다.</td></tr>
+          <tr><td><b>미분이 된다</b></td>
+              <td>제곱은 매끄러워 <b>딱 떨어지는 공식</b>이 나옵니다.
+                  절댓값은 0에서 꺾여 반복 알고리즘이 필요합니다.</td></tr>
+          <tr><td><b>답이 하나다</b></td>
+              <td>열이 독립이면 <b>최소점이 유일</b>합니다. 절댓값은 답이 여러 개일 수 있습니다.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout">
+      <b>통계적 근거도 있습니다</b><br>
+      오차가 <b>정규분포</b>를 따른다고 가정하면,
+      <b>최대가능도추정(MLE)</b> 이 정확히 최소제곱법과 같아집니다.
+      "제곱을 쓴다"는 곧 <b>"오차가 정규분포일 것이다"</b> 라고 가정하는 것과 같죠.
+      <br><br>
+      그래서 오차가 <b>두꺼운 꼬리</b>를 가진 데이터(금융 수익률 등)에서는
+      최소제곱법이 잘 안 맞습니다. 가정이 틀렸으니까요.
+    </div>
+
+    <h2 id="s5">5. numpy 로 확인하기</h2>
+
+    <div class="pycell" data-packages="numpy" data-title="10-1. 해가 없는 것부터 확인">
+    import numpy as np
+    np.set_printoptions(precision=4, suppress=True)
+
+    t = np.array([0., 1., 2., 3.])
+    y = np.array([1., 2., 2., 5.])
+
+    A = np.column_stack([t, np.ones_like(t)])   # [t | 1] — 기울기와 절편
+    print("A =")
+    print(A)
+    print("b =", y)
+    print()
+    print("rank(A)      =", np.linalg.matrix_rank(A))
+    print("rank([A|b])  =", np.linalg.matrix_rank(np.column_stack([A, y])))
+    print("→ 랭크가 다르다 = b 가 열공간 밖 = 해가 없다 (6강)")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="10-2. 정규방정식 직접 풀기">
+    AtA = A.T @ A
+    Atb = A.T @ y
+
+    print("AᵀA =")
+    print(AtA, "  ← 2×2 로 줄었고 대칭이다")
+    print("\nAᵀb =", Atb)
+    print()
+
+    x_hat = np.linalg.solve(AtA, Atb)           # inv 대신 solve (4강)
+    print("x̂ = (기울기 c, 절편 d) =", x_hat)
+    print(f"→ 직선:  y = {x_hat[0]:.2f} t + {x_hat[1]:.2f}")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="10-3. 라이브러리와 비교">
+    ls, 잔차합, 랭크, 특이값 = np.linalg.lstsq(A, y, rcond=None)
+    print("lstsq   :", ls)
+    print("polyfit :", np.polyfit(t, y, 1))
+    print("직접    :", x_hat)
+    print()
+    print("전부 같은가:", np.allclose(ls, x_hat) and np.allclose(np.polyfit(t, y, 1), x_hat))
+    print()
+    print("※ 실무에서는 lstsq 를 쓰세요. 정규방정식을 직접 풀면")
+    print("   AᵀA 를 만드는 과정에서 조건수가 제곱이 되어 오차가 커집니다 (§6).")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="10-4. 회귀는 정말 투영인가">
+    p = A @ x_hat          # 예측값 = 그림자
+    e = y - p              # 잔차   = 오차
+
+    print("예측 p =", p)
+    print("잔차 e =", e)
+    print()
+    print("Aᵀe =", A.T @ e, "  ← 0. 잔차가 열공간과 직교 (9강)")
+    print("  첫째 성분 = Σ tᵢeᵢ = 0")
+    print("  둘째 성분 = Σ eᵢ   = 0   ← 절편이 있으면 잔차 합이 0")
+    print()
+
+    P = A @ np.linalg.inv(A.T @ A) @ A.T
+    print("투영행렬로 계산한 예측 =", P @ y)
+    print("같은가:", np.allclose(P @ y, p))
+    print("P² = P :", np.allclose(P @ P, P), "   trace(P) =", round(np.trace(P), 6), "= 열 개수")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="10-5. R² 는 피타고라스다">
+    y_bar = y.mean()
+    SST = ((y - y_bar) ** 2).sum()      # 총 변동
+    SSR = ((p - y_bar) ** 2).sum()      # 설명된 변동
+    SSE = (e ** 2).sum()                # 남은 변동
+
+    print(f"SST (총)     = {SST:.4f}")
+    print(f"SSR (설명)   = {SSR:.4f}")
+    print(f"SSE (잔차)   = {SSE:.4f}")
+    print(f"SSR + SSE    = {SSR + SSE:.4f}   ← SST 와 같다")
+    print()
+    print(f"R² = SSR/SST = {SSR/SST:.4f}  = 1 - SSE/SST = {1 - SSE/SST:.4f}")
+    print()
+    print("이 분해가 성립하는 이유는 (p - ȳ) ⟂ e 이기 때문 — 피타고라스 정리(8강)")
+    print("직교 확인:", round((p - y_bar) @ e, 12))
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="10-6. 곡선도 '선형' 회귀로 맞춘다">
+    # y = a + b·t + c·t²  는 미지수 a,b,c 에 대해서는 여전히 '선형' 이다
+    t2 = np.linspace(0, 4, 9)
+    y2 = 2 - 1.5 * t2 + 0.6 * t2 ** 2 + np.random.default_rng(0).normal(0, 0.3, size=9)
+
+    A2 = np.column_stack([np.ones_like(t2), t2, t2 ** 2])   # [1 | t | t²]
+    계수, *_ = np.linalg.lstsq(A2, y2, rcond=None)
+
+    print("설계행렬 A2 의 처음 3행 =")
+    print(A2[:3])
+    print()
+    print(f"추정: y = {계수[0]:.2f} + {계수[1]:.2f} t + {계수[2]:.2f} t²")
+    print(f"참값: y = 2.00 + -1.50 t + 0.60 t²")
+    print()
+    print("→ '선형회귀' 의 '선형' 은 t 가 아니라 '계수' 에 대한 것이다.")
+    print("   열을 무엇으로 채우든(t², log t, sin t) 방법은 똑같다.")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="10-7. 이상치의 영향">
+    y3 = y.copy()
+    print("원래  :", np.linalg.lstsq(A, y3, rcond=None)[0])
+
+    y3[2] = 12.0                          # 점 하나를 크게 흔든다
+    print("이상치:", np.linalg.lstsq(A, y3, rcond=None)[0])
+    print()
+    print("→ 점 하나가 기울기와 절편을 통째로 끌고 갔다.")
+    print("   제곱이 큰 오차에 큰 발언권을 주기 때문이다.")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="10-8. 연습문제">
+    # 문제 1. 점 (1,1), (2,3), (3,4) 에 최소제곱 직선을 맞춰보세요.
+
+    # 문제 2. 그 결과의 잔차를 구하고, 합이 0인지 Aᵀe = 0 인지 확인하세요.
+
+    # 문제 3. 절편 없이(원점을 지나는 직선 y = ct) 맞추면 잔차 합이 0일까요?
+    #         직접 확인해보세요.
+
+    # 아래에 직접 써보세요
+    </div>
+
+    <details style="margin:18px 0">
+      <summary style="cursor:pointer;font-weight:600;color:var(--accent)">모범 답안 보기</summary>
+      <div class="pycell" data-packages="numpy" data-title="모범 답안">
+      tt = np.array([1., 2., 3.]); yy = np.array([1., 3., 4.])
+
+      # 문제 1
+      AA = np.column_stack([tt, np.ones_like(tt)])
+      ans, *_ = np.linalg.lstsq(AA, yy, rcond=None)
+      print(f"문제 1: y = {ans[0]:.3f} t + {ans[1]:.3f}")
+
+      # 문제 2
+      ee = yy - AA @ ans
+      print(f"문제 2: 잔차 {np.round(ee, 6)}  합 {ee.sum():.2e}  Aᵀe {np.round(AA.T @ ee, 9)}")
+
+      # 문제 3 — 절편 열이 없으면 '잔차 합 = 0' 이 보장되지 않는다
+      AA0 = tt.reshape(-1, 1)
+      ans0, *_ = np.linalg.lstsq(AA0, yy, rcond=None)
+      ee0 = yy - AA0 @ ans0
+      print(f"\n문제 3: y = {ans0[0]:.3f} t (절편 없음)")
+      print(f"        잔차 {np.round(ee0, 4)}  합 {ee0.sum():.4f}  ← 0 이 아니다")
+      print("        Aᵀe =", np.round(AA0.T @ ee0, 9), " ← 이건 여전히 0")
+      print("        '잔차 합 = 0' 은 절편 열(전부 1)이 있을 때만 나오는 결과다.")
+      </div>
+    </details>
+
+    <h2 id="s6">6. 실무: 언제 무너지는가</h2>
+
+    <div class="practice">
+      <b>최소제곱이 실패하는 세 가지</b>
+      <ul>
+        <li><b>다중공선성</b> — 설명변수 하나가 다른 것들의 조합에 가까우면
+            <span class="m">A<sup>T</sup>A</span> 가 <b>거의 특이</b>해집니다.
+            계수가 터무니없이 커지고 <b>부호가 뒤집히며</b>, 데이터를 조금만 바꿔도 확 변합니다.
+            → <b>능형회귀(Ridge)</b> 로 <span class="m">A<sup>T</sup>A + λI</span> 를 쓰거나, 변수를 줄입니다.</li>
+        <li><b>이상치</b> — 위에서 본 대로 제곱이 이상치를 증폭합니다.
+            → 잔차 그림을 <b>반드시</b> 그려보고, 필요하면 robust 회귀.</li>
+        <li><b>수치 오차</b> — <span class="m">A<sup>T</sup>A</span> 를 만드는 순간
+            <b>조건수가 제곱</b>이 됩니다. 원래 1e8 이면 1e16 이 되어 정밀도가 날아가죠.
+            → 정규방정식을 직접 풀지 말고 <b>QR 분해</b>(11강)나 <code>lstsq</code>(내부적으로 SVD)를 쓰세요.</li>
+      </ul>
+    </div>
+
+    <div class="myth">
+      <b>"R²가 높으면 좋은 모델"이 아닙니다</b>
+      R²는 <b>변수를 추가하면 무조건 올라갑니다.</b> 쓸모없는 변수를 넣어도요.
+      그래서 <b>수정 R²</b> 나 <b>검증 데이터 성능</b>을 봐야 합니다.
+      <br><br>
+      그리고 R²는 <b>인과관계와 아무 상관이 없습니다.</b>
+      아이스크림 판매량으로 익사 사고를 예측하면 R²가 높게 나오지만,
+      진짜 원인은 <b>여름</b>입니다.
+    </div>
+
+    <div class="summary">
+      <h3>10강 요약</h3>
+      <ul>
+        <li>데이터가 많으면 <span class="m">Ax=b</span> 는 <b>거의 항상 해가 없습니다</b>(과결정계).</li>
+        <li>"해를 구한다" 대신 <b>"오차 제곱합을 최소로"</b> — 그건 곧 <b>열공간으로 투영</b>(9강)입니다.</li>
+        <li><b>정규방정식 <span class="m">A<sup>T</sup>A x̂ = A<sup>T</sup>b</span></b>.
+            <span class="m">A<sup>T</sup></span> 를 곱하면 <b>도달 불가능한 성분이 저절로 지워집니다.</b></li>
+        <li>절편 열(전부 1)이 있으면 <b>잔차 합이 반드시 0</b> 입니다.</li>
+        <li><b>R² = 피타고라스</b>: <span class="m">SST = SSR + SSE</span> 가 성립하는 건 직교 때문입니다.</li>
+        <li>"선형"회귀의 선형은 <b>계수</b>에 대한 것 — 열에 <span class="m">t², log t</span> 를 넣어도 됩니다.</li>
+        <li>약점 셋: <b>이상치·다중공선성·수치 오차.</b> 실무에서는 <code>lstsq</code> 나 QR 을 쓰세요.</li>
+      </ul>
+    </div>
+
+    <div class="colab-cta">
+      <div class="colab-text">
+        <b>더 자유롭게 실험하고 싶다면</b><br>
+        이 강의의 실습만 모은 노트북을 Colab에서 열 수 있습니다.
+      </div>
+      <a class="btn" id="colab-link" href="#" target="_blank" rel="noopener">Colab에서 열기</a>
+    </div>
+
+    <p class="next-up">
+      다음 → <b>11강 · 그램-슈미트와 QR 분해</b><br>
+      축을 <b>직교하게</b> 다시 세우면 투영도 최소제곱도 계산이 확 단순해집니다.
+      그 과정을 기록해두면 <span class="m">A = QR</span> 이 나옵니다.
+    </p>
+
+  </section>
+
+</div>
+
+<script src="../assets/viz.js?v=312b9476b0"></script>
+<script src="../assets/linalg.js?v=270d914364"></script>
+<script src="../assets/pylab.js?v=cb27f20364"></script>
+<script src="../assets/pycell.js?v=6dacc4c6ce"></script>
+<script>
+(function () {
+  'use strict';
+  var num = LA.num;
+
+  var START = [[0, 1], [1, 2], [2, 2], [3, 5], [4, 4.5], [5, 6.5]];
+  var pts = START.map(function (p) { return p.slice(); });
+  var showSq = false;
+
+  var canvas = document.getElementById('cv');
+  var plot = new V.Plot(canvas, {
+    height: function (w) { return Math.round(Math.max(280, Math.min(w * 0.62, 380))); },
+    margin: { top: 18, right: 18, bottom: 34, left: 44 },
+    xDomain: [-0.6, 6.2], yDomain: [-0.6, 8.2]
+  });
+
+  /** 최소제곱 직선 y = c t + d */
+  function fit() {
+    var n = pts.length;
+    if (n < 2) return null;
+    var st = 0, sy = 0, stt = 0, sty = 0;
+    pts.forEach(function (p) { st += p[0]; sy += p[1]; stt += p[0] * p[0]; sty += p[0] * p[1]; });
+    var den = n * stt - st * st;
+    if (Math.abs(den) < 1e-12) return null;      // 모든 t 가 같음 = 열이 종속
+    var c = (n * sty - st * sy) / den;
+    var d = (sy - c * st) / n;
+    return { c: c, d: d };
+  }
+
+  function draw() {
+    var f = fit();
+    plot.begin();
+    plot.axes({ xLabel: 't', yLabel: 'y', grid: true });
+
+    if (f) {
+      // 잔차 제곱을 넓이로
+      if (showSq) {
+        var ctx = plot.ctx;
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(plot.margin.left, plot.margin.top, plot.pw, plot.ph);
+        ctx.clip();
+        ctx.fillStyle = V.css('--warn-soft');
+        ctx.strokeStyle = V.css('--warn');
+        ctx.lineWidth = 1;
+        pts.forEach(function (p) {
+          var yh = f.c * p[0] + f.d;
+          var r = p[1] - yh;                     // 잔차 (데이터 단위)
+          var x0 = plot.x(p[0]), y0 = plot.y(yh), y1 = plot.y(p[1]);
+          var h = y1 - y0;                       // 픽셀 높이
+          ctx.fillRect(x0, Math.min(y0, y1), Math.abs(h) * (r >= 0 ? 1 : -1) || 0, Math.abs(h));
+          ctx.strokeRect(x0, Math.min(y0, y1), Math.abs(h) * (r >= 0 ? 1 : -1) || 0, Math.abs(h));
+        });
+        ctx.restore();
+      }
+
+      // 잔차 선
+      pts.forEach(function (p) {
+        var yh = f.c * p[0] + f.d;
+        plot.path([[p[0], p[1]], [p[0], yh]], { color: V.css('--warn'), width: 1.6, dash: [4, 3] });
+      });
+      // 회귀직선
+      plot.path([[-1, f.c * -1 + f.d], [7, f.c * 7 + f.d]], { color: V.css('--accent'), width: 2.6 });
+    }
+
+    pts.forEach(function (p) {
+      plot.dot(p[0], p[1], { r: 5.5, color: V.css('--neg'), stroke: V.css('--surface'), strokeWidth: 2 });
+    });
+
+    /* 읽기 */
+    var n = pts.length;
+    if (f) {
+      var sse = 0, ybar = 0;
+      pts.forEach(function (p) { ybar += p[1]; });
+      ybar /= n;
+      var sst = 0, esum = 0;
+      pts.forEach(function (p) {
+        var e = p[1] - (f.c * p[0] + f.d);
+        sse += e * e; esum += e;
+        sst += (p[1] - ybar) * (p[1] - ybar);
+      });
+      V.setText('#r-c', num(f.c, 3));
+      V.setText('#r-d', num(f.d, 3));
+      V.setText('#r-sse', num(sse, 3));
+      V.setText('#r-r2', sst > 1e-12 ? num(1 - sse / sst, 3) : '–');
+      V.setText('#r-sum', num(esum, 3));
+    } else {
+      ['#r-c', '#r-d', '#r-sse', '#r-r2', '#r-sum'].forEach(function (id) { V.setText(id, '–'); });
+    }
+    V.setText('#r-n', String(n));
+  }
+
+  /* ---------- 끌기 / 추가 ---------- */
+  var active = -1;
+  function nearest(ev) {
+    var q = V.pointerPos(canvas, ev);
+    var best = -1, bd = 16;
+    pts.forEach(function (p, i) {
+      var d = Math.hypot(plot.x(p[0]) - q.x, plot.y(p[1]) - q.y);
+      if (d < bd) { bd = d; best = i; }
+    });
+    return best;
+  }
+  canvas.addEventListener('pointerdown', function (ev) {
+    active = nearest(ev);
+    if (active < 0) {
+      var q = V.pointerPos(canvas, ev);
+      var t = plot.invX(q.x), y = plot.invY(q.y);
+      if (t > -0.5 && t < 6.1 && y > -0.5 && y < 8.1) { pts.push([t, y]); draw(); }
+      return;
+    }
+    canvas.setPointerCapture(ev.pointerId);
+    ev.preventDefault();
+  });
+  canvas.addEventListener('pointermove', function (ev) {
+    if (active < 0) { canvas.style.cursor = nearest(ev) >= 0 ? 'grab' : 'crosshair'; return; }
+    var q = V.pointerPos(canvas, ev);
+    pts[active] = [plot.invX(q.x), plot.invY(q.y)];
+    draw();
+    ev.preventDefault();
+  });
+  function end(ev) {
+    if (active < 0) return;
+    active = -1;
+    try { canvas.releasePointerCapture(ev.pointerId); } catch (e) { /* 이미 놓임 */ }
+  }
+  canvas.addEventListener('pointerup', end);
+  canvas.addEventListener('pointercancel', end);
+
+  V.click('reset', function () { pts = START.map(function (p) { return p.slice(); }); draw(); });
+  V.click('outlier', function () { pts.push([2.5, 7.8]); draw(); });
+  V.check('sq', function (on) { showSq = on; draw(); });
+
+  V.onRedraw(draw);
+  draw();
+
+  var a2 = document.getElementById('colab-link');
+  if (a2) a2.href = 'https://colab.research.google.com/github/mioon1402/timeseriesdata/blob/main/notebooks/L10-least-squares.ipynb';
+})();
+</script>
+</body>
+</html>

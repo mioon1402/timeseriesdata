@@ -62,6 +62,9 @@ const PAGES = [
   'linalg/L05-subspace.html',
   'linalg/L06-nullspace.html',
   'linalg/L07-rank.html',
+  'linalg/L08-orthogonality.html',
+  'linalg/L09-projection.html',
+  'linalg/L10-least-squares.html',
 ];
 
 /** 캔버스가 없어도 정상인 페이지 (파이썬 실습 강의 등) */

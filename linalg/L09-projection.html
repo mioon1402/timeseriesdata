@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>투영과 투영행렬 · 선형대수</title>
+<meta name="description" content="벡터를 부분공간에 수직으로 내려꽂는 연산. 오차가 직교한다는 조건 하나에서 공식이 나옵니다.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%E2%9E%97%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css?v=b7dfb076b2">
+<link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">선형대수 9강 · 직교성과 최소제곱법</p>
+    <h1>투영과 투영행렬</h1>
+    <p class="lede">
+      <b>손전등을 수직으로 비추면 생기는 그림자</b> — 그게 투영입니다.
+      단순해 보이지만, 이 연산 하나가 <b>회귀분석·최소제곱법·PCA</b> 의 심장입니다.
+      그리고 공식은 외울 필요가 없습니다.
+      <b>"오차가 직교한다"</b>는 한 줄에서 저절로 굴러 나오거든요.
+    </p>
+  </header>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 강의에서 배우는 것</b>
+      <ol>
+        <li><a href="#s0">기초 다지기 — 왜 하필 수직으로 내리나</a></li>
+        <li><a href="#s1">직선 위로 투영하기 (직접 해보기)</a></li>
+        <li><a href="#s2">부분공간으로 투영하기</a></li>
+        <li><a href="#s3">투영행렬 P 와 그 성질</a></li>
+        <li><a href="#s4">P 를 고유값으로 읽기</a></li>
+        <li><a href="#s5">numpy 로 확인하기</a></li>
+        <li><a href="#s6">실무: 투영이 등장하는 곳</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s0">0. 기초 다지기 — 왜 하필 수직으로 내리나</h2>
+    <p>
+      상황을 정리해봅시다. 우리가 가려는 곳은 <b>직선(또는 평면) 위</b>인데,
+      목표 <span class="m">b</span> 는 <b>그 밖에</b> 있습니다.
+      "갈 수 있는 데까지만 가자" 라면 <b>어디로 가야 가장 가까울까요?</b>
+    </p>
+
+    <div class="callout">
+      <b>가장 가까운 점 = 수직으로 내린 발</b><br>
+      직선 위의 아무 점이나 골라 <span class="m">b</span> 까지의 거리를 재보세요.
+      <b>수직으로 내린 지점에서 그 거리가 최소</b>가 됩니다.
+      비스듬히 가면 항상 더 멉니다 — 피타고라스 정리 때문이죠(8강).
+      <br><br>
+      그래서 <b>"가장 가까운 근사"</b>라는 최적화 문제가
+      <b>"수직으로 내려라"</b>라는 기하 문제로 바뀝니다.
+      이 번역이 선형대수가 최적화에 쓰이는 핵심 이유입니다.
+    </div>
+
+    <h2 id="s1">1. 직선 위로 투영하기</h2>
+    <p>
+      먼저 가장 단순한 경우 — 벡터 <span class="m">a</span> 가 만드는 <b>직선</b> 위로
+      <span class="m">b</span> 를 내려봅시다.
+    </p>
+
+    <div class="panel">
+      <div class="board"><canvas id="cv"></canvas></div>
+
+      <div class="controls">
+        <label class="toggle"><input type="checkbox" id="showAll" checked> 다른 후보들과 거리 비교</label>
+      </div>
+      <p class="hint">파란 점(방향 a)과 빨간 점(목표 b)을 <b>끌어</b> 보세요.</p>
+
+      <div class="readout">
+        <div class="stat accent"><span class="k">방향 a</span><span class="v" id="s-a">–</span></div>
+        <div class="stat neg"><span class="k">목표 b</span><span class="v" id="s-b">–</span></div>
+        <div class="stat warn"><span class="k">계수 x̂</span><span class="v" id="s-x">–</span></div>
+        <div class="stat pos"><span class="k">그림자 p</span><span class="v" id="s-p">–</span></div>
+        <div class="stat"><span class="k">오차 e = b − p</span><span class="v" id="s-e">–</span></div>
+        <div class="stat purple"><span class="k">aᵀe (0이어야)</span><span class="v" id="s-ae">–</span></div>
+      </div>
+    </div>
+
+    <div class="formula">
+      <div class="name">유도 — 조건은 "오차가 a 와 직교" 하나뿐</div>
+      <div class="eq" style="font-size:14.5px;line-height:2.4;text-align:left;padding-left:22px">
+        <span class="small">①</span> 그림자는 직선 위 ⟹ <span class="m">p = x̂ a</span><br>
+        <span class="small">②</span> 오차가 직교 ⟹ <span class="m">a<sup>T</sup>(b − x̂ a) = 0</span><br>
+        <span class="small">③</span> 풀면 &nbsp;<span class="m">a<sup>T</sup>b = x̂ (a<sup>T</sup>a)</span>
+        &nbsp;⟹&nbsp; <span class="m">x̂ =</span>
+        <span class="frac"><span>a<sup>T</sup>b</span><span>a<sup>T</sup>a</span></span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">x̂</span><span class="desc"><b>얼마나 가야 하는지</b>의 배수. "엑스 햇"이라 읽습니다</span></li>
+        <li><span class="sym">p = a x̂</span><span class="desc"><b>그림자 벡터.</b>
+            <span class="m">p = a (a<sup>T</sup>b) / (a<sup>T</sup>a)</span></span></li>
+      </ul>
+    </div>
+
+    <div class="takeaway">
+      <b>이 공식, 어디서 봤죠 ·</b>
+      <span class="m">(a<sup>T</sup>b) / (a<sup>T</sup>a)</span> 는 8강의
+      <b>코사인 유사도와 사실상 같은 식</b>입니다.
+      그리고 <b>푸리에 계수</b>를 구하는 식도, <b>회귀계수</b>를 구하는 식도 이 모양입니다.
+      전부 <b>"이 방향 성분이 얼마나 들어 있나"</b> 를 묻고 있으니까요.
+    </div>
+
+    <h2 id="s2">2. 부분공간으로 투영하기</h2>
+    <p>
+      이제 직선이 아니라 <b>행렬 A 의 열들이 만드는 공간(열공간)</b> 위로 내려봅시다.
+      논리는 <b>토씨 하나 안 바뀝니다.</b>
+    </p>
+
+    <div class="formula">
+      <div class="name">유도 — 오차가 모든 열과 직교</div>
+      <div class="eq" style="font-size:14.5px;line-height:2.4;text-align:left;padding-left:22px">
+        <span class="small">①</span> 그림자는 열공간 안 ⟹ <span class="m">p = A x̂</span><br>
+        <span class="small">②</span> 오차가 <b>모든 열</b>과 직교 ⟹ <span class="m">A<sup>T</sup>(b − A x̂) = <b>0</b></span><br>
+        <span class="small">③</span> 정리하면 &nbsp;<b><span class="m">A<sup>T</sup>A x̂ = A<sup>T</sup>b</span></b>
+        &nbsp;<span class="small">← 정규방정식 (10강)</span><br>
+        <span class="small">④</span> <span class="m">x̂ = (A<sup>T</sup>A)<sup>−1</sup>A<sup>T</sup>b</span>
+        &nbsp;⟹&nbsp; <span class="m">p = A(A<sup>T</sup>A)<sup>−1</sup>A<sup>T</sup>b</span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">②의 뜻</span><span class="desc"><span class="m">A<sup>T</sup>e = 0</span> 은
+            <b>오차가 좌영공간에 있다</b>는 뜻입니다(7강).
+            열공간 ⟂ 좌영공간이니 당연하죠(8강)</span></li>
+        <li><span class="sym">A<sup>T</sup>A 는 가역?</span><span class="desc">A의 <b>열이 선형독립</b>이면 가역입니다.
+            중복된 열이 있으면 안 됩니다 — 10강에서 다룹니다</span></li>
+      </ul>
+    </div>
+
+    <h2 id="s3">3. 투영행렬 P 와 그 성질</h2>
+
+    <div class="formula">
+      <div class="name">투영행렬</div>
+      <div class="eq">
+        P &nbsp;=&nbsp; A ( A<sup>T</sup>A )<sup>−1</sup> A<sup>T</sup>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="small">p = P b</span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">역할</span><span class="desc">어떤 벡터를 넣어도 <b>열공간으로 눌러</b> 줍니다</span></li>
+        <li><span class="sym">주의</span><span class="desc"><span class="m">(A<sup>T</sup>A)<sup>−1</sup></span> 를
+            <b>따로 떼어 <span class="m">A<sup>−1</sup>(A<sup>T</sup>)<sup>−1</sup></span> 로 쪼개면 안 됩니다.</b>
+            A 가 정사각이 아니면 <span class="m">A<sup>−1</sup></span> 자체가 없습니다</span></li>
+      </ul>
+    </div>
+
+    <div class="formula">
+      <div class="name">두 가지 성질 — 기하학에서 바로 나온다</div>
+      <div class="eq" style="font-size:16px;line-height:2.2">
+        <b>P<sup>2</sup> = P</b> &nbsp;<span class="small">이미 눌린 걸 또 눌러도 그대로</span><br>
+        <b>P<sup>T</sup> = P</b> &nbsp;<span class="small">대칭행렬</span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">P² = P</span><span class="desc">그림자에 다시 손전등을 비추면? <b>제자리</b>입니다.
+            이런 성질을 <b>멱등(idempotent)</b> 이라고 합니다</span></li>
+        <li><span class="sym">Pᵀ = P</span><span class="desc">전치해보면
+            <span class="m">(A(A<sup>T</sup>A)<sup>−1</sup>A<sup>T</sup>)<sup>T</sup> = A((A<sup>T</sup>A)<sup>−1</sup>)<sup>T</sup>A<sup>T</sup> = P</span>.
+            <span class="m">A<sup>T</sup>A</span> 가 대칭이라 그 역행렬도 대칭이기 때문입니다</span></li>
+      </ul>
+    </div>
+
+    <div class="callout">
+      <b>남는 것도 투영입니다</b><br>
+      <span class="m">e = b − p = (I − P) b</span> 이므로,
+      <b><span class="m">I − P</span> 도 투영행렬</b>입니다.
+      다만 <b>직교 여공간</b>(좌영공간)으로 투영하죠.
+      <br><br>
+      <span class="m">b = Pb + (I−P)b</span> — 어떤 벡터든
+      <b>열공간 성분 + 좌영공간 성분</b>으로 <b>유일하게</b> 쪼개집니다.
+      8강에서 예고한 그 분해입니다.
+    </div>
+
+    <h2 id="s4">4. P 를 고유값으로 읽기</h2>
+    <p>
+      13강을 미리 살짝 당겨오면, 투영행렬은 <b>고유값이 0 아니면 1뿐</b>입니다.
+      의미를 생각하면 당연합니다.
+    </p>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>벡터 위치</th><th>P 를 곱하면</th><th>고유값</th></tr></thead>
+        <tbody>
+          <tr><td><b>이미 열공간 안</b></td><td>그대로 (<span class="m">Pv = v</span>)</td><td><b>1</b></td></tr>
+          <tr><td><b>직교 여공간 안</b></td><td>원점으로 (<span class="m">Pv = 0</span>)</td><td><b>0</b></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="takeaway">
+      <b>trace(P) = 랭크 ·</b> 고유값이 1인 게 <span class="m">r</span> 개, 0인 게 나머지이므로
+      <b>대각합이 곧 투영하는 공간의 차원</b>입니다.
+      통계에서 <b>자유도(degrees of freedom)</b> 를 셀 때 정확히 이 값을 씁니다.
+    </div>
+
+    <h2 id="s5">5. numpy 로 확인하기</h2>
+
+    <div class="pycell" data-packages="numpy" data-title="9-1. 직선 위로 투영">
+    import numpy as np
+    np.set_printoptions(precision=4, suppress=True)
+
+    a = np.array([2., 1.])      # 방향
+    b = np.array([1., 3.])      # 목표
+
+    x_hat = (a @ b) / (a @ a)
+    p = x_hat * a               # 그림자
+    e = b - p                   # 오차
+
+    print("x̂ =", x_hat)
+    print("p  =", p)
+    print("e  =", e)
+    print()
+    print("a · e =", a @ e, "  ← 0 이면 수직으로 잘 내렸다")
+    print("‖b‖² =", b @ b, " = ‖p‖² + ‖e‖² =", p @ p + e @ e, " (피타고라스)")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="9-2. 정말 가장 가까운가">
+    # 직선 위의 여러 점과 b 사이 거리를 재본다
+    print(f"{'배수 t':>8}  {'점 t·a':>16}  {'b 까지 거리':>12}")
+    for t in [0.0, 0.5, x_hat - 0.3, x_hat, x_hat + 0.3, 1.5, 2.0]:
+        점 = t * a
+        d = np.linalg.norm(b - 점)
+        표시 = "  ← 최소!" if np.isclose(t, x_hat) else ""
+        print(f"{t:8.2f}  {str(np.round(점, 2)):>16}  {d:12.4f}{표시}")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="9-3. 투영행렬 만들기">
+    A = a.reshape(-1, 1)                      # 열이 하나인 행렬로
+    P = A @ np.linalg.inv(A.T @ A) @ A.T
+
+    print("P =")
+    print(P)
+    print()
+    print("P @ b =", P @ b, "  ← 위에서 구한 p 와 같다")
+    print()
+    print("P² = P 인가 :", np.allclose(P @ P, P))
+    print("Pᵀ = P 인가 :", np.allclose(P.T, P))
+    print("trace(P)   =", np.trace(P), " = 투영하는 공간의 차원")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="9-4. 3차원 → 평면으로 투영">
+    A2 = np.array([[1., 0.],
+                   [0., 1.],
+                   [1., 1.]])                 # 두 열이 만드는 평면
+    b3 = np.array([1., 2., 6.])
+
+    P2 = A2 @ np.linalg.inv(A2.T @ A2) @ A2.T
+    p2 = P2 @ b3
+    e2 = b3 - p2
+
+    print("그림자 p =", p2)
+    print("오차   e =", e2)
+    print()
+    print("A2ᵀ @ e (모든 열과 직교해야) =", A2.T @ e2)
+    print("trace(P2) =", np.trace(P2), " = 평면의 차원 2 ✓")
+    print()
+    print("P2 의 고유값 =", np.round(np.linalg.eigvals(P2), 6), " ← 1이 2개, 0이 1개")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="9-5. I − P 도 투영행렬">
+    I = np.eye(3)
+    Q = I - P2
+
+    print("Q = I - P 가 투영행렬인가")
+    print("  Q² = Q :", np.allclose(Q @ Q, Q))
+    print("  Qᵀ = Q :", np.allclose(Q.T, Q))
+    print("  trace(Q) =", np.trace(Q), " = 3 - 2 = 1 (직교 여공간의 차원)")
+    print()
+    print("b = Pb + Qb 로 쪼개지는가")
+    print("  Pb =", P2 @ b3)
+    print("  Qb =", Q @ b3)
+    print("  합 =", P2 @ b3 + Q @ b3, " = b ?", np.allclose(P2 @ b3 + Q @ b3, b3))
+    print("  두 조각이 직교? (Pb)·(Qb) =", round((P2 @ b3) @ (Q @ b3), 12))
+    </div>
+
+    <div class="pitfall">
+      <b>이미 직교하는 기저라면 훨씬 쉽습니다</b>
+      A 의 열이 <b>서로 직교하고 길이가 1</b>(정규직교)이면
+      <span class="m">A<sup>T</sup>A = I</span> 가 되어
+      <b><span class="m">P = A A<sup>T</sup></span></b> 로 줄어듭니다.
+      역행렬 계산이 통째로 사라지죠.
+      <br><br>
+      그래서 <b>11강에서 그램-슈미트로 직교 기저를 만드는 것</b>입니다.
+      "미리 축을 잘 세워두면 이후 계산이 공짜"라는 전략입니다.
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="9-6. 정규직교 기저면 P = AAᵀ">
+    # 직교하는 두 벡터를 단위벡터로 만들어 열로 세운다
+    q1 = np.array([1., 0., 1.]) / np.sqrt(2)
+    q2 = np.array([0., 1., 0.])
+    Q_mat = np.column_stack([q1, q2])
+
+    print("QᵀQ =")
+    print(Q_mat.T @ Q_mat, " ← 단위행렬")
+    print()
+    P_easy = Q_mat @ Q_mat.T                 # 역행렬 없이
+    P_full = Q_mat @ np.linalg.inv(Q_mat.T @ Q_mat) @ Q_mat.T
+    print("AAᵀ 와 전체 공식이 같은가:", np.allclose(P_easy, P_full))
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="9-7. 연습문제">
+    # 문제 1. b = [4, 0] 을 a = [1, 1] 방향으로 투영하면?
+    #         손으로 예상해보고 코드로 확인하세요.
+
+    # 문제 2. b 가 이미 직선 위에 있으면 (예: b = 3a) 투영 결과는?
+    #         오차는 얼마인가요?
+
+    # 문제 3. b 가 a 와 수직이면 투영 결과는?
+
+    # 아래에 직접 써보세요
+    </div>
+
+    <details style="margin:18px 0">
+      <summary style="cursor:pointer;font-weight:600;color:var(--accent)">모범 답안 보기</summary>
+      <div class="pycell" data-packages="numpy" data-title="모범 답안">
+      def 투영(a, b):
+          x = (a @ b) / (a @ a)
+          return x, x * a, b - x * a
+
+      # 문제 1 — 대각선 방향이므로 (2, 2)
+      a1 = np.array([1., 1.]); b1 = np.array([4., 0.])
+      x, p, e = 투영(a1, b1)
+      print(f"문제 1: x̂={x}, p={p}, e={e}, a·e={a1 @ e}")
+
+      # 문제 2 — 이미 직선 위면 그대로, 오차 0
+      b2 = 3 * a1
+      x, p, e = 투영(a1, b2)
+      print(f"문제 2: x̂={x}, p={p}, e={e}  ← 오차 0, Pb = b")
+
+      # 문제 3 — 수직이면 그림자가 원점
+      b3 = np.array([1., -1.])
+      x, p, e = 투영(a1, b3)
+      print(f"문제 3: x̂={x}, p={p}, e={e}  ← 그림자가 0. 고유값 0 인 경우")
+      </div>
+    </details>
+
+    <h2 id="s6">6. 실무: 투영이 등장하는 곳</h2>
+
+    <div class="practice">
+      <b>같은 연산, 다른 이름</b>
+      <ul>
+        <li><b>선형회귀</b> — 예측값 <span class="m">ŷ = Pb</span>, 잔차 <span class="m">e = (I−P)b</span>.
+            회귀는 <b>말 그대로 투영</b>입니다(10강).</li>
+        <li><b>R²</b> — 피타고라스 <span class="m">‖b‖² = ‖p‖² + ‖e‖²</span> 에서
+            <b>설명된 비율</b>이 곧 R²입니다.</li>
+        <li><b>PCA</b> — 데이터를 <b>주성분이 만드는 부분공간</b>으로 투영해 차원을 줄입니다(15강).</li>
+        <li><b>푸리에 변환</b> — 신호를 각 주파수 축으로 <b>투영</b>한 계수가 스펙트럼입니다(20강).</li>
+        <li><b>추천 시스템</b> — 사용자 취향 벡터를 <b>잠재 공간</b>으로 투영(18강).</li>
+      </ul>
+      전부 <b>"가진 재료로 만들 수 있는 것 중 가장 가까운 것"</b> 을 찾는 같은 문제입니다.
+    </div>
+
+    <div class="summary">
+      <h3>9강 요약</h3>
+      <ul>
+        <li>부분공간 위의 <b>가장 가까운 점 = 수직으로 내린 발</b>. 최적화가 기하 문제로 바뀝니다.</li>
+        <li>조건은 <b>"오차 <span class="m">e = b − p</span> 가 직교"</b> 하나뿐.
+            여기서 모든 공식이 나옵니다 — 외울 게 없습니다.</li>
+        <li>직선: <span class="m">x̂ = a<sup>T</sup>b / a<sup>T</sup>a</span>.
+            부분공간: <b><span class="m">A<sup>T</sup>A x̂ = A<sup>T</sup>b</span></b> (정규방정식).</li>
+        <li><b><span class="m">P = A(A<sup>T</sup>A)<sup>−1</sup>A<sup>T</sup></span></b>,
+            성질은 <b><span class="m">P² = P</span></b>, <b><span class="m">P<sup>T</sup> = P</span></b>.</li>
+        <li>고유값은 <b>1 아니면 0</b>. <b><span class="m">trace(P) = 랭크</span></b> = 투영 공간의 차원.</li>
+        <li><span class="m">I − P</span> 도 투영행렬이며, <b>어떤 벡터든 두 직교 조각으로 유일하게</b> 나뉩니다.</li>
+        <li>기저가 <b>정규직교면 <span class="m">P = AA<sup>T</sup></span></b> 로 줄어듭니다 → 11강의 동기.</li>
+      </ul>
+    </div>
+
+    <div class="colab-cta">
+      <div class="colab-text">
+        <b>더 자유롭게 실험하고 싶다면</b><br>
+        이 강의의 실습만 모은 노트북을 Colab에서 열 수 있습니다.
+      </div>
+      <a class="btn" id="colab-link" href="#" target="_blank" rel="noopener">Colab에서 열기</a>
+    </div>
+
+    <p class="next-up">
+      다음 → <b>10강 · 최소제곱법과 회귀</b><br>
+      해가 <b>없는</b> 방정식에 <span class="m">A<sup>T</sup></span> 를 곱하면 풀린다는 마법.
+      그리고 선형회귀가 왜 투영인지 데이터로 확인합니다.
+    </p>
+
+  </section>
+
+</div>
+
+<script src="../assets/viz.js?v=312b9476b0"></script>
+<script src="../assets/linalg.js?v=270d914364"></script>
+<script src="../assets/pylab.js?v=cb27f20364"></script>
+<script src="../assets/pycell.js?v=6dacc4c6ce"></script>
+<script>
+(function () {
+  'use strict';
+  var M = LA.M, num = LA.num;
+  function vs(v) { return '(' + num(v[0]) + ', ' + num(v[1]) + ')'; }
+
+  var a = [3, 1], b = [1, 3];
+  var showAll = true;
+
+  var board = new LA.Board(document.getElementById('cv'), { range: 5 });
+
+  function draw() {
+    var aa = M.dot(a, a);
+    var xh = aa > 1e-9 ? M.dot(a, b) / aa : 0;
+    var p = M.scale(a, xh);
+    var e = M.sub(b, p);
+
+    board.fit([a, b, p]).begin().grid({ step: 1 });
+
+    // a 가 만드는 직선 (열공간)
+    board.span(a, { color: V.css('--accent'), width: 2, alpha: 0.5, dash: [6, 5] });
+
+    // 다른 후보들과의 거리 비교
+    if (showAll) {
+      var c = board.ctx;
+      c.save();
+      c.strokeStyle = V.css('--text-dim');
+      c.globalAlpha = 0.5;
+      c.lineWidth = 1;
+      c.setLineDash([2, 3]);
+      [-0.6, -0.3, 0.3, 0.6].forEach(function (d) {
+        var q = M.scale(a, xh + d);
+        c.beginPath();
+        c.moveTo(board.px(b[0]), board.py(b[1]));
+        c.lineTo(board.px(q[0]), board.py(q[1]));
+        c.stroke();
+      });
+      c.restore();
+    }
+
+    // 오차 (b 에서 p 로)
+    board.arrow(M.scale(e, -1), { from: b, color: V.css('--warn'), width: 2.4,
+                                  label: '오차 e', labelMid: true, labelSide: 16 });
+
+    board.arrow(a, { color: V.css('--accent'), width: 2.4, label: 'a' });
+    board.arrow(b, { color: V.css('--neg'), width: 3, label: 'b' });
+    board.arrow(p, { color: V.css('--pos'), width: 3, label: '그림자 p', labelOff: 20 });
+
+    if (M.norm(p) > 1e-6 && M.norm(e) > 1e-6) {
+      board.rightAngle(p, M.scale(a, xh >= 0 ? 1 : -1), e, { size: 12, color: V.css('--warn') });
+    }
+
+    board.handle(a, { color: V.css('--accent') });
+    board.handle(b, { color: V.css('--neg') });
+
+    V.setText('#s-a', vs(a));
+    V.setText('#s-b', vs(b));
+    V.setText('#s-x', num(xh));
+    V.setText('#s-p', vs(p));
+    V.setText('#s-e', vs(e));
+    V.setText('#s-ae', num(M.dot(a, e)));
+  }
+
+  LA.drag(board, [
+    { get: function () { return a; }, set: function (q) { a = q; } },
+    { get: function () { return b; }, set: function (q) { b = q; } }
+  ], draw, { snap: 0.5 });
+
+  V.check('showAll', function (on) { showAll = on; draw(); });
+
+  V.onRedraw(draw);
+  draw();
+
+  var a2 = document.getElementById('colab-link');
+  if (a2) a2.href = 'https://colab.research.google.com/github/mioon1402/timeseriesdata/blob/main/notebooks/L09-projection.ipynb';
+})();
+</script>
+</body>
+</html>
