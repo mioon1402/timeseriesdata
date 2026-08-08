@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>벡터공간과 부분공간 · 선형대수</title>
+<meta name="description" content="'원점을 지나야 한다'는 조건이 왜 그렇게 중요한지, Span이 왜 항상 부분공간인지 눈으로 확인합니다.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%E2%9E%97%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css?v=b7dfb076b2">
+<link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">선형대수 5강 · 벡터공간</p>
+    <h1>벡터공간과 부분공간</h1>
+    <p class="lede">
+      지금까지는 벡터를 <b>화살표</b>로만 봤습니다. 이제 한 단계 추상화합니다.
+      "더하기와 상수배가 되고, <b>그 결과가 밖으로 안 나가는</b> 집합"이라면
+      무엇이든 벡터공간입니다. 숫자 배열뿐 아니라 <b>다항식도, 함수도</b> 벡터가 됩니다.
+      그리고 이 추상화 덕분에 <b>신호 처리와 머신러닝이 같은 언어를 쓰게</b> 됩니다.
+    </p>
+  </header>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 강의에서 배우는 것</b>
+      <ol>
+        <li><a href="#s0">기초 다지기 — "닫혀 있다"가 무슨 뜻인가</a></li>
+        <li><a href="#s1">벡터공간의 정의와 뜻밖의 예시들</a></li>
+        <li><a href="#s2">부분공간 — 조건은 딱 세 개</a></li>
+        <li><a href="#s3">원점을 지나지 않으면 왜 안 되나 (직접 해보기)</a></li>
+        <li><a href="#s4">Span은 항상 부분공간이다</a></li>
+        <li><a href="#s5">numpy 로 확인하기</a></li>
+        <li><a href="#s6">실무: 데이터가 사는 진짜 차원</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s0">0. 기초 다지기 — "닫혀 있다"가 무슨 뜻인가</h2>
+    <p>
+      앞으로 <b>"덧셈에 대해 닫혀 있다"</b>는 말이 계속 나옵니다.
+      어려운 말 같지만 뜻은 아주 단순합니다.
+    </p>
+
+    <div class="callout">
+      <b>닫혀 있다 (closed) = 밖으로 안 나간다</b><br><br>
+      집합 안에서 두 개를 골라 <b>연산을 했을 때</b>,
+      그 결과가 <b>여전히 그 집합 안에</b> 있으면 "닫혀 있다"고 합니다.
+      <br><br>
+      <span style="color:var(--text-dim)">예 ·</span>
+      <b>짝수</b>는 덧셈에 대해 닫혀 있습니다 (짝수 + 짝수 = 짝수).<br>
+      <span style="color:var(--text-dim)">반례 ·</span>
+      <b>홀수</b>는 닫혀 있지 않습니다 (3 + 5 = 8, 짝수가 되어 밖으로 나감).
+    </div>
+
+    <p>
+      벡터공간에서 필요한 건 딱 두 연산에 대한 닫힘입니다 —
+      <b>더하기</b>와 <b>상수배</b>. 1강에서 배운 그 둘이죠.
+    </p>
+
+    <h2 id="s1">1. 벡터공간의 정의와 뜻밖의 예시들</h2>
+    <p>
+      <b>벡터공간(Vector Space)</b> 은 덧셈과 스칼라배가 정의되어 있고,
+      그 결과가 <b>항상 자기 안에 머무르며</b>, 결합·분배법칙 같은 상식적인 규칙
+      8가지를 만족하는 집합입니다.
+    </p>
+
+    <div class="pitfall">
+      <b>"벡터 = 화살표"라는 생각을 여기서 버려야 합니다</b>
+      고등학교에서 배운 "크기와 방향을 가진 양"은 <b>2·3차원에서만</b> 통하는 설명입니다.
+      진짜 정의에는 <b>화살표도, 크기도, 방향도 나오지 않습니다.</b>
+      "더하고 상수배할 수 있으면 벡터"입니다. 그래서 아래 것들이 전부 벡터가 됩니다.
+    </div>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>벡터공간</th><th>여기서 "벡터"는</th><th>어디서 쓰나</th></tr></thead>
+        <tbody>
+          <tr><td><span class="m">ℝⁿ</span></td><td>실수 n개의 목록</td><td>가장 기본. 데이터 한 줄</td></tr>
+          <tr><td><b>모든 2×2 행렬</b></td><td>행렬 하나</td>
+              <td>행렬도 더하고 상수배할 수 있죠 (4강)</td></tr>
+          <tr><td><b>차수 n 이하 다항식</b></td><td><span class="m">3x² − x + 5</span> 같은 식 하나</td>
+              <td>곡선 피팅, 스플라인 (20강)</td></tr>
+          <tr><td><b>모든 연속 함수</b></td><td>함수 하나</td>
+              <td><b>신호 처리.</b> 푸리에 변환의 무대 (20강)</td></tr>
+          <tr><td><b>모든 무한 수열</b></td><td>수열 하나</td><td>시계열, 차분방정식 (14강)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="takeaway">
+      <b>추상화의 이득 ·</b> "함수도 벡터"라고 인정하는 순간,
+      <b>함수를 다른 함수들의 선형결합으로 분해</b>하는 게 자연스러워집니다.
+      그게 바로 <b>푸리에 변환</b>(신호 = 사인파들의 선형결합)이고,
+      <b>테일러 급수</b>(함수 = 다항식들의 선형결합)입니다.
+      선형대수를 배우면 이 둘이 <b>같은 이야기</b>로 보입니다.
+    </div>
+
+    <div class="callout">
+      <b>단 하나 반드시 있어야 하는 것 — 영벡터</b><br>
+      어떤 벡터공간이든 <b>영벡터 <span class="m">0</span></b> 을 반드시 포함해야 합니다.
+      <span class="m">0 × v = 0</span> 인데 스칼라배에 닫혀 있어야 하니 피할 수 없죠.
+      다항식 공간에서는 "0 다항식", 함수 공간에서는 "항상 0인 함수"가 영벡터입니다.
+    </div>
+
+    <h2 id="s2">2. 부분공간 — 조건은 딱 세 개</h2>
+    <p>
+      <b>부분공간(Subspace)</b> 은 큰 벡터공간 안에 들어 있으면서
+      <b>그 자체로도 완전한 벡터공간</b>인 부분집합입니다.
+      8가지 공리를 다 확인할 필요는 없고, <b>세 가지만</b> 보면 됩니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">부분공간 판정 — 이 셋만 확인</div>
+      <div class="eq" style="font-size:16px;line-height:2.3">
+        ① &nbsp;<b>0 ∈ S</b> &nbsp;<span class="small">영벡터를 포함한다</span><br>
+        ② &nbsp;<b>u, v ∈ S ⟹ u + v ∈ S</b> &nbsp;<span class="small">덧셈에 닫혀 있다</span><br>
+        ③ &nbsp;<b>u ∈ S, c 는 스칼라 ⟹ c u ∈ S</b> &nbsp;<span class="small">상수배에 닫혀 있다</span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">①은 사실</span><span class="desc">③에서 <span class="m">c = 0</span> 을 넣으면 나옵니다.
+            그래도 <b>가장 빨리 반례를 찾는 방법</b>이라 먼저 확인합니다</span></li>
+        <li><span class="sym">직관</span><span class="desc">"안에서 아무리 더하고 늘려도 <b>밖으로 못 나가는</b> 영역"</span></li>
+      </ul>
+    </div>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th><span class="m">ℝ³</span> 안의 집합</th><th>부분공간?</th><th>이유</th></tr></thead>
+        <tbody>
+          <tr><td><b>원점을 지나는 직선</b></td><td style="color:var(--pos)">✓</td>
+              <td>더해도 늘려도 그 직선 위</td></tr>
+          <tr><td><b>원점을 지나는 평면</b></td><td style="color:var(--pos)">✓</td>
+              <td>같은 이유</td></tr>
+          <tr><td>원점을 <b>안</b> 지나는 평면</td><td style="color:var(--neg)">✗</td>
+              <td>영벡터가 없음 (①에서 탈락)</td></tr>
+          <tr><td>1사분면 전체</td><td style="color:var(--neg)">✗</td>
+              <td><span class="m">c = −1</span> 을 곱하면 3사분면으로 나감</td></tr>
+          <tr><td><span class="m">{0}</span> (원점 하나)</td><td style="color:var(--pos)">✓</td>
+              <td>가장 작은 부분공간. 영공간이 이럴 때가 있습니다(6강)</td></tr>
+          <tr><td><span class="m">ℝ³</span> 전체</td><td style="color:var(--pos)">✓</td>
+              <td>가장 큰 부분공간. 자기 자신도 부분공간입니다</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 id="s3">3. 원점을 지나지 않으면 왜 안 되나</h2>
+    <p>
+      아래에서 직선을 <b>위아래로 움직여</b> 보세요.
+      직선 위의 두 점(파랑, 초록)을 <b>더한 결과</b>가 빨간 점입니다.
+    </p>
+
+    <div class="panel">
+      <div class="board"><canvas id="cv"></canvas></div>
+
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">직선을 원점에서 얼마나 띄울까 (절편)</span><span class="val" id="off-val">0</span></span>
+          <input type="range" id="off" min="-3" max="3" step="0.25" value="0">
+        </label>
+        <label class="ctrl">
+          <span class="label-row"><span class="name">첫 번째 점의 위치</span><span class="val" id="p1-val">-1.5</span></span>
+          <input type="range" id="p1" min="-3" max="3" step="0.25" value="-1.5">
+        </label>
+        <label class="ctrl">
+          <span class="label-row"><span class="name">두 번째 점의 위치</span><span class="val" id="p2-val">2</span></span>
+          <input type="range" id="p2" min="-3" max="3" step="0.25" value="2">
+        </label>
+      </div>
+
+      <div class="readout">
+        <div class="stat accent"><span class="k">점 u</span><span class="v" id="s-u">–</span></div>
+        <div class="stat pos"><span class="k">점 v</span><span class="v" id="s-v">–</span></div>
+        <div class="stat neg"><span class="k">u + v</span><span class="v" id="s-sum">–</span></div>
+        <div class="stat"><span class="k">① 원점 포함?</span><span class="v" id="s-zero">–</span></div>
+        <div class="stat"><span class="k">② 합이 직선 위?</span><span class="v" id="s-closed">–</span></div>
+        <div class="stat warn"><span class="k">부분공간인가</span><span class="v" id="s-verdict">–</span></div>
+      </div>
+    </div>
+
+    <div class="takeaway">
+      <b>절편을 0으로 놓았을 때만 ·</b> 두 점을 더한 결과가 <b>같은 직선 위</b>에 남습니다.
+      조금이라도 띄우면 빨간 점이 <b>직선에서 떨어져 나갑니다.</b>
+      "원점을 지나야 한다"는 조건은 <b>미학적 취향이 아니라 계산의 결과</b>입니다.
+    </div>
+
+    <div class="callout">
+      <b>왜 그런가 — 한 줄 증명</b><br>
+      직선을 <span class="m">y = 2x + b</span> 라 합시다.
+      직선 위의 두 점 <span class="m">(x₁, 2x₁+b)</span> 와 <span class="m">(x₂, 2x₂+b)</span> 를 더하면
+      <span class="m">(x₁+x₂, 2(x₁+x₂) + <b>2b</b>)</span> 입니다.
+      절편이 <span class="m">b</span> 가 아니라 <b><span class="m">2b</span></b> 가 되어버렸죠.
+      <span class="m">b = 0</span> 일 때만 <span class="m">2b = b</span> 라서 제자리에 남습니다.
+    </div>
+
+    <h2 id="s4">4. Span은 항상 부분공간이다</h2>
+    <p>
+      1강에서 <b>Span</b>(가능한 모든 선형결합의 집합)을 배웠습니다.
+      Span 은 <b>어떤 벡터들로 만들든 항상 부분공간</b>입니다.
+      증명이 놀랄 만큼 짧습니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">정리 · Span(v₁,…,v<sub>k</sub>) 은 부분공간이다</div>
+      <div class="eq" style="font-size:15px;line-height:2.2;text-align:left;padding-left:26px">
+        <span class="small">①</span> 모든 <span class="m">c<sub>i</sub> = 0</span> 으로 두면 <span class="m">0</span> 이 나옴 ✓<br>
+        <span class="small">②</span> (선형결합) + (선형결합) = 계수를 더한 <b>또 하나의 선형결합</b> ✓<br>
+        <span class="small">③</span> c × (선형결합) = 계수에 c 를 곱한 <b>또 하나의 선형결합</b> ✓
+      </div>
+      <ul class="where">
+        <li><span class="sym">뜻</span><span class="desc">벡터 몇 개를 아무렇게나 집어와도,
+            그들이 만드는 Span 은 <b>자동으로 안전한 공간</b>이 됩니다</span></li>
+      </ul>
+    </div>
+
+    <div class="takeaway">
+      <b>왜 중요한가 ·</b> 6강에서 배울 <b>열공간</b>은
+      "행렬 A의 열들이 만드는 Span"으로 정의됩니다.
+      이 정리 덕분에 <b>열공간은 증명 없이 자동으로 부분공간</b>입니다.
+      "행렬이 도달할 수 있는 모든 곳"이 깔끔한 공간을 이룬다는 뜻이죠.
+    </div>
+
+    <h2 id="s5">5. numpy 로 확인하기</h2>
+
+    <div class="pycell" data-packages="numpy" data-title="5-1. 닫혀 있는지 직접 검사">
+    import numpy as np
+
+    def 직선위인가(p, 기울기=2, 절편=0):
+        return np.isclose(p[1], 기울기 * p[0] + 절편)
+
+    # ① 원점을 지나는 직선 y = 2x
+    u = np.array([1., 2.])
+    v = np.array([-3., -6.])
+    print("y = 2x 위의 두 점:", u, v)
+    print("합 =", u + v, " → 직선 위?", 직선위인가(u + v))
+    print("2배 =", 2 * u, " → 직선 위?", 직선위인가(2 * u))
+    print("영벡터 포함?", 직선위인가(np.zeros(2)))
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="5-2. 원점을 안 지나면 무너진다">
+    # ② y = 2x + 1 — 원점을 지나지 않는 직선
+    u2 = np.array([0., 1.])
+    v2 = np.array([1., 3.])
+    print("y = 2x + 1 위의 두 점:", u2, v2)
+    print("합 =", u2 + v2, " → 직선 위?", 직선위인가(u2 + v2, 절편=1))
+    print("영벡터 포함?", 직선위인가(np.zeros(2), 절편=1))
+    print()
+    print("→ 세 조건 중 두 개가 깨졌다. 부분공간이 아니다.")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="5-3. 1사분면은 왜 안 되나">
+    def 제1사분면인가(p):
+        return bool(np.all(p >= 0))
+
+    w = np.array([2., 3.])
+    print("w =", w, " 1사분면?", 제1사분면인가(w))
+    print("w + [1,1] =", w + np.array([1., 1.]), " 1사분면?", 제1사분면인가(w + np.array([1., 1.])))
+    print("(-1) × w  =", -1 * w, "  1사분면?", 제1사분면인가(-1 * w), " ← 여기서 탈락")
+    print()
+    print("덧셈에는 닫혀 있지만 '음수 배' 에서 밖으로 나간다.")
+    print("조건 세 개를 '전부' 만족해야 부분공간이다.")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="5-4. Span 은 항상 부분공간">
+    rng = np.random.default_rng(0)
+    v1 = np.array([2., 1., 0.])
+    v2 = np.array([1., 3., 1.])
+
+    def span_점(c1, c2):
+        return c1 * v1 + c2 * v2
+
+    # 무작위로 두 점을 뽑아 더해도 여전히 Span 안인가?
+    a = span_점(*rng.normal(size=2))
+    b = span_점(*rng.normal(size=2))
+
+    # 'Span 안' 인지는 v1, v2 로 표현되는지로 판정한다 (최소제곱 잔차가 0)
+    A = np.column_stack([v1, v2])
+    def span_안인가(p):
+        해, 잔차, *_ = np.linalg.lstsq(A, p, rcond=None)
+        return np.allclose(A @ 해, p)
+
+    print("a in Span :", span_안인가(a))
+    print("b in Span :", span_안인가(b))
+    print("a+b in Span :", span_안인가(a + b))
+    print("-3.7a in Span :", span_안인가(-3.7 * a))
+    print("영벡터 in Span :", span_안인가(np.zeros(3)))
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="5-5. 행렬도 벡터다">
+    # 2×2 행렬들의 집합도 벡터공간이다 — 더하고 상수배할 수 있으니까
+    M1 = np.array([[1., 2.], [3., 4.]])
+    M2 = np.array([[0., 1.], [1., 0.]])
+
+    print("M1 + M2 =\n", M1 + M2)
+    print("\n2.5 × M1 =\n", 2.5 * M1)
+    print("\n영벡터 역할:\n", np.zeros((2, 2)))
+    print()
+    print("2×2 행렬 공간의 차원은? → 자유롭게 정할 수 있는 칸이 4개이므로 4")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="5-6. 연습문제">
+    # 문제 1. ℝ² 에서 '두 성분의 합이 0인 벡터들' 은 부분공간일까요?
+    #         {(x, y) : x + y = 0}
+
+    # 문제 2. ℝ² 에서 '두 성분의 합이 1인 벡터들' 은?
+    #         {(x, y) : x + y = 1}
+
+    # 문제 3. ℝ³ 에서 '적어도 한 성분이 0인 벡터들' 은?
+    #         (힌트: (1,0,0) 과 (0,1,0) 을 더해보세요)
+
+    # 아래에 직접 써보세요
+    </div>
+
+    <details style="margin:18px 0">
+      <summary style="cursor:pointer;font-weight:600;color:var(--accent)">모범 답안 보기</summary>
+      <div class="pycell" data-packages="numpy" data-title="모범 답안">
+      # 문제 1 — 부분공간이다
+      a = np.array([3., -3.]); b = np.array([-1., 1.])
+      print("합의 합:", (a + b).sum(), " 상수배의 합:", (2.5 * a).sum(), " 영벡터:", np.zeros(2).sum())
+      print("→ 전부 0 이므로 부분공간 ✓  (원점을 지나는 직선이다)")
+
+      # 문제 2 — 부분공간이 아니다
+      c = np.array([1., 0.]); d = np.array([0., 1.])
+      print("\n합:", (c + d).sum(), "← 1이 아니라 2. 영벡터도 합이 0이라 불포함")
+      print("→ 부분공간 아님 ✗  (원점을 안 지나는 직선)")
+
+      # 문제 3 — 부분공간이 아니다
+      e = np.array([1., 0., 0.]); f = np.array([0., 1., 0.])
+      print("\n(1,0,0)+(0,1,0) =", e + f, " 0인 성분이 있나:", bool((e + f == 0).any()))
+      g = np.array([1., 1., 0.]); h = np.array([0., 0., 1.])
+      print("(1,1,0)+(0,0,1) =", g + h, " 0인 성분이 있나:", bool((g + h == 0).any()), "← 없다")
+      print("→ 덧셈에 닫혀 있지 않다. 부분공간 아님 ✗")
+      print("   (세 개의 평면을 합친 모양이라 '평평한 하나의 공간' 이 아니다)")
+      </div>
+    </details>
+
+    <h2 id="s6">6. 실무: 데이터가 사는 진짜 차원</h2>
+
+    <div class="practice">
+      <b>고차원 데이터는 사실 저차원에 산다</b>
+      <ul>
+        <li><b>이미지</b> — 사람 얼굴 사진은 784차원(28×28) 벡터지만,
+            실제 "사람 얼굴처럼 보이는" 이미지들은 그 안의 <b>훨씬 얇은 부분공간</b>에 몰려 있습니다.
+            무작위 784차원 벡터를 뽑으면 <b>노이즈</b>가 나오지 얼굴이 나오지 않죠.</li>
+        <li><b>이것이 차원 축소의 근거</b>입니다. 데이터가 실제로 사는 부분공간을 찾아
+            그쪽으로만 표현하면 정보를 거의 안 잃고 차원을 줄일 수 있습니다 →
+            <b>PCA</b>(15강)와 <b>SVD</b>(16강).</li>
+        <li><b>센서 데이터</b> — 온도계 10개를 한 방에 두면 10차원 데이터가 나오지만
+            실제 자유도는 1~2차원입니다(방 전체 온도 + 위치별 편차).
+            나머지는 <b>중복</b>이죠.</li>
+      </ul>
+    </div>
+
+    <div class="myth">
+      <b>"부분공간"과 "부분집합"은 다릅니다</b>
+      부분<b>집합</b>은 그냥 "안에 들어 있다"는 뜻이지만,
+      부분<b>공간</b>은 거기에 더해 <b>세 조건을 만족</b>해야 합니다.
+      <span class="m">ℝ²</span> 안의 원(circle)은 부분집합이지만 부분공간은 아닙니다 —
+      원 위의 두 점을 더하면 원 밖으로 나가니까요.
+      <br><br>
+      실무에서 "데이터가 저차원 구조에 있다"고 할 때는 엄밀히는
+      <b>다양체(manifold)</b>인 경우가 많습니다. 휘어 있어도 되니까 부분공간보다 넓은 개념이죠.
+      선형대수는 <b>평평한 것만</b> 다룹니다.
+    </div>
+
+    <div class="summary">
+      <h3>5강 요약</h3>
+      <ul>
+        <li><b>닫혀 있다</b> = 연산 결과가 밖으로 안 나간다.</li>
+        <li>벡터공간은 화살표가 아닙니다 — <b>행렬·다항식·함수·수열</b>도 벡터입니다.
+            그래서 푸리에 변환과 회귀분석이 같은 언어를 씁니다.</li>
+        <li>부분공간 조건 <b>세 개</b>: 영벡터 포함, 덧셈에 닫힘, 상수배에 닫힘.</li>
+        <li><b>원점을 지나야</b> 합니다. 조금이라도 띄우면 두 점을 더했을 때 밖으로 나갑니다.</li>
+        <li><b>Span 은 항상 부분공간</b>입니다. 덕분에 열공간(6강)이 자동으로 안전합니다.</li>
+        <li>고차원 데이터는 대개 <b>훨씬 얇은 부분공간</b>에 몰려 있습니다 — 차원 축소의 근거.</li>
+      </ul>
+    </div>
+
+    <div class="colab-cta">
+      <div class="colab-text">
+        <b>더 자유롭게 실험하고 싶다면</b><br>
+        이 강의의 실습만 모은 노트북을 Colab에서 열 수 있습니다.
+      </div>
+      <a class="btn" id="colab-link" href="#" target="_blank" rel="noopener">Colab에서 열기</a>
+    </div>
+
+    <p class="next-up">
+      다음 → <b>6강 · 영공간과 열공간</b><br>
+      행렬 하나 안에 숨어 있는 두 개의 부분공간을 꺼냅니다.
+      <span class="m">Ax = 0</span> 의 해집합과, <span class="m">Ax = b</span> 가 풀리는 조건.
+    </p>
+
+  </section>
+
+</div>
+
+<script src="../assets/viz.js?v=312b9476b0"></script>
+<script src="../assets/linalg.js?v=270d914364"></script>
+<script src="../assets/pylab.js?v=cb27f20364"></script>
+<script src="../assets/pycell.js?v=6dacc4c6ce"></script>
+<script>
+(function () {
+  'use strict';
+  var M = LA.M, num = LA.num;
+  function vs(v) { return '(' + num(v[0]) + ', ' + num(v[1]) + ')'; }
+
+  var SLOPE = 0.6;             // 직선의 기울기 (완만해야 화면에 잘 들어온다)
+  var off = 0, t1 = -1.5, t2 = 2;
+
+  var board = new LA.Board(document.getElementById('cv'), { range: 6 });
+
+  function onLine(t) { return [t, SLOPE * t + off]; }
+
+  function draw() {
+    var u = onLine(t1), v = onLine(t2), s = M.add(u, v);
+    var closed = Math.abs(s[1] - (SLOPE * s[0] + off)) < 1e-9;
+    var hasZero = Math.abs(off) < 1e-9;
+
+    board.fit([u, v, s]).begin().grid({ step: 1 });
+
+    // 직선 자체:  y = SLOPE x + off  →  −SLOPE x + y = off
+    board.lineEq(-SLOPE, 1, off, {
+      color: hasZero ? V.css('--pos') : V.css('--warn'),
+      width: 2.4, label: hasZero ? '원점을 지남' : '원점을 안 지남', labelAt: 0.18
+    });
+
+    board.arrow(u, { color: V.css('--accent'), width: 2.2, label: 'u', labelOff: 13 });
+    board.arrow(v, { color: V.css('--pos'), width: 2.2, label: 'v', labelOff: 13 });
+    board.arrow(v, { from: u, color: V.css('--pos'), width: 1.4, dash: [5, 4], alpha: 0.6 });
+    board.arrow(s, { color: V.css('--neg'), width: 3, label: 'u + v', labelOff: 17 });
+
+    // 합이 직선에서 얼마나 떨어졌는지 점선으로 보여준다
+    if (!closed) {
+      var foot = [s[0], SLOPE * s[0] + off];
+      var c = board.ctx;
+      c.save();
+      c.strokeStyle = V.css('--neg');
+      c.setLineDash([4, 4]);
+      c.lineWidth = 1.4;
+      c.beginPath();
+      c.moveTo(board.px(s[0]), board.py(s[1]));
+      c.lineTo(board.px(foot[0]), board.py(foot[1]));
+      c.stroke();
+      c.restore();
+    }
+
+    board.point([0, 0], { color: V.css('--text-dim'), r: 4 });
+
+    V.setText('#s-u', vs(u));
+    V.setText('#s-v', vs(v));
+    V.setText('#s-sum', vs(s));
+    V.setText('#s-zero', hasZero ? '예' : '아니오');
+    V.setText('#s-closed', closed ? '예' : '아니오 — 벗어남');
+    V.setText('#s-verdict', (hasZero && closed) ? '부분공간 ✓' : '부분공간 아님 ✗');
+  }
+
+  V.range('off', function (v) { off = v; draw(); });
+  V.range('p1', function (v) { t1 = v; draw(); });
+  V.range('p2', function (v) { t2 = v; draw(); });
+
+  V.onRedraw(draw);
+  draw();
+
+  var a2 = document.getElementById('colab-link');
+  if (a2) a2.href = 'https://colab.research.google.com/github/mioon1402/timeseriesdata/blob/main/notebooks/L05-subspace.ipynb';
+})();
+</script>
+</body>
+</html>

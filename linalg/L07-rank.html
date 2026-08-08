@@ -1,0 +1,607 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>선형독립·기저·차원과 랭크 · 선형대수</title>
+<meta name="description" content="네 가지 기본 부분공간의 차원이 어떻게 맞물리는지 — 선형대수의 Big Picture를 완성합니다.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%E2%9E%97%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css?v=b7dfb076b2">
+<link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">선형대수 7강 · 벡터공간</p>
+    <h1>선형독립·기저·차원과 랭크</h1>
+    <p class="lede">
+      "벡터가 몇 개인가"는 별로 중요하지 않습니다. 중요한 건
+      <b>서로 다른 방향이 몇 개인가</b>입니다. 그 개수가 <b>랭크</b>이고,
+      랭크 하나만 알면 행렬 안의 <b>네 부분공간 차원이 전부 결정됩니다.</b>
+      이 강의에서 선형대수의 <b>Big Picture</b> 를 완성합니다.
+    </p>
+  </header>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 강의에서 배우는 것</b>
+      <ol>
+        <li><a href="#s0">기초 다지기 — "독립"이 무슨 뜻인가</a></li>
+        <li><a href="#s1">선형독립과 선형종속 (직접 해보기)</a></li>
+        <li><a href="#s2">기저 — 딱 필요한 만큼</a></li>
+        <li><a href="#s3">차원과 랭크</a></li>
+        <li><a href="#s4">네 가지 기본 부분공간</a></li>
+        <li><a href="#s5">차원 정리 (Big Picture)</a></li>
+        <li><a href="#s6">numpy 로 확인하기</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s0">0. 기초 다지기 — "독립"이 무슨 뜻인가</h2>
+    <p>
+      일상어의 "독립"과 크게 다르지 않습니다.
+      <b>"다른 것들로 만들어낼 수 없다"</b>는 뜻입니다.
+    </p>
+
+    <div class="callout">
+      <b>색으로 생각해보기</b><br>
+      빨강·파랑·노랑이 있으면 <b>독립</b>입니다 — 어느 하나도 나머지 둘을 섞어 만들 수 없죠.<br>
+      여기에 <b>보라</b>를 추가하면? 보라는 빨강+파랑이니 <b>종속</b>입니다.
+      새로운 방향을 하나도 더해주지 못합니다.
+      <br><br>
+      선형대수의 독립도 정확히 이겁니다 —
+      <b>"이 벡터가 나머지의 선형결합으로 만들어지는가?"</b>
+    </div>
+
+    <h2 id="s1">1. 선형독립과 선형종속</h2>
+
+    <div class="formula">
+      <div class="name">정의</div>
+      <div class="eq" style="font-size:16px">
+        c<sub>1</sub>v<sub>1</sub> + c<sub>2</sub>v<sub>2</sub> + ⋯ + c<sub>n</sub>v<sub>n</sub> = <b>0</b>
+        <br>
+        <span class="small">이 식의 해가 <b>c₁ = c₂ = ⋯ = 0 뿐</b>이면 → 선형<b>독립</b></span><br>
+        <span class="small">0이 아닌 c 로도 만들 수 있으면 → 선형<b>종속</b></span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">왜 이 식인가</span><span class="desc">종속이면 어떤 <span class="m">v<sub>k</sub></span> 를
+            좌변에서 옮겨 <b>"나머지의 선형결합"</b> 으로 적을 수 있습니다.
+            그게 "만들어낼 수 있다"의 정확한 표현이죠</span></li>
+        <li><span class="sym">6강과 연결</span><span class="desc">벡터들을 열로 세워 A 를 만들면,
+            이 식은 <span class="m">Ac = 0</span> 입니다.
+            <b>독립 ⟺ 영공간이 원점뿐</b></span></li>
+      </ul>
+    </div>
+
+    <p>
+      아래에서 <b>벡터 개수</b>를 늘려보세요. 2차원 평면에 벡터를 몇 개까지
+      "서로 다른 방향"으로 놓을 수 있을까요?
+    </p>
+
+    <div class="panel">
+      <div class="board"><canvas id="cv-ind"></canvas></div>
+
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">벡터 개수</span><span class="val" id="cnt-val">2</span></span>
+          <input type="range" id="cnt" min="1" max="4" step="1" value="2">
+        </label>
+        <label class="ctrl">
+          <span class="label-row"><span class="name">두 번째 벡터의 각도 (°)</span><span class="val" id="ang-val">70</span></span>
+          <input type="range" id="ang" min="0" max="180" step="1" value="70">
+        </label>
+      </div>
+
+      <div class="readout">
+        <div class="stat"><span class="k">벡터 개수 n</span><span class="v" id="i-n">–</span></div>
+        <div class="stat accent"><span class="k">서로 다른 방향 (랭크)</span><span class="v" id="i-r">–</span></div>
+        <div class="stat warn"><span class="k">판정</span><span class="v" id="i-v">–</span></div>
+        <div class="stat pos"><span class="k">Span</span><span class="v" id="i-s">–</span></div>
+      </div>
+    </div>
+
+    <div class="takeaway">
+      <b>개수보다 방향 ·</b> 2차원 평면에서는 <b>벡터가 3개 이상이면 무조건 종속</b>입니다.
+      방향이 2개뿐인 곳에 3개를 놓았으니 하나는 반드시 나머지의 조합이죠.
+      <b>각도를 0°나 180°로</b> 맞춰보면 2개일 때도 종속이 됩니다.
+    </div>
+
+    <h2 id="s2">2. 기저 — 딱 필요한 만큼</h2>
+    <p>
+      <b>기저(Basis)</b> 는 공간을 설명하는 데 필요한 <b>최소한의 벡터 모음</b>입니다.
+      두 조건을 동시에 만족해야 합니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">기저의 두 조건</div>
+      <div class="eq" style="font-size:16px;line-height:2.2;text-align:left;padding-left:26px">
+        ① <b>공간을 생성한다</b> (Span) &nbsp;<span class="small">— 모자라지 않다</span><br>
+        ② <b>서로 선형독립이다</b> &nbsp;<span class="small">— 남지 않는다</span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">①만</span><span class="desc">벡터가 <b>너무 많음</b>. 중복이 있습니다</span></li>
+        <li><span class="sym">②만</span><span class="desc">벡터가 <b>모자람</b>. 공간을 다 못 덮습니다</span></li>
+        <li><span class="sym">둘 다</span><span class="desc"><b>딱 맞음.</b> 공간의 모든 점을
+            <b>정확히 한 가지 방법</b>으로 표현할 수 있습니다</span></li>
+      </ul>
+    </div>
+
+    <div class="callout">
+      <b>기저는 유일하지 않습니다</b><br>
+      <span class="m">ℝ²</span> 의 표준기저는 <span class="m">(1,0), (0,1)</span> 이지만,
+      <span class="m">(1,1), (1,−1)</span> 도 훌륭한 기저입니다.
+      <b>같은 방을 다른 좌표축으로 재는 것</b>과 같죠.
+      <br><br>
+      그리고 <b>어떤 기저를 고르느냐가 문제의 난이도를 바꿉니다.</b>
+      13·14강에서 <b>고유벡터를 기저로 삼으면</b> 복잡한 변환이
+      단순한 대각행렬이 되는 걸 보게 됩니다.
+    </div>
+
+    <h2 id="s3">3. 차원과 랭크</h2>
+    <p>
+      기저를 어떻게 고르든 <b>벡터의 개수는 항상 같습니다.</b>
+      그 불변의 개수를 <b>차원(Dimension)</b> 이라고 합니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">정리 · 모든 기저의 크기는 같다</div>
+      <div class="eq" style="font-size:14.5px;line-height:2;text-align:left;padding-left:26px">
+        더 <b>적은</b> 개수로 공간을 덮을 수 있다면 → 원래 기저가 <b>종속</b>이 됨 (②에 모순)<br>
+        더 <b>많은</b> 개수를 쓰면 → 차원을 넘겨 <b>반드시 종속</b>이 됨 (역시 모순)<br>
+        ⟹ 크기는 <b>하나로 고정</b>된다
+      </div>
+    </div>
+
+    <div class="formula">
+      <div class="name">랭크 (Rank)</div>
+      <div class="eq" style="font-size:16px">
+        r = <b>피봇의 개수</b> = dim C(A) = dim C(A<sup>T</sup>)
+      </div>
+      <ul class="where">
+        <li><span class="sym">놀라운 사실</span><span class="desc"><b>행 랭크 = 열 랭크</b>.
+            "독립인 행의 개수"와 "독립인 열의 개수"가 <b>언제나 같습니다.</b>
+            행렬이 아무리 찌그러진 모양이어도요</span></li>
+        <li><span class="sym">계산</span><span class="desc">소거해서 <b>남은 피봇을 세면</b> 끝입니다(3·6강)</span></li>
+      </ul>
+    </div>
+
+    <h2 id="s4">4. 네 가지 기본 부분공간</h2>
+    <p>
+      6강에서 <span class="m">N(A)</span> 와 <span class="m">C(A)</span> 를 봤습니다.
+      <span class="m">A<sup>T</sup></span> 에 대해서도 똑같이 두 개를 정의하면 <b>총 네 개</b>가 됩니다.
+    </p>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>이름</th><th>기호</th><th>정의</th><th>사는 곳</th><th>차원</th></tr></thead>
+        <tbody>
+          <tr><td><b>열공간</b></td><td><span class="m">C(A)</span></td>
+              <td>A의 열들의 Span</td><td><span class="m">ℝᵐ</span></td><td><b>r</b></td></tr>
+          <tr><td><b>영공간</b></td><td><span class="m">N(A)</span></td>
+              <td><span class="m">Ax = 0</span> 의 해</td><td><span class="m">ℝⁿ</span></td><td><b>n − r</b></td></tr>
+          <tr><td><b>행공간</b></td><td><span class="m">C(A<sup>T</sup>)</span></td>
+              <td>A의 <b>행</b>들의 Span</td><td><span class="m">ℝⁿ</span></td><td><b>r</b></td></tr>
+          <tr><td><b>좌영공간</b></td><td><span class="m">N(A<sup>T</sup>)</span></td>
+              <td><span class="m">A<sup>T</sup>y = 0</span> 의 해</td><td><span class="m">ℝᵐ</span></td><td><b>m − r</b></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout">
+      <b>"좌"영공간이라는 이름의 유래</b><br>
+      <span class="m">A<sup>T</sup>y = 0</span> 의 양변을 전치하면 <span class="m">y<sup>T</sup>A = 0<sup>T</sup></span> —
+      <b><span class="m">y</span> 가 A 의 <span style="color:var(--accent)">왼쪽</span>에서 곱해지죠.</b>
+      그래서 "왼쪽 영공간"입니다.
+    </div>
+
+    <h2 id="s5">5. 차원 정리 (Big Picture)</h2>
+
+    <div class="panel">
+      <p class="panel-title" style="text-align:center">선형대수의 Big Picture</p>
+      <canvas id="cv-big"></canvas>
+
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">행 개수 m (출력 차원)</span><span class="val" id="m-val">3</span></span>
+          <input type="range" id="m" min="1" max="5" step="1" value="3">
+        </label>
+        <label class="ctrl">
+          <span class="label-row"><span class="name">열 개수 n (입력 차원)</span><span class="val" id="n-val">4</span></span>
+          <input type="range" id="n" min="1" max="5" step="1" value="4">
+        </label>
+        <label class="ctrl">
+          <span class="label-row"><span class="name">랭크 r</span><span class="val" id="r-val">2</span></span>
+          <input type="range" id="r" min="0" max="5" step="1" value="2">
+        </label>
+      </div>
+
+      <div class="readout">
+        <div class="stat accent"><span class="k">행공간 dim</span><span class="v" id="d-row">–</span></div>
+        <div class="stat pos"><span class="k">영공간 dim</span><span class="v" id="d-null">–</span></div>
+        <div class="stat warn"><span class="k">열공간 dim</span><span class="v" id="d-col">–</span></div>
+        <div class="stat purple"><span class="k">좌영공간 dim</span><span class="v" id="d-left">–</span></div>
+      </div>
+    </div>
+
+    <div class="formula">
+      <div class="name">차원 정리 (Rank–Nullity Theorem)</div>
+      <div class="eq" style="font-size:16px;line-height:2.2">
+        <span class="small">입력 쪽 ℝⁿ</span>&nbsp;&nbsp;
+        <b>r</b> + <b>(n − r)</b> = <b>n</b>
+        <br>
+        <span class="small">출력 쪽 ℝᵐ</span>&nbsp;&nbsp;
+        <b>r</b> + <b>(m − r)</b> = <b>m</b>
+      </div>
+      <ul class="where">
+        <li><span class="sym">읽는 법</span><span class="desc">입력 차원 n 은 <b>살아남는 부분(r)</b> 과
+            <b>0으로 사라지는 부분(n−r)</b> 으로 정확히 나뉩니다</span></li>
+        <li><span class="sym">보존 법칙</span><span class="desc">랭크가 커지면 영공간이 그만큼 작아집니다.
+            <b>총량은 항상 n</b> 입니다</span></li>
+      </ul>
+    </div>
+
+    <div class="takeaway">
+      <b>A 가 하는 일 한 문장 ·</b>
+      A 는 <b>행공간의 벡터를 열공간으로 1:1 옮기고</b>,
+      <b>영공간의 벡터는 전부 원점으로 뭉갭니다.</b>
+      입력 공간이 두 조각(행공간 + 영공간)으로 정확히 쪼개지고,
+      한 조각만 살아남는 거죠. 위 그림이 그 이야기입니다.
+    </div>
+
+    <div class="callout">
+      <b>직교성 — 8강 예고</b><br>
+      네 공간은 차원만 맞물리는 게 아니라 <b>기하학적으로도 수직</b>입니다.
+      <span class="m">ℝⁿ</span> 안에서 <b>행공간 ⟂ 영공간</b>,
+      <span class="m">ℝᵐ</span> 안에서 <b>열공간 ⟂ 좌영공간</b>.
+      왜 그런지는 8강에서 <b>세 줄로</b> 증명합니다.
+    </div>
+
+    <h2 id="s6">6. numpy 로 확인하기</h2>
+
+    <div class="pycell" data-packages="numpy" data-title="7-1. 독립인지 판정하기">
+    import numpy as np
+    np.set_printoptions(precision=3, suppress=True)
+
+    def 판정(벡터들, 이름=""):
+        A = np.column_stack(벡터들)          # 벡터를 열로 세운다
+        r = np.linalg.matrix_rank(A)
+        n = A.shape[1]
+        print(f"{이름:22s} 벡터 {n}개, 랭크 {r}  →  "
+              f"{'독립' if r == n else '종속 (' + str(n - r) + '개가 남아돈다)'}")
+
+    판정([[1, 0], [0, 1]],           "(1,0), (0,1)")
+    판정([[1, 2], [2, 4]],           "(1,2), (2,4)")           # 평행
+    판정([[1, 0], [0, 1], [3, 5]],   "2차원에 벡터 3개")
+    판정([[1, 0, 0], [0, 1, 0], [0, 0, 1]], "3차원 표준기저")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="7-2. 행 랭크 = 열 랭크">
+    rng = np.random.default_rng(0)
+
+    for m, n in [(3, 5), (5, 3), (4, 4), (2, 7)]:
+        A = rng.integers(-3, 4, size=(m, n)).astype(float)
+        print(f"{m}×{n} 행렬:  rank(A) = {np.linalg.matrix_rank(A)}, "
+              f"rank(Aᵀ) = {np.linalg.matrix_rank(A.T)}")
+
+    print("\n→ 모양이 어떻든 항상 같다. 이것이 '행 랭크 = 열 랭크' 정리다.")
+    print("   그래서 랭크는 min(m, n) 을 넘을 수 없다.")
+    </div>
+
+    <div class="pycell" data-packages="numpy,scipy" data-title="7-3. 네 부분공간의 차원">
+    from scipy.linalg import null_space
+
+    A = np.array([[1., 2., 2., 2.],
+                  [2., 4., 6., 8.],
+                  [3., 6., 8., 10.]])
+    m, n = A.shape
+    r = np.linalg.matrix_rank(A)
+
+    print(f"A 는 {m}×{n} 행렬,  랭크 r = {r}\n")
+    print(f"  행공간   dim = r     = {r}       (ℝ^{n} 안)")
+    print(f"  영공간   dim = n - r = {n - r}       (ℝ^{n} 안)")
+    print(f"  {'':30s}합 = {n} = n  ✓")
+    print()
+    print(f"  열공간   dim = r     = {r}       (ℝ^{m} 안)")
+    print(f"  좌영공간 dim = m - r = {m - r}       (ℝ^{m} 안)")
+    print(f"  {'':30s}합 = {m} = m  ✓")
+
+    print("\n실제로 세어보면:")
+    print("  null_space(A)   모양:", null_space(A).shape,   "→ 영공간 차원", null_space(A).shape[1])
+    print("  null_space(A.T) 모양:", null_space(A.T).shape, "→ 좌영공간 차원", null_space(A.T).shape[1])
+    </div>
+
+    <div class="pycell" data-packages="numpy,scipy" data-title="7-4. 직교성 미리 확인 (8강 예고)">
+    N  = null_space(A)      # 영공간   기저
+    LN = null_space(A.T)    # 좌영공간 기저
+
+    # 행공간의 벡터는 A 의 행들의 선형결합
+    행공간_벡터 = A.T @ np.array([1.5, -2.0, 0.7])
+
+    print("행공간 벡터 · 영공간 벡터 =", np.round(행공간_벡터 @ N, 12))
+    print("열공간 벡터 · 좌영공간 벡터 =", np.round((A @ np.array([1., 2., -1., 0.5])) @ LN, 12))
+    print()
+    print("→ 전부 0. 네 공간은 짝을 지어 수직이다. 8강에서 증명합니다.")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="7-5. 랭크가 알려주는 것">
+    def 진단(A):
+        m, n = A.shape
+        r = np.linalg.matrix_rank(A)
+        print(f"{m}×{n}, rank={r}")
+        print(f"  열이 독립 (영공간 = 0)      : {r == n}   → 해가 있다면 유일")
+        print(f"  행이 독립 (좌영공간 = 0)    : {r == m}   → 어떤 b 든 해가 존재")
+        print(f"  정사각 + 풀랭크 (가역)      : {m == n and r == n}")
+        print()
+
+    진단(np.array([[1., 0.], [0., 1.], [1., 1.]]))     # 키가 큰 행렬
+    진단(np.array([[1., 2., 3.], [4., 5., 6.]]))       # 납작한 행렬
+    진단(np.array([[2., 1.], [1., 3.]]))               # 정사각 가역
+    </div>
+
+    <div class="practice">
+      <b>모양으로 미리 알 수 있는 것</b>
+      <ul>
+        <li><b>키가 큰 행렬</b> (<span class="m">m &gt; n</span>, 식이 미지수보다 많음) —
+            열이 독립이면 해는 <b>유일하거나 아예 없습니다.</b>
+            현실 데이터가 대개 이 모양이라 <b>최소제곱법</b>(10강)이 필요합니다.</li>
+        <li><b>납작한 행렬</b> (<span class="m">m &lt; n</span>, 미지수가 식보다 많음) —
+            영공간이 <b>반드시 존재</b>합니다(<span class="m">n − r ≥ n − m &gt; 0</span>).
+            해가 있으면 <b>무한히 많습니다.</b>
+            딥러닝의 과매개변수(overparameterized) 모델이 이 상황입니다.</li>
+      </ul>
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="7-6. 연습문제">
+    # 문제 1. 5×3 행렬의 랭크가 3일 때, 네 부분공간의 차원은 각각 얼마인가요?
+
+    # 문제 2. 랭크가 0인 행렬은 어떤 행렬뿐일까요?
+
+    # 문제 3. 아래 행렬의 랭크를 예상해보고 코드로 확인하세요.
+    #         (힌트: 3번째 행이 앞의 두 행과 어떤 관계인가요?)
+    #         [[1, 2, 3],
+    #          [4, 5, 6],
+    #          [5, 7, 9]]
+
+    # 아래에 직접 써보세요
+    </div>
+
+    <details style="margin:18px 0">
+      <summary style="cursor:pointer;font-weight:600;color:var(--accent)">모범 답안 보기</summary>
+      <div class="pycell" data-packages="numpy" data-title="모범 답안">
+      # 문제 1 — m=5, n=3, r=3
+      m1, n1, r1 = 5, 3, 3
+      print(f"행공간 {r1}, 영공간 {n1-r1}, 열공간 {r1}, 좌영공간 {m1-r1}")
+      print("→ 영공간이 0차원이므로 열이 독립. 해가 있으면 유일하다.")
+      print("   좌영공간이 2차원이므로 '풀리지 않는 b' 가 잔뜩 있다.")
+
+      # 문제 2 — 영행렬뿐
+      print("\nrank(영행렬) =", np.linalg.matrix_rank(np.zeros((3, 4))))
+      print("→ 0이 아닌 원소가 하나라도 있으면 랭크는 최소 1이다.")
+
+      # 문제 3 — 3행 = 1행 + 4행? 아니다. 5=1+4, 7=2+5, 9=3+6 → 3행 = 1행 + 2행
+      A3 = np.array([[1., 2., 3.], [4., 5., 6.], [5., 7., 9.]])
+      print("\n1행 + 2행 =", A3[0] + A3[1], "  3행 =", A3[2])
+      print("rank =", np.linalg.matrix_rank(A3), " (3이 아니라 2)")
+      print("det  =", round(np.linalg.det(A3), 10), " → 특이행렬")
+      </div>
+    </details>
+
+    <div class="summary">
+      <h3>7강 요약</h3>
+      <ul>
+        <li><b>선형독립</b> = <span class="m">Σcᵢvᵢ = 0</span> 의 해가 <b>전부 0 뿐</b>.
+            = <b>영공간이 원점뿐</b>.</li>
+        <li><b>기저</b> = 생성 + 독립. <b>모자라지도 남지도 않는</b> 최소 집합입니다. 유일하지 않습니다.</li>
+        <li><b>차원</b> = 기저의 크기(항상 같음). <b>랭크</b> = 피봇 개수 = 열공간 차원 = <b>행공간 차원</b>.</li>
+        <li><b>네 부분공간</b>: 행공간(r), 영공간(n−r), 열공간(r), 좌영공간(m−r).</li>
+        <li><b>차원 정리</b>: 입력 쪽 <span class="m">r + (n−r) = n</span>,
+            출력 쪽 <span class="m">r + (m−r) = m</span>. 랭크가 크면 영공간이 작아집니다.</li>
+        <li>A 는 <b>행공간 → 열공간을 1:1</b> 로 옮기고 <b>영공간은 원점으로</b> 뭉갭니다.</li>
+      </ul>
+    </div>
+
+    <div class="colab-cta">
+      <div class="colab-text">
+        <b>더 자유롭게 실험하고 싶다면</b><br>
+        이 강의의 실습만 모은 노트북을 Colab에서 열 수 있습니다.
+      </div>
+      <a class="btn" id="colab-link" href="#" target="_blank" rel="noopener">Colab에서 열기</a>
+    </div>
+
+    <p class="next-up">
+      다음 → <b>8강 · 내적과 직교성</b><br>
+      "내적이 0이면 수직"이라는 한 줄에서 피타고라스 정리와
+      네 부분공간의 직교성이 <b>전부</b> 나옵니다.
+    </p>
+
+  </section>
+
+</div>
+
+<script src="../assets/viz.js?v=312b9476b0"></script>
+<script src="../assets/linalg.js?v=270d914364"></script>
+<script src="../assets/pylab.js?v=cb27f20364"></script>
+<script src="../assets/pycell.js?v=6dacc4c6ce"></script>
+<script>
+(function () {
+  'use strict';
+  var M = LA.M, num = LA.num;
+
+  /* ==========================================================
+     1) 독립 / 종속
+     ========================================================== */
+  var cnt = 2, angDeg = 70;
+  var bInd = new LA.Board(document.getElementById('cv-ind'), { range: 4 });
+
+  function vectors() {
+    var t = angDeg * Math.PI / 180;
+    var list = [[3, 0]];
+    if (cnt >= 2) list.push([3 * Math.cos(t), 3 * Math.sin(t)]);
+    if (cnt >= 3) list.push([-2, 2.4]);
+    if (cnt >= 4) list.push([1.2, -2.6]);
+    return list.slice(0, cnt);
+  }
+
+  /** 2차원 벡터 목록의 랭크 — 서로 다른 방향의 개수 */
+  function rank2(list) {
+    var dirs = [];
+    list.forEach(function (v) {
+      if (M.norm(v) < 1e-9) return;
+      var isNew = dirs.every(function (d) {
+        return Math.abs(d[0] * v[1] - d[1] * v[0]) > 1e-6;   // 외적이 0이면 평행
+      });
+      if (isNew && dirs.length < 2) dirs.push(v);
+    });
+    return dirs.length;
+  }
+
+  var COLORS = ['--accent', '--pos', '--neg', '--purple'];
+
+  function drawInd() {
+    var list = vectors();
+    var r = rank2(list);
+
+    bInd.begin().grid({ step: 1 });
+    if (r >= 2) bInd.fillPlane({ fill: V.css('--accent-soft'), alpha: 0.35 });
+    else if (r === 1) bInd.span(list[0], { color: V.css('--accent'), width: 2.4, alpha: 0.7, dash: null });
+
+    list.forEach(function (v, i) {
+      bInd.arrow(v, { color: V.css(COLORS[i]), width: 2.6, label: 'v' + (i + 1) });
+    });
+
+    V.setText('#i-n', String(list.length));
+    V.setText('#i-r', String(r));
+    V.setText('#i-v', r === list.length ? '독립' : '종속 (' + (list.length - r) + '개 남아돔)');
+    V.setText('#i-s', r === 2 ? '평면 전체 (2차원)' : (r === 1 ? '직선 (1차원)' : '원점 (0차원)'));
+  }
+
+  V.range('cnt', function (v) { cnt = v; drawInd(); });
+  V.range('ang', function (v) { angDeg = v; drawInd(); });
+
+  /* ==========================================================
+     2) Big Picture 다이어그램 — 직접 그린다
+     ========================================================== */
+  var mm = 3, nn = 4, rr = 2;
+  var bigCanvas = document.getElementById('cv-big');
+
+  function drawBig() {
+    // 랭크는 min(m, n) 을 넘을 수 없다
+    var r = Math.min(rr, mm, nn);
+    var f = V.fitCanvas(bigCanvas, function (w) { return Math.max(260, Math.min(w * 0.52, 340)); });
+    var c = f.ctx, W = f.w, H = f.h;
+
+    var padX = 14, boxW = Math.min(150, (W - padX * 2 - 46) / 2);
+    var leftX = padX, rightX = W - padX - boxW;
+    var topY = 34, boxH = H - topY - 24;
+
+    function box(x, label, parts) {
+      c.strokeStyle = V.css('--border');
+      c.lineWidth = 1.4;
+      c.fillStyle = V.css('--surface-2');
+      c.beginPath();
+      if (c.roundRect) c.roundRect(x, topY, boxW, boxH, 10);
+      else c.rect(x, topY, boxW, boxH);
+      c.fill(); c.stroke();
+
+      c.font = '700 12.5px ' + V.FONT;
+      c.fillStyle = V.css('--text-dim');
+      c.textAlign = 'center'; c.textBaseline = 'bottom';
+      c.fillText(label, x + boxW / 2, topY - 8);
+
+      // 내부를 차원 비율로 나눈다
+      var total = parts.reduce(function (s, p) { return s + p.dim; }, 0) || 1;
+      var y = topY + 6, avail = boxH - 12;
+      parts.forEach(function (p) {
+        var h = p.dim / total * avail;
+        if (p.dim > 0) {
+          c.fillStyle = V.css(p.soft);
+          c.beginPath();
+          if (c.roundRect) c.roundRect(x + 6, y, boxW - 12, Math.max(h - 4, 6), 7);
+          else c.rect(x + 6, y, boxW - 12, Math.max(h - 4, 6));
+          c.fill();
+          c.font = '700 11.5px ' + V.FONT;
+          c.fillStyle = V.css(p.color);
+          c.textAlign = 'center'; c.textBaseline = 'middle';
+          c.fillText(p.name + ' · ' + p.dim + '차원', x + boxW / 2, y + Math.max(h - 4, 6) / 2);
+        }
+        y += h;
+      });
+    }
+
+    box(leftX, '입력 공간  ℝ' + supNum(nn), [
+      { name: '행공간', dim: r, color: '--accent', soft: '--accent-soft' },
+      { name: '영공간', dim: nn - r, color: '--pos', soft: '--pos-soft' }
+    ]);
+    box(rightX, '출력 공간  ℝ' + supNum(mm), [
+      { name: '열공간', dim: r, color: '--warn', soft: '--warn-soft' },
+      { name: '좌영공간', dim: mm - r, color: '--purple', soft: '--purple-soft' }
+    ]);
+
+    // 가운데 화살표 두 개
+    var midY1 = topY + boxH * 0.26, midY2 = topY + boxH * 0.74;
+    function arrow(y, color, text, dashed) {
+      c.save();
+      c.strokeStyle = V.css(color);
+      c.fillStyle = V.css(color);
+      c.lineWidth = 2;
+      if (dashed) c.setLineDash([5, 4]);
+      c.beginPath();
+      c.moveTo(leftX + boxW + 6, y);
+      c.lineTo(rightX - 12, y);
+      c.stroke();
+      c.setLineDash([]);
+      c.beginPath();
+      c.moveTo(rightX - 4, y);
+      c.lineTo(rightX - 13, y - 5);
+      c.lineTo(rightX - 13, y + 5);
+      c.closePath(); c.fill();
+      c.font = '700 11px ' + V.FONT;
+      c.textAlign = 'center'; c.textBaseline = 'bottom';
+      c.fillText(text, (leftX + boxW + rightX) / 2, y - 7);
+      c.restore();
+    }
+    arrow(midY1, '--accent', 'A 가 1:1 로 옮김');
+    if (nn - r > 0) {
+      c.save();
+      c.strokeStyle = V.css('--pos');
+      c.setLineDash([4, 4]);
+      c.lineWidth = 1.8;
+      c.beginPath();
+      c.moveTo(leftX + boxW + 6, midY2);
+      c.lineTo(rightX - 12, topY + boxH * 0.5);
+      c.stroke();
+      c.setLineDash([]);
+      c.font = '700 11px ' + V.FONT;
+      c.fillStyle = V.css('--pos');
+      c.textAlign = 'center'; c.textBaseline = 'top';
+      c.fillText('영공간은 0 으로', (leftX + boxW + rightX) / 2, midY2 + 4);
+      c.restore();
+    }
+
+    V.setText('#d-row', String(r));
+    V.setText('#d-null', String(nn - r));
+    V.setText('#d-col', String(r));
+    V.setText('#d-left', String(mm - r));
+  }
+
+  function supNum(k) {
+    var map = { 0: '⁰', 1: '¹', 2: '²', 3: '³', 4: '⁴', 5: '⁵' };
+    return map[k] || String(k);
+  }
+
+  V.range('m', function (v) { mm = v; drawBig(); });
+  V.range('n', function (v) { nn = v; drawBig(); });
+  V.range('r', function (v) { rr = v; drawBig(); });
+
+  V.onRedraw(function () { drawInd(); drawBig(); });
+  drawInd(); drawBig();
+
+  var a2 = document.getElementById('colab-link');
+  if (a2) a2.href = 'https://colab.research.google.com/github/mioon1402/timeseriesdata/blob/main/notebooks/L07-rank.ipynb';
+})();
+</script>
+</body>
+</html>

@@ -5,7 +5,7 @@
   "description": "눈으로 보는 통계 — 인터랙티브 통계 교육 모듈",
   "type": "module",
   "scripts": {
-    "test": "python3 scripts/bump_assets.py --check && node scripts/check-modules.mjs",
+    "test": "python3 scripts/bump_assets.py --check && python3 scripts/check_cells.py && node scripts/check-modules.mjs",
     "measure": "node scripts/check-modules.mjs --measure",
     "serve": "node -e \"import('node:http').then(({default:h})=>{import('node:fs').then(({default:f})=>{import('node:path').then(({default:p})=>{const M={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml'};h.createServer((q,s)=>{const r=decodeURIComponent(q.url.split('?')[0]).replace(/^\\/+/,'')||'index.html';if(!f.existsSync(r)||f.statSync(r).isDirectory())return s.writeHead(404).end();s.writeHead(200,{'Content-Type':M[p.extname(r)]||'application/octet-stream'});f.createReadStream(r).pipe(s)}).listen(8080,()=>console.log('http://localhost:8080'))})})})\"",
     "bump": "python3 scripts/bump_assets.py",
