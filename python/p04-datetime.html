@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>날짜를 날짜답게 · 파이썬 데이터 분석</title>
+<meta name="description" content="문자열 날짜를 진짜 날짜로. to_datetime과 dt 접근자, 기간 슬라이싱까지.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%F0%9F%90%8D%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css?v=92187514af">
+<link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">파이썬 4강 · 데이터 다루기</p>
+    <h1>날짜를 날짜답게</h1>
+    <p class="lede">
+      지금까지 <code>date</code> 열은 <b>그냥 열 글자짜리 문자열</b>이었습니다.
+      이걸 진짜 날짜로 바꾸는 순간, "3월만 보여줘" "주말만" "월별 합계"가
+      전부 <b>한 줄</b>이 됩니다. 시계열 분석의 출발점입니다.
+    </p>
+  </header>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 강의에서 배우는 것</b>
+      <ol>
+        <li><a href="#s1">왜 굳이 변환해야 하나</a></li>
+        <li><a href="#s2">to_datetime — 문자열을 날짜로</a></li>
+        <li><a href="#s3">형식이 섞여 있을 때</a></li>
+        <li><a href="#s4">dt 접근자 — 날짜에서 꺼내 쓰기</a></li>
+        <li><a href="#s5">파생 열 만들기</a></li>
+        <li><a href="#s6">날짜를 인덱스로 — 기간 자르기</a></li>
+        <li><a href="#s7">실전: 주말 효과는 얼마나 되나</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s1">1. 왜 굳이 변환해야 하나</h2>
+    <p>
+      문자열 상태로도 <code>df["date"].str[5:7] == "03"</code> 처럼 잘라 쓸 수는 있습니다(2강).
+      하지만 이런 문제가 생깁니다.
+    </p>
+    <ul>
+      <li><b>계산이 안 됩니다.</b> "이 날짜의 30일 뒤"를 구할 수 없습니다.</li>
+      <li><b>요일을 모릅니다.</b> 2025년 3월 15일이 무슨 요일인지 문자열은 답하지 못합니다.</li>
+      <li><b>월말 처리가 지옥입니다.</b> 2월이 28일인지 29일인지, 12월 31일 다음이 무엇인지…</li>
+      <li><b>정렬이 위험합니다.</b> 형식이 조금만 달라도 엉뚱하게 정렬됩니다.</li>
+    </ul>
+    <p>
+      pandas의 <b>datetime</b> 타입으로 바꾸면 이 모든 걸 pandas가 알아서 해줍니다.
+    </p>
+
+    <h2 id="s2">2. to_datetime</h2>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="4-1. 문자열 → 날짜">
+    import pandas as pd
+    df = pd.read_csv("cafe_sales.csv")
+
+    print("변환 전:", df["date"].dtype)
+
+    df["date"] = pd.to_datetime(df["date"])
+
+    print("변환 후:", df["date"].dtype)
+    print()
+    print(df["date"].head(3))
+    </div>
+
+    <p>
+      <code>datetime64</code> 라고 나오면 성공입니다. 이제 이 열은 <b>날짜로서</b> 동작합니다.
+    </p>
+
+    <div class="practice">
+      <b>읽을 때 바로 변환하기</b>
+      매번 따로 변환하기 번거로우면 <code>read_csv</code> 에서 한 번에 처리할 수 있습니다.
+      <pre style="background:var(--surface-2);padding:10px;border-radius:8px;overflow-x:auto;font-size:12.5px;margin:8px 0 0"><code>df = pd.read_csv("cafe_sales.csv", parse_dates=["date"])</code></pre>
+      실무에서는 이쪽을 더 많이 씁니다.
+    </div>
+
+    <h2 id="s3">3. 형식이 섞여 있을 때</h2>
+    <p>
+      3강에서 본 지저분한 데이터에는 날짜가 세 가지 형식으로 섞여 있었습니다.
+      이럴 때 어떻게 되는지 직접 봅시다.
+    </p>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales_messy.csv" data-title="4-2. 섞인 형식 다루기">
+    messy = pd.read_csv("cafe_sales_messy.csv")
+    print("원본 형식:", messy["날짜"].head(3).tolist())
+
+    변환 = pd.to_datetime(messy["날짜"], format="mixed", errors="coerce")
+
+    print()
+    print("변환 성공:", 변환.notna().sum(), "건")
+    print("변환 실패:", 변환.isna().sum(), "건")
+    print()
+    print("실패한 것들:", messy.loc[변환.isna(), "날짜"].head(3).tolist())
+    </div>
+
+    <p>
+      <code>format="mixed"</code> 는 <code>2024-01-01</code> 과 <code>2024/01/03</code> 처럼
+      <b>표준에 가까운</b> 형식은 알아서 처리합니다.
+      하지만 <code>1월 1일, 2024</code> 같은 한국어 표기는 못 읽습니다.
+      <code>errors="coerce"</code> 덕분에 <b>오류로 멈추지 않고 결측으로</b> 남았죠.
+    </p>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales_messy.csv" data-title="4-3. 한국어 날짜 직접 해석하기">
+    # 정규식으로 월·일·연도를 뽑아낸다
+    부분 = messy["날짜"].str.extract(r"(\d+)월\s*(\d+)일,\s*(\d{4})")
+    부분.columns = ["month", "day", "year"]
+
+    한국식 = pd.to_datetime(부분, errors="coerce")
+    print("한국식 해석 성공:", 한국식.notna().sum(), "건")
+
+    # 두 결과를 합친다 — 먼저 성공한 쪽을 쓰고, 비어 있으면 다른 쪽으로
+    최종 = 변환.fillna(한국식)
+    print("최종 변환 성공:", 최종.notna().sum(), "/", len(messy), "건")
+    print()
+    print(최종.head(4).tolist())
+    </div>
+
+    <div class="practice">
+      <b>실무 순서</b>
+      <ol style="margin:8px 0 0;padding-left:18px">
+        <li><code>errors="coerce"</code> 로 일단 변환하고 <b>실패 건수를 센다</b></li>
+        <li>실패한 값들을 <code>.unique()</code> 로 뽑아 <b>패턴을 파악한다</b></li>
+        <li>패턴별로 처리해서 <code>fillna</code> 로 합친다</li>
+        <li>끝나면 <b>결측이 0인지 다시 확인</b>한다</li>
+      </ol>
+      <p style="margin-top:8px">
+        처음부터 완벽한 코드를 짜려 하지 말고, <b>실패를 눈으로 보고 대응</b>하는 게 빠릅니다.
+      </p>
+    </div>
+
+    <h2 id="s4">4. dt 접근자</h2>
+    <p>
+      날짜로 바꾸고 나면 <code>.dt</code> 를 붙여 원하는 부분을 꺼낼 수 있습니다.
+      (문자열에 <code>.str</code> 을 붙였던 것과 같은 원리입니다.)
+    </p>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="4-4. 날짜에서 꺼내 쓰기">
+    print("연도:  ", df["date"].dt.year.head(3).tolist())
+    print("월:    ", df["date"].dt.month.head(3).tolist())
+    print("일:    ", df["date"].dt.day.head(3).tolist())
+    print("요일번호:", df["date"].dt.dayofweek.head(3).tolist(), "  (0=월요일)")
+    print("요일이름:", df["date"].dt.day_name().head(3).tolist())
+    print("주차:  ", df["date"].dt.isocalendar().week.head(3).tolist())
+    print("분기:  ", df["date"].dt.quarter.head(3).tolist())
+    </div>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>속성</th><th>뜻</th><th>주로 쓰는 곳</th></tr></thead>
+        <tbody>
+          <tr><td><code>.dt.year</code> / <code>.month</code> / <code>.day</code></td><td>연·월·일</td><td>기간별 집계</td></tr>
+          <tr><td><code>.dt.dayofweek</code></td><td>요일 번호 (0=월 … 6=일)</td><td>주말 판별</td></tr>
+          <tr><td><code>.dt.day_name()</code></td><td>요일 이름 (영어)</td><td>그래프 라벨</td></tr>
+          <tr><td><code>.dt.quarter</code></td><td>분기 (1~4)</td><td>분기 실적</td></tr>
+          <tr><td><code>.dt.days_in_month</code></td><td>그 달의 일수</td><td>일평균 계산</td></tr>
+          <tr><td><code>.dt.strftime("%Y-%m")</code></td><td>원하는 형식의 문자열로</td><td>보고서 표기</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pitfall">
+      <b>요일 번호는 0부터입니다</b>
+      <code>dayofweek</code> 는 <b>월요일이 0</b>, 일요일이 6입니다.
+      "주말"은 <code>&gt;= 5</code> 로 판별합니다.
+      영어권 달력처럼 일요일이 0일 거라 착각하면 <b>토·일 대신 금·토</b>를 주말로 세게 됩니다.
+      헷갈리면 <code>day_name()</code> 과 나란히 출력해 확인하세요.
+    </div>
+
+    <h2 id="s5">5. 파생 열 만들기</h2>
+    <p>
+      꺼낸 값을 <b>새 열로 저장</b>해두면 이후 분석이 훨씬 편해집니다.
+    </p>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="4-5. 분석용 열 추가하기">
+    df["연"] = df["date"].dt.year
+    df["월"] = df["date"].dt.month
+    df["주말"] = df["date"].dt.dayofweek >= 5
+
+    # 계절도 만들어보자 — 월을 구간으로 묶는다
+    def 계절(m):
+        if m in (3, 4, 5):   return "봄"
+        if m in (6, 7, 8):   return "여름"
+        if m in (9, 10, 11): return "가을"
+        return "겨울"
+
+    df["계절"] = df["월"].map(계절)
+
+    df[["date", "weekday", "연", "월", "주말", "계절"]].head()
+    </div>
+
+    <div class="practice">
+      <b><code>map</code> 과 <code>apply</code></b>
+      <ul>
+        <li><code>.map(함수)</code> — <b>Series</b>의 값을 하나씩 바꿉니다. 위처럼 쓰면 됩니다.</li>
+        <li><code>.map({"봄": 1, "여름": 2})</code> — 딕셔너리를 주면 값을 <b>갈아끼웁니다.</b> 더 빠릅니다.</li>
+        <li>가능하면 <b>벡터 연산이 더 좋습니다.</b>
+            <code>df["date"].dt.dayofweek &gt;= 5</code> 는 함수 호출 없이 한 번에 처리돼 훨씬 빠릅니다.</li>
+      </ul>
+    </div>
+
+    <h2 id="s6">6. 날짜를 인덱스로 — 기간 자르기</h2>
+    <p>
+      날짜를 <b>인덱스</b>로 삼으면 강력한 기능들이 열립니다.
+    </p>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="4-6. set_index 와 기간 슬라이싱">
+    ts = df.set_index("date")
+
+    # 문자열로 기간을 지정할 수 있다
+    print("2025년 3월:", len(ts.loc["2025-03"]), "일")
+    print("2024년 여름:", len(ts.loc["2024-06":"2024-08"]), "일")
+    print()
+    print(f"2025년 3월 평균 매출: {ts.loc['2025-03', 'sales'].mean():,.0f}원")
+    print(f"2024년 여름 평균 매출: {ts.loc['2024-06':'2024-08', 'sales'].mean():,.0f}원")
+    </div>
+
+    <p>
+      <code>ts.loc["2025-03"]</code> 한 줄로 3월 데이터 31일치가 나옵니다.
+      문자열을 잘라 비교하던 2강 방식과 비교해보세요. 훨씬 읽기 쉽습니다.
+    </p>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="4-7. resample — 기간 단위로 묶기">
+    # ME = Month End(월말 기준). W = 주, QE = 분기, YE = 연
+    월별 = ts["sales"].resample("ME").mean()
+
+    print("월별 평균 매출 (만원)")
+    print((월별 / 10000).round(0).head(12).to_string())
+    </div>
+
+    <div class="callout">
+      <b><code>resample</code> 은 시계열 전용 <code>groupby</code> 입니다.</b>
+      날짜 인덱스가 있어야만 쓸 수 있고, "월별로", "주별로" 묶는 걸 한 줄로 해냅니다.
+      <b>14강</b>에서 이동평균과 함께 본격적으로 다룹니다.
+    </div>
+
+    <h2 id="s7">7. 실전: 주말 효과는 얼마나 되나</h2>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="4-8. 주말 vs 평일">
+    주말 = df[df["주말"]]
+    평일 = df[~df["주말"]]
+
+    print(f"주말 {len(주말):3d}일   평균 방문객 {주말['visitors'].mean():.1f}명")
+    print(f"평일 {len(평일):3d}일   평균 방문객 {평일['visitors'].mean():.1f}명")
+    print()
+    차이 = 주말["visitors"].mean() - 평일["visitors"].mean()
+    print(f"차이 {차이:+.1f}명 ({차이 / 평일['visitors'].mean() * 100:+.1f}%)")
+    </div>
+
+    <p>
+      주말이 평일보다 <b>약 37명(22%) 많습니다.</b> 꽤 큰 차이죠.
+      그런데 여기서 <b>2강에서 배운 습관</b>을 다시 꺼내야 합니다 —
+      이 차이가 우연일 가능성은 없을까요?
+    </p>
+
+    <div class="practice">
+      <b>차이를 볼 때 함께 봐야 하는 것</b>
+      <p style="margin:6px 0">
+        평균만 보지 말고 <b>퍼짐</b>도 같이 보세요.
+        두 그룹의 표준편차가 크면, 평균이 달라 보여도 실제로는 많이 겹칠 수 있습니다.
+      </p>
+    </div>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="4-9. 퍼짐까지 함께 보기">
+    for 이름, 그룹 in [("주말", 주말), ("평일", 평일)]:
+        v = 그룹["visitors"]
+        print(f"{이름}  n={len(v):3d}  평균 {v.mean():6.1f}  표준편차 {v.std():5.1f}  "
+              f"범위 {v.min():.0f}~{v.max():.0f}")
+    </div>
+
+    <p>
+      표준편차가 각각 50명 안팎입니다. 평균 차이 37명보다 <b>퍼짐이 더 큽니다.</b>
+      그렇다면 "주말이 더 낫다"고 단정해도 될까요?
+      이 질문에 답하는 게 <b>13강(가설검정)</b>이고,
+      그 개념을 그림으로 보고 싶다면
+      <a href="../modules/06-pvalue.html">모듈 06에서 카드를 직접 섞어볼 수 있습니다.</a>
+    </p>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="연습 · 직접 써보세요">
+    # 문제 1. 계절별 평균 매출을 구해보세요.
+    #        힌트: df.groupby("계절")["sales"].mean()
+
+
+    # 문제 2. 2025년 데이터만 골라 월별 평균 방문객을 구해보세요.
+    #        힌트: df[df["연"] == 2025] 로 거르고 groupby("월")
+
+
+    # 문제 3. 각 달의 '일수'를 구해서 새 열로 넣어보세요.
+    #        힌트: df["date"].dt.days_in_month
+    </div>
+
+    <details style="margin:18px 0">
+      <summary style="cursor:pointer;font-weight:600;color:var(--accent)">모범 답안 보기</summary>
+      <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="모범 답안">
+      # 문제 1
+      계절순 = ["봄", "여름", "가을", "겨울"]
+      print((df.groupby("계절")["sales"].mean() / 10000).round(1).reindex(계절순))
+
+      # 문제 2
+      print()
+      print(df[df["연"] == 2025].groupby("월")["visitors"].mean().round(1))
+
+      # 문제 3
+      df["그달일수"] = df["date"].dt.days_in_month
+      print()
+      print(df[["date", "그달일수"]].head(3).to_string(index=False))
+      </div>
+      <p style="font-size:13.5px;color:var(--text-dim)">
+        문제 1에서 <b>여름이 가장 높고 겨울이 가장 낮게</b> 나옵니다.
+        아이스 음료 단가가 높고 손님도 많은 계절이니까요.
+        <code>reindex</code> 로 계절 순서를 지정하지 않으면 <b>가나다순</b>으로 나와
+        "가을 → 겨울 → 봄 → 여름"처럼 이상하게 정렬됩니다.
+      </p>
+    </details>
+
+    <div class="colab-cta">
+      <div class="colab-text">
+        <b>더 자유롭게 해보고 싶다면</b>
+        Google Colab에서 같은 데이터로 실습할 수 있습니다.
+      </div>
+      <a class="btn" id="colab-link" href="#" target="_blank" rel="noopener">Colab에서 열기</a>
+    </div>
+
+    <div class="summary">
+      <h3>4강 요약</h3>
+      <ul>
+        <li><code>pd.to_datetime()</code> 또는 <code>read_csv(parse_dates=[...])</code> 로 진짜 날짜 만들기.</li>
+        <li>형식이 섞이면 <code>format="mixed", errors="coerce"</code> → <b>실패 건수를 확인</b>하고 패턴별로 대응.</li>
+        <li><code>.dt.year</code> · <code>.month</code> · <code>.dayofweek</code>(0=월) · <code>.day_name()</code> · <code>.quarter</code></li>
+        <li>자주 쓰는 조건은 <b>파생 열</b>로 저장해두면 이후가 편하다.</li>
+        <li><code>set_index("date")</code> → <code>loc["2025-03"]</code> 로 기간을 문자열로 자를 수 있다.</li>
+        <li><code>resample("ME")</code> 는 시계열 전용 groupby. 14강에서 본격적으로.</li>
+        <li>그룹 간 평균 차이를 볼 땐 <b>표준편차와 표본 수를 함께</b> 볼 것.</li>
+      </ul>
+    </div>
+
+    <p class="next-up">
+      다음 → <b>5강 · 숫자로 요약하기</b><br>
+      평균·중앙값·표준편차를 직접 계산하며 <b>그 숫자가 무엇을 뜻하는지</b> 짚습니다.
+    </p>
+  </section>
+
+</div>
+
+<script src="../assets/viz.js?v=312b9476b0"></script>
+<script src="../assets/pylab.js?v=869ae9b12b"></script>
+<script src="../assets/pycell.js?v=6dacc4c6ce"></script>
+<script>
+(function () {
+  var a = document.getElementById('colab-link');
+  if (a) a.href = 'https://colab.research.google.com/github/mioon1402/timeseriesdata/blob/main/notebooks/p04-datetime.ipynb';
+})();
+</script>
+</body>
+</html>

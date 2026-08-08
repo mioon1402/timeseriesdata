@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>지저분한 데이터 청소하기 · 파이썬 데이터 분석</title>
+<meta name="description" content="날짜 형식이 뒤죽박죽, 숫자에 '원'이 붙고, 중복행까지. 진짜 현실 데이터를 다듬는 법.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%F0%9F%90%8D%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css?v=92187514af">
+<link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">파이썬 3강 · 데이터 다루기</p>
+    <h1>지저분한 데이터 청소하기</h1>
+    <p class="lede">
+      실무에서 분석 시간의 <b>절반 이상</b>이 여기에 들어갑니다.
+      날짜 형식이 세 가지로 섞이고, 숫자에 쉼표와 "원"이 붙고, 중복행이 끼어 있고,
+      결측 표기가 제각각인 <b>진짜 같은 데이터</b>를 직접 다듬어봅시다.
+    </p>
+  </header>
+
+  <div class="pyintro">
+    <b>이번 강의는 다른 파일을 씁니다</b>
+    <ul>
+      <li>1·2강은 이미 깨끗하게 정리된 <code>cafe_sales.csv</code> 를 썼습니다.</li>
+      <li>이번엔 <b>정리되기 전 원본</b>인 <code>cafe_sales_messy.csv</code> 를 씁니다.
+          같은 카페의 첫 6개월치인데, 사람이 손으로 입력한 상태 그대로입니다.</li>
+    </ul>
+  </div>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 강의에서 배우는 것</b>
+      <ol>
+        <li><a href="#s1">먼저 진단부터 — 무엇이 잘못됐나</a></li>
+        <li><a href="#s2">공백 제거</a></li>
+        <li><a href="#s3">중복 행 처리</a></li>
+        <li><a href="#s4">문자열을 숫자로</a></li>
+        <li><a href="#s5">결측치 — 지울까 채울까</a></li>
+        <li><a href="#s6">평균으로 채우면 무슨 일이 생기나 (실험)</a></li>
+        <li><a href="#s7">청소 전체 흐름 정리</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s1">1. 먼저 진단부터</h2>
+    <p>
+      청소를 시작하기 전에 <b>무엇이 얼마나 더러운지</b> 봐야 합니다.
+      바로 고치려 들면 반드시 뭔가를 놓칩니다.
+    </p>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales_messy.csv" data-title="3-1. 첫인상 보기">
+    import pandas as pd
+    messy = pd.read_csv("cafe_sales_messy.csv")
+
+    print(messy.head(6).to_string())
+    print()
+    print(messy.dtypes)
+    print("행 수:", len(messy))
+    </div>
+
+    <p>
+      벌써 세 가지가 눈에 띕니다.
+    </p>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>증상</th><th>왜 문제인가</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><b>날짜 형식이 섞임</b><br><code>1월 1일, 2024</code> / <code>2024/01/03</code></td>
+            <td>정렬도 안 되고 기간 필터링도 안 됩니다</td>
+          </tr>
+          <tr>
+            <td><b>매출이 문자열</b><br><code>"724,862"</code>, <code>"601,783원"</code></td>
+            <td>평균을 낼 수 없습니다. dtype이 <code>str</code>인 걸 보세요</td>
+          </tr>
+          <tr>
+            <td><b>요일에 공백</b><br><code>"  수 "</code></td>
+            <td><code>"수"</code>와 <code>"  수 "</code>가 <b>다른 값</b>으로 취급됩니다</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>더 자세히 들여다봅시다.</p>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales_messy.csv" data-title="3-2. 정밀 진단">
+    print("날짜 형식 예시:", messy["날짜"].head(4).tolist())
+    print("매출 표기 예시:", messy["매출"].head(4).tolist())
+    print()
+    print("요일 고유값:", sorted(messy["요일"].dropna().unique().tolist()))
+    print()
+    print("중복 행 개수:", messy.duplicated().sum())
+    print("결측 현황:")
+    print(messy.isna().sum())
+    </div>
+
+    <div class="pitfall">
+      <b>요일 고유값을 보세요</b>
+      <code>'수'</code> 와 <code>'  수 '</code> 가 <b>둘 다</b> 목록에 있습니다.
+      7개여야 할 요일이 14개로 나오죠.
+      이 상태로 요일별 평균을 내면 <b>같은 요일이 두 그룹으로 쪼개집니다.</b>
+      눈으로는 절대 안 보이는 종류의 오류라, <code>unique()</code> 로 확인하는 습관이 중요합니다.
+    </div>
+
+    <h2 id="s2">2. 공백 제거</h2>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales_messy.csv" data-title="3-3. strip 으로 앞뒤 공백 자르기">
+    df = messy.copy()          # 원본은 남겨두고 사본에서 작업
+    df["요일"] = df["요일"].str.strip()
+
+    print("정리 후:", sorted(df["요일"].unique().tolist()))
+    print("고유값 개수:", df["요일"].nunique(), "개")
+    </div>
+
+    <div class="practice">
+      <b>문자열 정리 3종 세트</b>
+      <ul>
+        <li><code>.str.strip()</code> — 앞뒤 공백 제거 (가장 많이 씁니다)</li>
+        <li><code>.str.lower()</code> — 소문자로 통일. <code>"Seoul"</code>과 <code>"seoul"</code>을 합칠 때</li>
+        <li><code>.str.replace("찾을것", "바꿀것", regex=False)</code> — 특정 글자 치환</li>
+      </ul>
+      <p style="margin-top:8px">
+        <code>.str</code> 을 붙여야 <b>칸마다 하나씩</b> 문자열 작업을 합니다.
+        안 붙이면 열 전체를 하나의 값으로 다루려다 오류가 납니다.
+      </p>
+    </div>
+
+    <h2 id="s3">3. 중복 행 처리</h2>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales_messy.csv" data-title="3-4. 중복 확인하고 지우기">
+    # 어떤 행이 중복인지 먼저 눈으로 확인한다
+    중복행 = df[df.duplicated(keep=False)].sort_values("날짜")
+    print("중복 관련 행:", len(중복행), "개")
+    print(중복행.head(6).to_string())
+
+    # 확인했으면 제거
+    before = len(df)
+    df = df.drop_duplicates()
+    print(f"\n{before} → {len(df)}행 ({before - len(df)}개 제거)")
+    </div>
+
+    <div class="pitfall">
+      <b>중복을 확인 없이 지우지 마세요</b>
+      <ul>
+        <li><code>duplicated()</code> 는 <b>두 번째부터</b>를 True로 표시합니다.
+            <code>keep=False</code> 를 주면 <b>원본까지 포함해</b> 전부 보여줘서 눈으로 확인하기 좋습니다.</li>
+        <li><b>진짜 중복이 아닐 수 있습니다.</b> 같은 손님이 같은 날 두 번 주문했다면
+            "중복처럼 보이는 정상 데이터"입니다. 지우면 매출이 사라집니다.</li>
+        <li>일부 열만 기준으로 판단하려면 <code>drop_duplicates(subset=["날짜"])</code> 처럼 씁니다.</li>
+      </ul>
+    </div>
+
+    <h2 id="s4">4. 문자열을 숫자로</h2>
+    <p>
+      <code>"601,783원"</code> 을 <code>601783</code> 으로 바꿔야 계산할 수 있습니다.
+      <b>거슬리는 글자를 하나씩 걷어낸 뒤 숫자로 변환</b>하는 순서입니다.
+    </p>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales_messy.csv" data-title="3-5. 매출을 진짜 숫자로">
+    s = df["매출"].astype(str)                        # 먼저 전부 문자열로 통일
+    s = s.str.replace(",", "", regex=False)           # 천 단위 쉼표 제거
+    s = s.str.replace("원", "", regex=False)          # 단위 제거
+    s = s.str.strip()                                 # 남은 공백 제거
+    s = s.replace({"N/A": None, "-": None, "": None, "nan": None})  # 결측 표기 통일
+
+    df["매출"] = pd.to_numeric(s, errors="coerce")    # 숫자로 변환
+
+    print(df["매출"].head(6).tolist())
+    print("자료형:", df["매출"].dtype)
+    print("결측:", df["매출"].isna().sum(), "개")
+    print("평균:", f"{df['매출'].mean():,.0f}원")
+    </div>
+
+    <div class="formula">
+      <div class="name">핵심 도구 · to_numeric</div>
+      <div class="eq" style="font-size:15px">
+        pd.to_numeric( 값, errors="coerce" )
+      </div>
+      <ul class="where">
+        <li><span class="sym">errors=<br>"coerce"</span><span class="desc"><b>숫자로 못 바꾸는 값은 결측(NaN)으로</b> 만듭니다.
+            이게 없으면 값 하나 때문에 전체가 오류로 멈춥니다</span></li>
+        <li><span class="sym">"raise"</span><span class="desc">기본값. 이상한 값이 있으면 오류를 냅니다.
+            <b>데이터를 처음 볼 때는 이쪽이 낫습니다</b> — 뭐가 이상한지 알려주니까요</span></li>
+      </ul>
+    </div>
+
+    <div class="practice">
+      <b>실무 팁 — 애초에 읽을 때 처리하기</b>
+      결측 표기를 미리 알고 있다면 <code>read_csv</code> 단계에서 지정하는 게 깔끔합니다.
+      <pre style="background:var(--surface-2);padding:10px;border-radius:8px;overflow-x:auto;font-size:12.5px;margin:8px 0 0"><code>pd.read_csv("파일.csv", na_values=["N/A", "-", "없음", "미상"])</code></pre>
+      이러면 해당 문자열이 처음부터 결측으로 읽힙니다.
+    </div>
+
+    <h2 id="s5">5. 결측치 — 지울까 채울까</h2>
+    <p>
+      결측치를 다루는 방법은 크게 셋입니다. <b>어느 것도 공짜가 아닙니다.</b>
+    </p>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>방법</th><th>코드</th><th>장점</th><th>대가</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><b>① 행 삭제</b></td>
+            <td><code>df.dropna()</code></td>
+            <td>가장 정직함. 남은 값은 전부 진짜</td>
+            <td>데이터가 줄어듦. 결측이 특정 조건에 몰려 있으면 <b>편향</b>이 생김</td>
+          </tr>
+          <tr>
+            <td><b>② 대표값으로 채움</b></td>
+            <td><code>fillna(평균)</code><br><code>fillna(중앙값)</code></td>
+            <td>행 수 유지</td>
+            <td><b>분산이 줄어듦</b> (§6에서 실험)</td>
+          </tr>
+          <tr>
+            <td><b>③ 앞뒤 값으로 채움</b></td>
+            <td><code>ffill()</code> / <code>bfill()</code></td>
+            <td>시계열에 자연스러움</td>
+            <td>변화를 뭉갬. 연속 결측이면 같은 값이 길게 이어짐</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales_messy.csv" data-title="3-6. 세 방법 비교해보기">
+    원본 = df["매출"]
+
+    print(f"원본       n={원본.notna().sum()}  결측 {원본.isna().sum()}개")
+    print(f"행 삭제    n={len(원본.dropna())}")
+    print(f"평균 대체  n={len(원본.fillna(원본.mean()))}")
+    print(f"앞값 채움  n={len(원본.ffill())}")
+    print()
+    print("평균 대체값:", f"{원본.mean():,.0f}원")
+    print("중앙값 대체값:", f"{원본.median():,.0f}원")
+    </div>
+
+    <h2 id="s6">6. 평균으로 채우면 무슨 일이 생기나</h2>
+    <p>
+      "결측을 평균으로 채운다"는 가장 흔한 선택인데, <b>대가가 있습니다.</b>
+      말로 설명하는 대신 실험으로 봅시다.
+      깨끗한 데이터에서 <b>일부러 30%를 지우고</b> 두 방법을 비교합니다.
+    </p>
+
+    <div class="pycell" data-packages="pandas,numpy" data-data="cafe_sales.csv" data-title="3-7. 결측 대체 실험">
+    import numpy as np
+    clean = pd.read_csv("cafe_sales.csv")
+    원본 = clean["sales"].dropna()
+
+    # 일부러 30%를 결측으로 만든다
+    rng = np.random.default_rng(42)
+    구멍 = 원본.copy()
+    구멍[rng.random(len(구멍)) < 0.3] = np.nan
+
+    삭제 = 구멍.dropna()
+    대체 = 구멍.fillna(구멍.mean())
+
+    print(f"진짜 원본   n={len(원본):3d}  평균 {원본.mean():>9,.0f}  표준편차 {원본.std():>9,.0f}")
+    print(f"행 삭제     n={len(삭제):3d}  평균 {삭제.mean():>9,.0f}  표준편차 {삭제.std():>9,.0f}")
+    print(f"평균 대체   n={len(대체):3d}  평균 {대체.mean():>9,.0f}  표준편차 {대체.std():>9,.0f}")
+    print()
+    print(f"→ 평균 대체를 하면 표준편차가 {(1 - 대체.std()/삭제.std())*100:.1f}% 줄어듭니다")
+    </div>
+
+    <div class="pitfall">
+      <b>왜 분산이 줄어들까요?</b>
+      <p style="margin:6px 0">
+        평균으로 채운 값들은 <b>편차가 정확히 0</b>입니다. 평균 그 자체니까요.
+        모듈 01에서 봤듯 분산은 "편차 제곱들의 평균"인데,
+        216개나 되는 값이 편차 0으로 들어오면 평균 넓이가 확 내려갑니다.
+      </p>
+      <p style="margin:6px 0 0">
+        <b>실무에서 왜 위험한가:</b> 표준편차가 작아 보이면
+        신뢰구간이 <b>가짜로 좁아지고</b>(모듈 05), p값이 <b>가짜로 작아집니다</b>(모듈 06).
+        "확실하지 않은데 확실한 척"하게 되는 겁니다.
+        평균 대체를 했다면 <b>보고서에 반드시 명시</b>하세요.
+      </p>
+    </div>
+
+    <div class="practice">
+      <b>그럼 어떻게 정하나</b>
+      <ul>
+        <li><b>결측이 5% 미만이고 무작위로 흩어져 있다</b> → 행 삭제가 가장 안전합니다.</li>
+        <li><b>결측이 많고 행을 잃을 수 없다</b> → 대체하되, 그 사실을 기록하고
+            "결측이었음"을 표시하는 열을 따로 만드세요(<code>df["매출_결측"] = df["매출"].isna()</code>).</li>
+        <li><b>시계열</b> → <code>ffill()</code> 또는 앞뒤 평균(<code>interpolate()</code>)이 자연스럽습니다.</li>
+        <li><b>결측에 이유가 있는지</b> 먼저 보세요. 우리 데이터에서 매출이 빈 날은
+            POS 오류였습니다. 반면 <b>0원인 날은 결측이 아니라 휴점</b>입니다 —
+            이 둘을 섞으면 안 됩니다.</li>
+      </ul>
+    </div>
+
+    <div class="myth">
+      <div class="bad">
+        <b>✗ 흔한 실수</b>
+        결측을 <code>fillna(0)</code> 으로 채우기<br>
+        <span style="font-size:13px;opacity:.85">
+        → "매출을 모른다"와 "매출이 0원이다"는 완전히 다릅니다.
+        0으로 채우면 평균이 실제보다 크게 낮아집니다.</span>
+      </div>
+      <div class="good">
+        <b>✓ 맞는 방법</b>
+        0이 <b>진짜 관측값</b>일 때만 0을 씁니다.<br>
+        <span style="font-size:13px;opacity:.85">
+        휴점한 날의 매출 0원은 진짜 0입니다. POS가 고장 난 날은 결측입니다.
+        구분해서 기록하세요.</span>
+      </div>
+    </div>
+
+    <h2 id="s7">7. 청소 전체 흐름</h2>
+    <p>지금까지 한 걸 하나로 모으면 이렇습니다. 실무에서도 이 순서를 따릅니다.</p>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales_messy.csv" data-title="3-8. 청소 파이프라인">
+    def 청소하기(경로):
+        d = pd.read_csv(경로, na_values=["N/A", "-", ""])
+
+        # 1) 문자열 공백 정리
+        for col in d.select_dtypes(include=["object", "str"]).columns:
+            d[col] = d[col].astype(str).str.strip()
+
+        # 2) 중복 제거
+        d = d.drop_duplicates()
+
+        # 3) 숫자여야 할 열을 숫자로
+        매출 = (d["매출"].astype(str)
+                        .str.replace(",", "", regex=False)
+                        .str.replace("원", "", regex=False)
+                        .replace({"nan": None, "None": None}))
+        d["매출"] = pd.to_numeric(매출, errors="coerce")
+
+        return d
+
+    깨끗 = 청소하기("cafe_sales_messy.csv")
+    print("행 수:", len(깨끗))
+    print(깨끗.dtypes)
+    print()
+    print(깨끗.head(4).to_string())
+    </div>
+
+    <div class="practice">
+      <b>청소 코드는 함수로 만드세요</b>
+      <ul>
+        <li>다음 달 데이터가 오면 <b>같은 함수를 다시 호출</b>하면 됩니다.</li>
+        <li>노트북에서 셀을 여러 번 실행해도 <b>결과가 같습니다</b>(멱등성).
+            <code>df["매출"] = df["매출"].str.replace(...)</code> 를 셀에 그냥 써두면
+            두 번 실행할 때 이미 숫자가 된 열에 문자열 연산을 하려다 터집니다.</li>
+        <li>무엇을 왜 고쳤는지 주석으로 남기세요. 3개월 뒤의 나는 남입니다.</li>
+      </ul>
+    </div>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales_messy.csv" data-title="연습 · 직접 써보세요">
+    # 문제 1. 청소한 데이터(깨끗)에서 평균기온의 결측이 몇 개인지 세어보세요.
+
+
+    # 문제 2. 요일별 평균 방문객수를 구해보세요.
+    #        힌트: 깨끗.groupby("요일")["방문객수"].mean()   ← 6강에서 자세히 배웁니다
+
+
+    # 문제 3. 매출 결측을 '중앙값'으로 채운 뒤, 표준편차가 얼마나 변하는지 비교해보세요.
+    </div>
+
+    <details style="margin:18px 0">
+      <summary style="cursor:pointer;font-weight:600;color:var(--accent)">모범 답안 보기</summary>
+      <div class="pycell" data-packages="pandas" data-data="cafe_sales_messy.csv" data-title="모범 답안">
+      # 문제 1
+      print("평균기온 결측:", 깨끗["평균기온"].isna().sum(), "개")
+
+      # 문제 2
+      print()
+      print(깨끗.groupby("요일")["방문객수"].mean().round(1))
+
+      # 문제 3
+      원본 = 깨끗["매출"]
+      채움 = 원본.fillna(원본.median())
+      print()
+      print(f"삭제 후 표준편차 {원본.dropna().std():,.0f}")
+      print(f"중앙값 대체 후  {채움.std():,.0f}")
+      </div>
+    </details>
+
+    <div class="colab-cta">
+      <div class="colab-text">
+        <b>더 자유롭게 해보고 싶다면</b>
+        Google Colab에서 같은 데이터로 실습할 수 있습니다.
+      </div>
+      <a class="btn" id="colab-link" href="#" target="_blank" rel="noopener">Colab에서 열기</a>
+    </div>
+
+    <div class="summary">
+      <h3>3강 요약</h3>
+      <ul>
+        <li><b>고치기 전에 진단</b> — <code>head</code> · <code>dtypes</code> · <code>unique</code> · <code>duplicated</code> · <code>isna().sum()</code></li>
+        <li><code>.str.strip()</code> 으로 공백 제거. 안 하면 같은 값이 여러 그룹으로 쪼개진다.</li>
+        <li>중복은 <code>duplicated(keep=False)</code> 로 <b>눈으로 확인한 뒤</b> 삭제.</li>
+        <li>문자열 숫자 → <code>str.replace</code> 로 걷어내고 <code>pd.to_numeric(errors="coerce")</code>.</li>
+        <li>결측 처리 3가지 — 삭제(정직) · 대체(분산 축소) · 앞값(시계열용). <b>공짜는 없다.</b></li>
+        <li><b>평균 대체는 표준편차를 줄인다</b>(실험에서 16%). 신뢰구간과 p값이 가짜로 좋아진다.</li>
+        <li><code>fillna(0)</code> 은 "모름"과 "0"을 섞는 실수. 청소는 <b>함수로</b> 만들 것.</li>
+      </ul>
+    </div>
+
+    <p class="next-up">
+      다음 → <b>4강 · 날짜를 날짜답게</b><br>
+      문자열 날짜를 진짜 날짜로 바꾸면 "3월만", "주말만", "월별 합계"가 한 줄이 됩니다.
+    </p>
+  </section>
+
+</div>
+
+<script src="../assets/viz.js?v=312b9476b0"></script>
+<script src="../assets/pylab.js?v=869ae9b12b"></script>
+<script src="../assets/pycell.js?v=6dacc4c6ce"></script>
+<script>
+(function () {
+  var a = document.getElementById('colab-link');
+  if (a) a.href = 'https://colab.research.google.com/github/mioon1402/timeseriesdata/blob/main/notebooks/p03-cleaning.ipynb';
+})();
+</script>
+</body>
+</html>

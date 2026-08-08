@@ -41,10 +41,12 @@ const PAGES = [
   'modules/08-simpson.html',
   'python/p01-first-look.html',
   'python/p02-select-filter.html',
+  'python/p03-cleaning.html',
+  'python/p04-datetime.html',
 ];
 
 /** 캔버스가 없어도 정상인 페이지 (파이썬 실습 강의 등) */
-const NO_CANVAS = new Set(['index.html', 'python/p01-first-look.html', 'python/p02-select-filter.html']);
+const NO_CANVAS = new Set(['index.html', 'python/p01-first-look.html', 'python/p02-select-filter.html', 'python/p03-cleaning.html', 'python/p04-datetime.html']);
 
 const args = process.argv.slice(2);
 const MEASURE = args.includes('--measure');
