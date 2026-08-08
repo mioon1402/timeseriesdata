@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>그램-슈미트와 QR 분해 · 선형대수</title>
+<meta name="description" content="축을 직교하게 다시 세우면 투영도 최소제곱도 계산이 확 단순해집니다. 그 과정을 기록하면 A=QR.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%E2%9E%97%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css?v=b7dfb076b2">
+<link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">선형대수 11강 · 직교성과 최소제곱법</p>
+    <h1>그램-슈미트와 QR 분해</h1>
+    <p class="lede">
+      9강에서 봤듯이 기저가 <b>정규직교</b>이면 투영 공식이
+      <span class="m">P = AA<sup>T</sup></span> 로 확 줄어듭니다. 역행렬이 통째로 사라지죠.
+      그렇다면 <b>아무 기저나 직교 기저로 바꿔버리면</b> 어떨까요?
+      그 방법이 <b>그램-슈미트</b>이고, 그 과정을 기록해두면 <b>A = QR</b> 이 나옵니다.
+    </p>
+  </header>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 강의에서 배우는 것</b>
+      <ol>
+        <li><a href="#s0">기초 다지기 — 왜 직교 기저가 좋은가</a></li>
+        <li><a href="#s1">정규직교기저와 직교행렬 Q</a></li>
+        <li><a href="#s2">직교행렬의 성질</a></li>
+        <li><a href="#s3">그램-슈미트 과정 (직접 해보기)</a></li>
+        <li><a href="#s4">A = QR 분해</a></li>
+        <li><a href="#s5">QR 로 최소제곱 풀기</a></li>
+        <li><a href="#s6">numpy 로 확인하기</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s0">0. 기초 다지기 — 왜 직교 기저가 좋은가</h2>
+    <p>
+      기저가 <b>비스듬하면</b> 좌표를 구하는 게 번거롭습니다.
+      "이 벡터에는 <span class="m">v₁</span> 성분이 얼마나 들었나?" 를 알려면
+      <span class="m">v₂</span> 의 영향까지 같이 풀어야 하거든요 — 연립방정식을 풀어야 합니다.
+    </p>
+    <p>
+      그런데 기저가 <b>서로 수직</b>이면 이야기가 달라집니다.
+      각 축 성분을 <b>따로따로, 내적 한 번으로</b> 읽을 수 있습니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">정규직교기저에서는 좌표가 그냥 내적</div>
+      <div class="eq" style="font-size:15.5px;line-height:2.2">
+        <span class="small">일반 기저</span>&nbsp;&nbsp;
+        v = c<sub>1</sub>a<sub>1</sub> + c<sub>2</sub>a<sub>2</sub>
+        &nbsp;⟹&nbsp; <b>연립방정식을 풀어야</b> c 를 앎
+        <br>
+        <span class="small">정규직교</span>&nbsp;&nbsp;
+        v = c<sub>1</sub>q<sub>1</sub> + c<sub>2</sub>q<sub>2</sub>
+        &nbsp;⟹&nbsp; <b>c<sub>i</sub> = q<sub>i</sub><sup>T</sup>v</b> — 내적 한 번
+      </div>
+      <ul class="where">
+        <li><span class="sym">왜</span><span class="desc">양변에 <span class="m">q₁<sup>T</sup></span> 를 곱하면
+            <span class="m">q₁<sup>T</sup>q₂ = 0</span> 이라 <b>다른 항이 전부 사라집니다</b></span></li>
+        <li><span class="sym">어디서 봤나</span><span class="desc"><b>푸리에 계수</b>가 정확히 이렇게 구해집니다.
+            사인파들이 서로 직교하기 때문이죠(20강)</span></li>
+      </ul>
+    </div>
+
+    <h2 id="s1">1. 정규직교기저와 직교행렬 Q</h2>
+
+    <div class="formula">
+      <div class="name">정규직교 (Orthonormal)</div>
+      <div class="eq" style="font-size:16px">
+        q<sub>i</sub><sup>T</sup>q<sub>j</sub> =
+        <span class="mat" style="--cols:1;font-size:0.95em"><span>1&nbsp;&nbsp;(i = j)</span><span>0&nbsp;&nbsp;(i ≠ j)</span></span>
+        &nbsp;&nbsp;⟹&nbsp;&nbsp; <b>Q<sup>T</sup>Q = I</b>
+      </div>
+      <ul class="where">
+        <li><span class="sym">정규</span><span class="desc"><b>길이가 1</b> (normal)</span></li>
+        <li><span class="sym">직교</span><span class="desc"><b>서로 수직</b> (orthogonal)</span></li>
+        <li><span class="sym">이름 주의</span><span class="desc">열이 정규직교인 <b>정사각</b>행렬을
+            <b>직교행렬</b>(orthogonal matrix)이라 부릅니다. "정규직교행렬"이 더 정확한 이름이지만
+            관습이 그렇습니다</span></li>
+      </ul>
+    </div>
+
+    <h2 id="s2">2. 직교행렬의 성질</h2>
+
+    <div class="formula">
+      <div class="name">역행렬이 공짜다</div>
+      <div class="eq" style="font-size:17px">
+        Q 가 정사각이면 &nbsp; <b>Q<sup>−1</sup> = Q<sup>T</sup></b>
+      </div>
+      <ul class="where">
+        <li><span class="sym">뜻</span><span class="desc">소거법도 역행렬 계산도 필요 없습니다.
+            <b>행과 열만 뒤집으면</b> 끝입니다</span></li>
+      </ul>
+    </div>
+
+    <div class="formula">
+      <div class="name">길이와 각도를 보존한다</div>
+      <div class="eq" style="font-size:15px;line-height:2.2">
+        (Qx)<sup>T</sup>(Qy) = x<sup>T</sup>Q<sup>T</sup>Qy = x<sup>T</sup>Iy = <b>x<sup>T</sup>y</b>
+        <br>
+        <span class="small">⟹ ‖Qx‖ = ‖x‖ &nbsp;그리고&nbsp; 두 벡터 사이 각도도 그대로</span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">기하학적으로</span><span class="desc">직교행렬은 <b>회전 또는 반사</b>뿐입니다.
+            늘이거나 찌그러뜨리지 않습니다(19강)</span></li>
+        <li><span class="sym">수치적으로</span><span class="desc"><b>오차를 증폭하지 않습니다.</b>
+            그래서 컴퓨터 알고리즘이 직교행렬을 사랑합니다</span></li>
+      </ul>
+    </div>
+
+    <div class="takeaway">
+      <b>투영이 단순해진다 ·</b>
+      <span class="m">P = Q(Q<sup>T</sup>Q)<sup>−1</sup>Q<sup>T</sup> = Q I Q<sup>T</sup> = <b>QQ<sup>T</sup></b></span>.
+      역행렬이 통째로 증발합니다. 이게 직교 기저를 만드는 이유입니다.
+    </div>
+
+    <h2 id="s3">3. 그램-슈미트 과정</h2>
+    <p>
+      아이디어는 한 줄입니다 — <b>"새 벡터에서 이미 만든 방향의 성분을 빼버린다."</b>
+      빼고 나면 <b>남은 것은 반드시 수직</b>입니다(9강의 오차 벡터).
+    </p>
+
+    <div class="panel">
+      <div class="board"><canvas id="cv"></canvas></div>
+
+      <div class="btns">
+        <button class="btn primary" id="step">다음 단계 ▶</button>
+        <button class="btn" id="reset">처음으로</button>
+      </div>
+      <p class="hint" id="steptext" style="min-height:3em">–</p>
+
+      <div class="readout">
+        <div class="stat accent"><span class="k">a₁</span><span class="v" id="g-a1">–</span></div>
+        <div class="stat pos"><span class="k">a₂</span><span class="v" id="g-a2">–</span></div>
+        <div class="stat warn"><span class="k">q₁</span><span class="v" id="g-q1">–</span></div>
+        <div class="stat warn"><span class="k">q₂</span><span class="v" id="g-q2">–</span></div>
+        <div class="stat purple"><span class="k">q₁ᵀq₂ (0이어야)</span><span class="v" id="g-dot">–</span></div>
+      </div>
+    </div>
+
+    <div class="formula">
+      <div class="name">그램-슈미트 — 두 벡터의 경우</div>
+      <div class="eq" style="font-size:14.5px;line-height:2.4;text-align:left;padding-left:22px">
+        <span class="small">①</span> q<sub>1</sub> = a<sub>1</sub> / ‖a<sub>1</sub>‖
+        &nbsp;<span class="small">— 첫 벡터는 길이만 1로</span><br>
+        <span class="small">②</span> B = a<sub>2</sub> − (q<sub>1</sub><sup>T</sup>a<sub>2</sub>) q<sub>1</sub>
+        &nbsp;<span class="small">— q₁ 방향 성분을 뺀다</span><br>
+        <span class="small">③</span> q<sub>2</sub> = B / ‖B‖
+        &nbsp;<span class="small">— 남은 것을 길이 1로</span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">②가 핵심</span><span class="desc"><span class="m">(q₁<sup>T</sup>a₂)q₁</span> 은
+            <b>a₂ 를 q₁ 위에 투영한 그림자</b>(9강). 그걸 빼면 <b>오차 벡터</b>가 남고,
+            오차는 <b>정의상 q₁ 과 직교</b>합니다</span></li>
+        <li><span class="sym">셋 이상</span><span class="desc">세 번째는 <b>q₁ 성분과 q₂ 성분을 둘 다</b> 빼면 됩니다.
+            개수만 늘 뿐 방법은 같습니다</span></li>
+        <li><span class="sym">Span 보존</span><span class="desc">빼기만 했으므로 <b>같은 공간</b>을 생성합니다.
+            축만 다시 세운 것이죠</span></li>
+      </ul>
+    </div>
+
+    <h2 id="s4">4. A = QR 분해</h2>
+    <p>
+      그램-슈미트를 <b>거꾸로</b> 읽어봅시다.
+      원래 벡터 <span class="m">a<sub>j</sub></span> 는
+      <b>q₁ … q<sub>j</sub> 의 선형결합</b>으로 다시 적을 수 있습니다.
+      그 계수들을 모으면 행렬 하나가 됩니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">A = QR</div>
+      <div class="eq">
+        A = Q R,&nbsp;&nbsp;&nbsp;
+        R =
+        <span class="mat" style="--cols:3">
+          <span>q<sub>1</sub><sup>T</sup>a<sub>1</sub></span><span>q<sub>1</sub><sup>T</sup>a<sub>2</sub></span><span>q<sub>1</sub><sup>T</sup>a<sub>3</sub></span>
+          <span>0</span><span>q<sub>2</sub><sup>T</sup>a<sub>2</sub></span><span>q<sub>2</sub><sup>T</sup>a<sub>3</sub></span>
+          <span>0</span><span>0</span><span>q<sub>3</sub><sup>T</sup>a<sub>3</sub></span>
+        </span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">R 이 상삼각인 이유</span><span class="desc"><span class="m">a<sub>1</sub></span> 은
+            <span class="m">q<sub>2</sub></span> 를 만들기 <b>전에</b> 쓰였으므로
+            <span class="m">q<sub>2</sub><sup>T</sup>a<sub>1</sub> = 0</span> 입니다.
+            아래쪽이 자동으로 0이 되죠</span></li>
+        <li><span class="sym">간단히</span><span class="desc"><b>R = Q<sup>T</sup>A</b> 입니다.
+            (<span class="m">A = QR</span> 양변에 <span class="m">Q<sup>T</sup></span> 를 곱하면 나옵니다)</span></li>
+      </ul>
+    </div>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>분해</th><th>나온 곳</th><th>모양</th><th>주 용도</th></tr></thead>
+        <tbody>
+          <tr><td><b>A = LU</b></td><td>가우스 소거(3강)</td><td>하삼각 × 상삼각</td><td>연립방정식 반복해서 풀기</td></tr>
+          <tr><td><b>A = QR</b></td><td>그램-슈미트</td><td>직교 × 상삼각</td><td><b>최소제곱, 고유값 알고리즘</b></td></tr>
+          <tr><td><b>A = SΛS⁻¹</b></td><td>고유분해(14강)</td><td>고유벡터 × 대각</td><td>거듭제곱, 동적 시스템</td></tr>
+          <tr><td><b>A = UΣVᵀ</b></td><td>SVD(16강)</td><td>직교 × 대각 × 직교</td><td><b>어떤 행렬이든</b>. 압축, 근사</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 id="s5">5. QR 로 최소제곱 풀기</h2>
+    <p>
+      10강의 정규방정식에 <span class="m">A = QR</span> 을 넣어봅시다.
+    </p>
+
+    <div class="formula">
+      <div class="name">유도</div>
+      <div class="eq" style="font-size:14.5px;line-height:2.4;text-align:left;padding-left:22px">
+        A<sup>T</sup>A x̂ = A<sup>T</sup>b<br>
+        (QR)<sup>T</sup>(QR) x̂ = (QR)<sup>T</sup>b<br>
+        R<sup>T</sup><span style="color:var(--pos)">Q<sup>T</sup>Q</span>R x̂ = R<sup>T</sup>Q<sup>T</sup>b
+        &nbsp;<span class="small">← <span style="color:var(--pos)">= I</span></span><br>
+        R<sup>T</sup>R x̂ = R<sup>T</sup>Q<sup>T</sup>b &nbsp;⟹&nbsp;
+        <b>R x̂ = Q<sup>T</sup>b</b>
+      </div>
+      <ul class="where">
+        <li><span class="sym">이득</span><span class="desc">R 은 <b>상삼각</b>이라 <b>후진 대입</b>으로 바로 풀립니다(3강).
+            <span class="m">A<sup>T</sup>A</span> 를 만들 필요가 없습니다</span></li>
+        <li><span class="sym">진짜 이유</span><span class="desc"><span class="m">A<sup>T</sup>A</span> 를 만들면
+            <b>조건수가 제곱</b>됩니다. QR 은 그걸 피하죠 — 아래에서 숫자로 봅니다</span></li>
+      </ul>
+    </div>
+
+    <h2 id="s6">6. numpy 로 확인하기</h2>
+
+    <div class="pycell" data-packages="numpy" data-title="11-1. 그램-슈미트 직접 구현">
+    import numpy as np
+    np.set_printoptions(precision=4, suppress=True)
+
+    A = np.array([[1., 1., 2.],
+                  [1., 0., 1.],
+                  [1., 2., 0.]])
+
+    def 그램슈미트(A, tol=1e-12):
+        Q = []
+        for j in range(A.shape[1]):
+            v = A[:, j].astype(float).copy()
+            for q in Q:                        # 이미 만든 방향의 성분을 전부 뺀다
+                v -= (q @ A[:, j]) * q
+            n = np.linalg.norm(v)
+            if n < tol:
+                continue                       # 이미 있던 방향 = 종속 열, 건너뛴다
+            Q.append(v / n)
+        return np.column_stack(Q)
+
+    Q = 그램슈미트(A)
+    print("Q =")
+    print(Q)
+    print("\nQᵀQ =")
+    print(Q.T @ Q, "  ← 단위행렬이면 성공")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="11-2. R 은 그냥 QᵀA">
+    R = Q.T @ A
+    print("R =")
+    print(R)
+    print("\n상삼각인가:", np.allclose(R, np.triu(R)))
+    print("Q @ R == A :", np.allclose(Q @ R, A))
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="11-3. numpy 의 qr 과 비교">
+    Q2, R2 = np.linalg.qr(A)
+    print("numpy Q =")
+    print(Q2)
+    print()
+    print("우리 Q 와 부호만 다른가:", np.allclose(np.abs(Q), np.abs(Q2)))
+    print()
+    print("둘 다 맞는 분해인가:")
+    print("  우리  Q@R   == A :", np.allclose(Q @ R, A))
+    print("  numpy Q2@R2 == A :", np.allclose(Q2 @ R2, A))
+    </div>
+
+    <div class="pitfall">
+      <b>부호가 다른 건 정상입니다</b>
+      <span class="m">q</span> 와 <span class="m">−q</span> 는 <b>같은 방향의 축</b>입니다.
+      어느 쪽을 양의 방향으로 잡을지는 <b>규약</b>일 뿐이라 라이브러리마다 다릅니다.
+      <br><br>
+      또 numpy 는 교과서식 그램-슈미트가 아니라 <b>하우스홀더 반사</b>(19강)를 씁니다.
+      <b>수치적으로 훨씬 안정</b>하기 때문입니다 —
+      교과서 그램-슈미트는 벡터가 거의 평행할 때 직교성이 무너집니다.
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="11-4. 교과서 그램-슈미트가 무너지는 순간">
+    # 거의 평행한 두 벡터
+    eps = 1e-8
+    나쁜A = np.array([[1., 1.],
+                     [eps, 0.],
+                     [0., eps]])
+
+    Q_ours = 그램슈미트(나쁜A)
+    Q_np, _ = np.linalg.qr(나쁜A)
+
+    print("우리 것  QᵀQ - I 의 최대 오차 :", np.abs(Q_ours.T @ Q_ours - np.eye(2)).max())
+    print("numpy 것 QᵀQ - I 의 최대 오차 :", np.abs(Q_np.T @ Q_np - np.eye(2)).max())
+    print()
+    print("→ 열이 거의 평행하면 '빼고 남은 것' 이 아주 작아져")
+    print("   반올림 오차가 상대적으로 커진다. 실무에서는 라이브러리를 쓰세요.")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="11-5. 직교행렬은 길이를 보존한다">
+    rng = np.random.default_rng(0)
+    Qr, _ = np.linalg.qr(rng.normal(size=(4, 4)))       # 무작위 직교행렬
+
+    x = rng.normal(size=4)
+    y = rng.normal(size=4)
+
+    print("‖x‖   =", np.linalg.norm(x))
+    print("‖Qx‖  =", np.linalg.norm(Qr @ x), "  ← 같다")
+    print()
+    print("xᵀy    =", x @ y)
+    print("(Qx)ᵀ(Qy) =", (Qr @ x) @ (Qr @ y), "  ← 같다 (각도 보존)")
+    print()
+    print("det(Q) =", round(np.linalg.det(Qr), 6), " ← ±1 (회전이면 +1, 반사가 섞이면 −1)")
+    </div>
+
+    <div class="pycell" data-packages="numpy,scipy" data-title="11-6. QR 로 최소제곱 풀기">
+    from scipy.linalg import solve_triangular
+
+    t = np.array([0., 1., 2., 3.])
+    y = np.array([1., 2., 2., 5.])
+    Am = np.column_stack([t, np.ones_like(t)])
+
+    Qm, Rm = np.linalg.qr(Am)
+    x_qr = solve_triangular(Rm, Qm.T @ y)      # R x = Qᵀb — 후진 대입
+
+    print("QR 로 푼 해     :", x_qr)
+    print("lstsq 의 해     :", np.linalg.lstsq(Am, y, rcond=None)[0])
+    print("정규방정식의 해 :", np.linalg.solve(Am.T @ Am, Am.T @ y))
+    print()
+    print("전부 같지만, 조건이 나쁜 문제에서는 차이가 납니다 ↓")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="11-7. 조건수가 제곱된다는 것">
+    # 반데르몽드 행렬 — 다항식 회귀에서 나오며 조건이 아주 나쁘다
+    x_pts = np.linspace(0, 1, 8)
+    V_mat = np.vander(x_pts, 8)
+
+    c1 = np.linalg.cond(V_mat)
+    c2 = np.linalg.cond(V_mat.T @ V_mat)
+
+    print(f"cond(A)   = {c1:.3e}")
+    print(f"cond(AᵀA) = {c2:.3e}")
+    print(f"비율      = {c2/c1:.3e}   ≈ cond(A) = {c1:.3e}")
+    print()
+    print("→ AᵀA 를 만드는 순간 조건수가 제곱된다.")
+    print("   유효숫자가 절반으로 줄어드는 셈이라, 정규방정식을 직접 풀면 위험하다.")
+    print("   QR 이나 SVD(lstsq) 는 A 를 직접 다뤄 이 문제를 피한다.")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="11-8. 연습문제">
+    # 문제 1. a1=[3,0], a2=[2,2] 를 그램-슈미트로 직교화해보세요.
+    #         손으로 예상한 뒤 코드로 확인하세요.
+
+    # 문제 2. 이미 직교인 두 벡터를 넣으면 그램-슈미트는 무엇을 하나요?
+
+    # 문제 3. a2 가 a1 의 상수배일 때(종속) 어떻게 되나요?
+
+    # 아래에 직접 써보세요
+    </div>
+
+    <details style="margin:18px 0">
+      <summary style="cursor:pointer;font-weight:600;color:var(--accent)">모범 답안 보기</summary>
+      <div class="pycell" data-packages="numpy" data-title="모범 답안">
+      # 문제 1 — a1 은 x축, a2 에서 x성분을 빼면 y축만 남는다
+      A1 = np.column_stack([[3., 0.], [2., 2.]])
+      print("문제 1:\n", 그램슈미트(A1), "  ← (1,0), (0,1)")
+
+      # 문제 2 — 길이만 1로 바꿀 뿐 방향은 그대로
+      A2 = np.column_stack([[3., 0.], [0., 5.]])
+      print("\n문제 2:\n", 그램슈미트(A2), "  ← 방향 유지, 길이만 정규화")
+
+      # 문제 3 — 뺐더니 0 이 되어 열이 하나만 남는다
+      A3 = np.column_stack([[1., 2.], [3., 6.]])
+      Q3 = 그램슈미트(A3)
+      print("\n문제 3: Q 의 모양 =", Q3.shape, " ← 열이 하나뿐")
+      print("       원래 열이 2개인데 방향은 1개 = 랭크 1 (7강)")
+      </div>
+    </details>
+
+    <div class="practice">
+      <b>실무에서 QR</b>
+      <ul>
+        <li><b>회귀 계산의 표준</b> — R 의 <code>lm()</code>, statsmodels 의 OLS 가
+            내부에서 QR(또는 SVD)을 씁니다. 정규방정식을 직접 푸는 라이브러리는 거의 없습니다.</li>
+        <li><b>고유값 알고리즘</b> — <b>QR 반복법</b>이 지금도 표준입니다.
+            <span class="m">A = QR</span> → <span class="m">A' = RQ</span> 를 반복하면
+            놀랍게도 <b>고유값으로 수렴</b>합니다(13강).</li>
+        <li><b>딥러닝</b> — 가중치 초기화에 <b>직교 행렬</b>을 쓰면
+            길이를 보존해 기울기 소실/폭발을 줄입니다.</li>
+      </ul>
+    </div>
+
+    <div class="summary">
+      <h3>11강 요약</h3>
+      <ul>
+        <li>기저가 <b>정규직교</b>면 좌표가 <b>내적 한 번</b>으로 나옵니다. 연립방정식이 필요 없습니다.</li>
+        <li><b><span class="m">Q<sup>T</sup>Q = I</span></b>. 정사각이면 <b><span class="m">Q<sup>−1</sup> = Q<sup>T</sup></span></b> — 역행렬이 공짜.</li>
+        <li>직교행렬은 <b>길이와 각도를 보존</b>합니다(회전·반사). 그래서 <b>오차를 증폭하지 않습니다.</b></li>
+        <li><b>그램-슈미트</b> = "이미 만든 방향의 성분을 빼라". 남은 것은 반드시 직교합니다(9강의 오차).</li>
+        <li>그 과정을 기록하면 <b><span class="m">A = QR</span></b>, 그리고 <b><span class="m">R = Q<sup>T</sup>A</span></b>.</li>
+        <li>최소제곱은 <b><span class="m">R x̂ = Q<sup>T</sup>b</span></b> 로 풀립니다 — 후진 대입 한 번.</li>
+        <li><span class="m">A<sup>T</sup>A</span> 를 만들면 <b>조건수가 제곱</b>됩니다. QR 이 그걸 피합니다.</li>
+      </ul>
+    </div>
+
+    <div class="colab-cta">
+      <div class="colab-text">
+        <b>더 자유롭게 실험하고 싶다면</b><br>
+        이 강의의 실습만 모은 노트북을 Colab에서 열 수 있습니다.
+      </div>
+      <a class="btn" id="colab-link" href="#" target="_blank" rel="noopener">Colab에서 열기</a>
+    </div>
+
+    <p class="next-up">
+      다음 → <b>12강 · 행렬식은 넓이다</b><br>
+      평행사변형을 직접 찌그러뜨리며 <b>넓이가 0이 되는 순간</b>을 목격합니다.
+      행렬식이 왜 "역행렬 존재 여부"를 알려주는지 그림으로 이해합니다.
+    </p>
+
+  </section>
+
+</div>
+
+<script src="../assets/viz.js?v=312b9476b0"></script>
+<script src="../assets/linalg.js?v=270d914364"></script>
+<script src="../assets/pylab.js?v=cb27f20364"></script>
+<script src="../assets/pycell.js?v=6dacc4c6ce"></script>
+<script>
+(function () {
+  'use strict';
+  var M = LA.M, num = LA.num;
+  function vs(v) { return '(' + num(v[0]) + ', ' + num(v[1]) + ')'; }
+
+  var a1 = [3, 1], a2 = [1, 2.5];
+  var stage = 0;                    // 0 원본 → 1 q1 → 2 그림자 빼기 → 3 q2
+  var MAX = 3;
+
+  var board = new LA.Board(document.getElementById('cv'), { range: 4 });
+
+  var TEXT = [
+    '원래 두 벡터 <b>a₁, a₂</b> 입니다. 서로 수직이 아니죠. <b>끌어서</b> 옮길 수 있습니다.',
+    '① <b>q₁ = a₁ / ‖a₁‖</b> — 첫 벡터는 방향을 그대로 두고 <b>길이만 1</b>로 만듭니다.',
+    '② <b>a₂ 에서 q₁ 방향 성분(그림자)을 뺍니다.</b> ' +
+      '남은 것 <b>B</b> 는 9강의 오차 벡터이므로 <b>반드시 q₁ 과 수직</b>입니다.',
+    '③ <b>q₂ = B / ‖B‖</b> — 길이를 1로. 이제 <b>q₁ ⟂ q₂ 이고 둘 다 길이 1</b>입니다. ' +
+      '두 벡터가 만드는 <b>공간(Span)은 그대로</b>고 축만 바뀌었습니다.'
+  ];
+
+  function draw() {
+    var n1 = M.norm(a1);
+    var q1 = n1 > 1e-9 ? M.scale(a1, 1 / n1) : [1, 0];
+    var proj = M.scale(q1, M.dot(q1, a2));
+    var B = M.sub(a2, proj);
+    var nB = M.norm(B);
+    var q2 = nB > 1e-9 ? M.scale(B, 1 / nB) : [0, 1];
+
+    board.fit([a1, a2]).begin().grid({ step: 1 });
+
+    // 원본은 항상 흐리게
+    board.arrow(a1, { color: V.css('--accent'), width: 1.8, alpha: 0.35, label: 'a₁' });
+    board.arrow(a2, { color: V.css('--pos'), width: 1.8, alpha: 0.35, label: 'a₂' });
+
+    if (stage >= 1) {
+      board.arrow(q1, { color: V.css('--warn'), width: 3, label: 'q₁' });
+    }
+    if (stage >= 2) {
+      // 그림자와 빼기
+      board.arrow(proj, { color: V.css('--text-dim'), width: 1.8, dash: [5, 4], alpha: 0.8 });
+      board.arrow(B, { from: proj, color: V.css('--neg'), width: 2.6,
+                       label: 'B = a₂ − 그림자', labelMid: true, labelSide: 18 });
+      board.arrow(B, { color: V.css('--neg'), width: 1.6, dash: [4, 4], alpha: 0.55 });
+      if (nB > 1e-6) board.rightAngle(proj, q1, B, { size: 11, color: V.css('--neg') });
+    }
+    if (stage >= 3) {
+      board.arrow(q2, { color: V.css('--warn'), width: 3, label: 'q₂' });
+      board.rightAngle([0, 0], q1, q2, { size: 14, color: V.css('--warn') });
+    }
+
+    board.handle(a1, { color: V.css('--accent') });
+    board.handle(a2, { color: V.css('--pos') });
+
+    document.getElementById('steptext').innerHTML = TEXT[stage];
+    V.setText('#g-a1', vs(a1));
+    V.setText('#g-a2', vs(a2));
+    V.setText('#g-q1', stage >= 1 ? vs(q1) : '–');
+    V.setText('#g-q2', stage >= 3 ? vs(q2) : '–');
+    V.setText('#g-dot', stage >= 3 ? num(M.dot(q1, q2), 6) : '–');
+
+    var btn = document.getElementById('step');
+    btn.disabled = stage >= MAX;
+    btn.textContent = stage >= MAX ? '완료' : '다음 단계 ▶';
+  }
+
+  LA.drag(board, [
+    { get: function () { return a1; }, set: function (q) { a1 = q; } },
+    { get: function () { return a2; }, set: function (q) { a2 = q; } }
+  ], draw, { snap: 0.5 });
+
+  V.click('step', function () { if (stage < MAX) { stage++; draw(); } });
+  V.click('reset', function () { stage = 0; draw(); });
+
+  V.onRedraw(draw);
+  draw();
+
+  var a3 = document.getElementById('colab-link');
+  if (a3) a3.href = 'https://colab.research.google.com/github/mioon1402/timeseriesdata/blob/main/notebooks/L11-qr.ipynb';
+})();
+</script>
+</body>
+</html>

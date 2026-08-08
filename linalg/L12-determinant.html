@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>행렬식은 넓이다 · 선형대수</title>
+<meta name="description" content="평행사변형을 직접 찌그러뜨리며 행렬식이 0이 되는 순간을 목격합니다. 부피·부호·특이성의 관계.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%E2%9E%97%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css?v=b7dfb076b2">
+<link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">선형대수 12강 · 행렬식</p>
+    <h1>행렬식은 넓이다</h1>
+    <p class="lede">
+      <span class="m">ad − bc</span> 라는 공식만 외우면 행렬식은 그냥 <b>이상한 숫자</b>입니다.
+      하지만 그 숫자에는 <b>딱 하나의 기하학적 뜻</b>이 있습니다 —
+      <b>변환이 넓이(부피)를 몇 배로 만드는가.</b>
+      그걸 알면 "왜 det=0 이면 역행렬이 없는가"가 <b>당연해집니다.</b>
+    </p>
+  </header>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 강의에서 배우는 것</b>
+      <ol>
+        <li><a href="#s0">기초 다지기 — 넓이부터 다시</a></li>
+        <li><a href="#s1">평행사변형을 직접 찌그러뜨리기</a></li>
+        <li><a href="#s2">부호는 무엇을 뜻하나</a></li>
+        <li><a href="#s3">행렬식을 정의하는 세 가지 규칙</a></li>
+        <li><a href="#s4">거기서 나오는 성질들</a></li>
+        <li><a href="#s5">계산법 — 여인수 전개와 크라머 공식</a></li>
+        <li><a href="#s6">numpy 로 확인하기</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s0">0. 기초 다지기 — 넓이부터 다시</h2>
+    <p>
+      두 벡터 <span class="m">u, v</span> 를 두 변으로 하는 <b>평행사변형</b>을 그려봅시다.
+      그 넓이가 곧 <b>|행렬식|</b> 입니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">2×2 행렬식</div>
+      <div class="eq">
+        det
+        <span class="mat" style="--cols:2"><span>a</span><span>b</span><span>c</span><span>d</span></span>
+        &nbsp;=&nbsp; a d − b c
+        &nbsp;&nbsp;&nbsp;<span class="small">|값| = 두 열이 만드는 평행사변형의 넓이</span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">3×3</span><span class="desc">세 열이 만드는 <b>평행육면체의 부피</b></span></li>
+        <li><span class="sym">n×n</span><span class="desc">n차원 <b>초평행육면체의 부피</b>. 그림은 못 그려도 뜻은 같습니다</span></li>
+        <li><span class="sym">기호</span><span class="desc"><span class="m">det(A)</span> 또는 <span class="m">|A|</span>.
+            <b>절댓값 기호와 헷갈리지 마세요</b> — <span class="m">|A|</span> 는 음수일 수 있습니다</span></li>
+      </ul>
+    </div>
+
+    <div class="callout">
+      <b>변환의 관점으로 읽으면</b><br>
+      4강에서 <b>A의 열 = 기저벡터가 가는 곳</b>이라고 했습니다.
+      원래 <span class="m">e₁, e₂</span> 가 만드는 <b>단위 정사각형</b>(넓이 1)이
+      변환 후 <b>넓이 |det A| 인 평행사변형</b>이 되는 겁니다.
+      <br><br>
+      즉 <b>det = 넓이 확대율</b>입니다.
+      단위 정사각형이 그렇게 되면 <b>다른 모든 도형도</b> 같은 비율로 변합니다.
+    </div>
+
+    <h2 id="s1">1. 평행사변형을 직접 찌그러뜨리기</h2>
+    <p>
+      아래에서 두 벡터를 <b>끌어</b> 보세요. 특히 <b>두 벡터를 평행하게</b> 만들어보세요.
+    </p>
+
+    <div class="panel">
+      <div class="board"><canvas id="cv"></canvas></div>
+
+      <div class="controls">
+        <label class="toggle"><input type="checkbox" id="showGrid" checked> 변환된 격자 함께 보기</label>
+        <button class="btn" id="flat">평행하게 만들기</button>
+        <button class="btn" id="swap">두 열 바꾸기</button>
+        <button class="btn" id="reset">처음으로</button>
+      </div>
+
+      <div class="readout">
+        <div class="stat accent"><span class="k">u (1열)</span><span class="v" id="d-u">–</span></div>
+        <div class="stat pos"><span class="k">v (2열)</span><span class="v" id="d-v">–</span></div>
+        <div class="stat warn"><span class="k">det</span><span class="v" id="d-det">–</span></div>
+        <div class="stat"><span class="k">넓이 |det|</span><span class="v" id="d-area">–</span></div>
+        <div class="stat purple"><span class="k">방향(배향)</span><span class="v" id="d-or">–</span></div>
+        <div class="stat neg"><span class="k">역행렬</span><span class="v" id="d-inv">–</span></div>
+      </div>
+    </div>
+
+    <div class="takeaway">
+      <b>det = 0 의 뜻 ·</b> 넓이가 0이라는 건 평행사변형이 <b>선으로 납작하게 눌렸다</b>는 뜻입니다.
+      2차원이 1차원으로 <b>차원이 줄어든 것</b>이죠.
+      서로 다른 점들이 <b>같은 자리로 뭉개졌으니</b> 되돌릴 방법이 없습니다.
+      <br><br>
+      그래서 <b>det = 0 ⟺ 특이행렬 ⟺ 역행렬 없음 ⟺ 열이 종속 ⟺ 영공간이 원점보다 큼</b>.
+      6·7강에서 배운 것들이 전부 <b>한 숫자</b>로 요약됩니다.
+    </div>
+
+    <h2 id="s2">2. 부호는 무엇을 뜻하나</h2>
+    <p>
+      위에서 <b>[두 열 바꾸기]</b> 를 눌러보세요. 넓이는 그대로인데 <b>부호가 뒤집힙니다.</b>
+    </p>
+
+    <div class="callout">
+      <b>부호 = 배향(orientation)</b><br>
+      <span class="m">u</span> 에서 <span class="m">v</span> 로 가는 회전 방향이
+      <b>반시계면 +, 시계면 −</b> 입니다.
+      <br><br>
+      3차원에서는 <b>오른손 법칙 vs 왼손 법칙</b>에 해당합니다.
+      det 가 음수라는 건 변환이 <b>거울 반사를 포함</b>한다는 뜻이죠 —
+      오른손 장갑이 왼손 장갑이 되는 겁니다.
+      <br><br>
+      그래서 <b>회전행렬은 det = +1</b>, <b>반사행렬은 det = −1</b> 입니다(19강).
+    </div>
+
+    <h2 id="s3">3. 행렬식을 정의하는 세 가지 규칙</h2>
+    <p>
+      행렬식은 복잡한 공식이 아니라 <b>세 가지 성질</b>로 완전히 정의됩니다.
+      나머지는 전부 여기서 따라 나옵니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">세 가지 공리</div>
+      <div class="eq" style="font-size:14.5px;line-height:2.3;text-align:left;padding-left:22px">
+        <b>①</b> det(I) = 1
+        &nbsp;<span class="small">— 한 변이 1인 정육면체의 부피는 1</span><br>
+        <b>②</b> 두 <b>행</b>을 바꾸면 <b>부호가 바뀐다</b>
+        &nbsp;<span class="small">— 배향이 뒤집힘</span><br>
+        <b>③</b> <b>한 행에 대해 선형</b>이다
+        &nbsp;<span class="small">— 한 행을 c배 하면 전체도 c배</span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">③의 뜻</span><span class="desc">한 변의 길이를 2배로 늘리면 넓이도 2배.
+            그리고 <b>한 행이 두 벡터의 합이면 행렬식도 두 개의 합</b>으로 쪼개집니다</span></li>
+        <li><span class="sym">놀라운 점</span><span class="desc">이 셋만으로 <b>n×n 행렬식이 유일하게 결정</b>됩니다.
+            <span class="m">ad−bc</span> 도 여기서 나옵니다</span></li>
+      </ul>
+    </div>
+
+    <h2 id="s4">4. 거기서 나오는 성질들</h2>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>성질</th><th>왜</th><th>기하학적 뜻</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>두 행이 <b>같으면 det = 0</b></td>
+            <td>바꿔도 같아야 하는데 부호는 뒤집혀야 함<br><span class="m">D = −D ⟹ D = 0</span></td>
+            <td>납작함 (두 변이 겹침)</td>
+          </tr>
+          <tr>
+            <td><b>소거해도 det 불변</b></td>
+            <td>③에서 "같은 행 두 개" 항이 0이 되어 사라짐</td>
+            <td>평행사변형을 <b>기울여도 넓이는 같다</b></td>
+          </tr>
+          <tr>
+            <td>삼각행렬 det = <b>대각 원소의 곱</b></td>
+            <td>소거로 삼각형을 만들면 부피는 <b>변의 곱</b></td>
+            <td>직육면체의 부피 = 가로×세로×높이</td>
+          </tr>
+          <tr>
+            <td><span class="m">det(AB) = det(A)det(B)</span></td>
+            <td>변환을 연달아 하면 확대율이 곱해짐</td>
+            <td><b>가장 유용한 성질</b></td>
+          </tr>
+          <tr>
+            <td><span class="m">det(A<sup>T</sup>) = det(A)</span></td>
+            <td>—</td>
+            <td>행으로 재나 열로 재나 부피는 같다</td>
+          </tr>
+          <tr>
+            <td><span class="m">det(A<sup>−1</sup>) = 1/det(A)</span></td>
+            <td><span class="m">det(A)det(A<sup>−1</sup>) = det(I) = 1</span></td>
+            <td>되돌리면 확대율도 역수</td>
+          </tr>
+          <tr>
+            <td><span class="m">det(cA) = c<sup>n</sup> det(A)</span></td>
+            <td>n개 행이 각각 c배</td>
+            <td>모든 변을 c배 → 부피는 <span class="m">c<sup>n</sup></span> 배</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pitfall">
+      <b><span class="m">det(A + B) ≠ det(A) + det(B)</span></b>
+      곱셈은 잘 되는데 <b>덧셈은 전혀 안 됩니다.</b>
+      가장 흔한 착각입니다. 아래 코드에서 반례를 확인해보세요.
+    </div>
+
+    <h2 id="s5">5. 계산법 — 여인수 전개와 크라머 공식</h2>
+
+    <div class="formula">
+      <div class="name">여인수 전개 (Cofactor Expansion)</div>
+      <div class="eq" style="font-size:15px">
+        det(A) = a<sub>11</sub>C<sub>11</sub> + a<sub>12</sub>C<sub>12</sub> + ⋯ + a<sub>1n</sub>C<sub>1n</sub>
+        <br>
+        <span class="small">C<sub>ij</sub> = (−1)<sup>i+j</sup> M<sub>ij</sub></span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">M<sub>ij</sub></span><span class="desc"><b>소행렬식.</b>
+            i행과 j열을 <b>지우고</b> 남은 <span class="m">(n−1)×(n−1)</span> 행렬의 행렬식</span></li>
+        <li><span class="sym">(−1)<sup>i+j</sup></span><span class="desc">체스판처럼 <b>+−+−</b> 부호가 번갈아 붙습니다</span></li>
+        <li><span class="sym">요령</span><span class="desc"><b>0이 가장 많은 행이나 열</b>로 전개하면 계산이 확 줍니다</span></li>
+      </ul>
+    </div>
+
+    <div class="formula">
+      <div class="name">크라머 공식 (Cramer's Rule)</div>
+      <div class="eq">
+        x<sub>i</sub> &nbsp;=&nbsp;
+        <span class="frac"><span>det(B<sub>i</sub>)</span><span>det(A)</span></span>
+        &nbsp;&nbsp;<span class="small">B<sub>i</sub> = A 의 i번째 열을 b 로 바꾼 행렬</span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">아름답지만</span><span class="desc"><b>실무에서는 쓰지 않습니다.</b>
+            행렬식을 <span class="m">n+1</span> 번 계산해야 하는데,
+            여인수 전개는 <span class="m">O(n!)</span> 입니다</span></li>
+        <li><span class="sym">비교</span><span class="desc">가우스 소거는 <span class="m">O(n³)</span>.
+            n=20 이면 <span class="m">20! ≈ 2.4×10<sup>18</sup></span> vs <span class="m">8000</span> —
+            <b>비교가 안 됩니다</b></span></li>
+      </ul>
+    </div>
+
+    <div class="takeaway">
+      <b>실무에서 det 를 구하는 법 ·</b> 여인수 전개가 아니라
+      <b>LU 분해 후 대각 원소를 곱합니다</b>(3강).
+      <span class="m">O(n³)</span> 이죠. <code>np.linalg.det</code> 도 그렇게 합니다.
+      <br><br>
+      그리고 사실 <b>"이 행렬이 특이한가"를 판정할 때 det 를 쓰면 안 됩니다.</b>
+      아래에서 이유를 봅니다.
+    </div>
+
+    <h2 id="s6">6. numpy 로 확인하기</h2>
+
+    <div class="pycell" data-packages="numpy" data-title="12-1. 행렬식과 넓이">
+    import numpy as np
+    np.set_printoptions(precision=4, suppress=True)
+
+    A = np.array([[3., 1.],
+                  [1., 2.]])
+
+    print("det =", np.linalg.det(A))
+    print("손계산 ad - bc =", 3*2 - 1*1)
+    print()
+    print("→ 두 열 (3,1), (1,2) 이 만드는 평행사변형의 넓이가 5")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="12-2. 성질 확인">
+    B = np.array([[2., 1.],
+                  [1., 2.]])
+
+    dA, dB = np.linalg.det(A), np.linalg.det(B)
+
+    print(f"det(A)     = {dA:.4f}")
+    print(f"det(B)     = {dB:.4f}")
+    print(f"det(AB)    = {np.linalg.det(A @ B):.4f}   vs  det(A)·det(B) = {dA*dB:.4f}")
+    print(f"det(Aᵀ)    = {np.linalg.det(A.T):.4f}")
+    print(f"det(A⁻¹)   = {np.linalg.det(np.linalg.inv(A)):.4f}   vs  1/det(A) = {1/dA:.4f}")
+    print(f"det(2A)    = {np.linalg.det(2*A):.4f}   vs  2²·det(A) = {4*dA:.4f}")
+    print()
+    print(f"det(A+B)   = {np.linalg.det(A + B):.4f}   vs  det(A)+det(B) = {dA+dB:.4f}")
+    print("            ↑ 덧셈은 성립하지 않는다!")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="12-3. 소거해도 넓이는 변하지 않는다">
+    C = A.copy()
+    print("원본 det =", np.linalg.det(C))
+
+    C[1] -= (C[1, 0] / C[0, 0]) * C[0]      # 2행에서 1행의 배수를 뺀다 (3강)
+    print("소거 후 =")
+    print(C)
+    print("det =", np.linalg.det(C), " ← 그대로")
+    print()
+    print("삼각행렬이 되었으니 대각 원소의 곱으로도 확인:")
+    print("  ", C[0, 0], "×", round(C[1, 1], 4), "=", round(C[0, 0] * C[1, 1], 4))
+    print()
+    print("→ 평행사변형을 '기울여도' 밑변과 높이가 그대로라 넓이가 안 변한다")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="12-4. 여인수 전개 직접 구현">
+    def 여인수_det(M):
+        M = np.asarray(M, dtype=float)
+        n = len(M)
+        if n == 1:
+            return M[0, 0]
+        총합 = 0.0
+        for j in range(n):
+            소행렬 = np.delete(np.delete(M, 0, axis=0), j, axis=1)   # 0행과 j열 삭제
+            총합 += ((-1) ** j) * M[0, j] * 여인수_det(소행렬)
+        return 총합
+
+    E = np.array([[ 2., 1., 1.],
+                  [ 4., -6., 0.],
+                  [-2., 7., 2.]])
+
+    print("여인수 전개 =", 여인수_det(E))
+    print("numpy      =", round(np.linalg.det(E), 10))
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="12-5. 크라머 공식 — 아름답지만 느리다">
+    b = np.array([5., -2., 9.])
+
+    def 크라머(A, b):
+        detA = np.linalg.det(A)
+        해 = []
+        for i in range(A.shape[1]):
+            B_i = A.copy()
+            B_i[:, i] = b                       # i번째 열을 b 로 교체
+            해.append(np.linalg.det(B_i) / detA)
+        return np.array(해)
+
+    print("크라머 :", np.round(크라머(E, b), 6))
+    print("solve  :", np.linalg.solve(E, b))
+    print()
+
+    import time, math
+    for n in [5, 10, 15, 20]:
+        print(f"n={n:2d}  여인수 전개 {math.factorial(n):>22,}회  vs  소거법 {n**3:>8,}회")
+    </div>
+
+    <div class="pitfall">
+      <b>특이성 판정에 det 를 쓰지 마세요</b>
+      det 는 <b>스케일에 극도로 민감</b>합니다.
+      완벽히 멀쩡한 행렬도 크기를 조금 줄이면 det 가 0에 가까워지고,
+      거의 특이한 행렬도 키우면 det 가 커집니다.
+      <br><br>
+      대신 <b>조건수</b>(<code>np.linalg.cond</code>)나 <b>랭크</b>(<code>matrix_rank</code>)를 쓰세요.
+      아래에서 확인합니다.
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="12-6. det 로 특이성을 판정하면 안 되는 이유">
+    # 완벽하게 멀쩡한 단위행렬을 100배 줄인다
+    좋은행렬 = 0.01 * np.eye(20)
+
+    print("0.01·I(20×20)")
+    print("  det       =", np.linalg.det(좋은행렬), "  ← 0 처럼 보인다!")
+    print("  조건수    =", np.linalg.cond(좋은행렬), "  ← 1. 완벽한 행렬")
+    print("  랭크      =", np.linalg.matrix_rank(좋은행렬), "/ 20")
+    print()
+
+    # 거의 특이한 행렬
+    나쁜행렬 = np.array([[1., 1.], [1., 1 + 1e-12]])
+    print("[[1,1],[1,1+1e-12]]")
+    print("  det       =", np.linalg.det(나쁜행렬))
+    print("  조건수    =", f"{np.linalg.cond(나쁜행렬):.3e}", "  ← 사실상 특이")
+    print()
+    print("→ det 의 크기는 '특이한 정도' 를 말해주지 않는다. 조건수를 보세요.")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="12-7. 연습문제">
+    # 문제 1. [[1,2],[3,4]] 의 행렬식을 손으로 구하고 확인하세요.
+
+    # 문제 2. 두 열을 바꾸면 부호가 뒤집히는지 확인하세요.
+
+    # 문제 3. 3×3 단위행렬의 한 행에 5를 곱하면 det 는?
+    #         세 행 전부에 5를 곱하면?
+
+    # 아래에 직접 써보세요
+    </div>
+
+    <details style="margin:18px 0">
+      <summary style="cursor:pointer;font-weight:600;color:var(--accent)">모범 답안 보기</summary>
+      <div class="pycell" data-packages="numpy" data-title="모범 답안">
+      # 문제 1 — 1·4 − 2·3 = −2
+      A1 = np.array([[1., 2.], [3., 4.]])
+      print("문제 1: 손계산 -2, numpy", round(np.linalg.det(A1), 10))
+      print("        음수 = 두 열의 배향이 시계 방향")
+
+      # 문제 2
+      A2 = A1[:, [1, 0]]
+      print("\n문제 2: 열 교환 후 det =", round(np.linalg.det(A2), 10), " ← 부호만 뒤집힘")
+
+      # 문제 3
+      I3 = np.eye(3)
+      한행 = I3.copy(); 한행[0] *= 5
+      전부 = 5 * I3
+      print("\n문제 3: 한 행만 5배 →", round(np.linalg.det(한행), 6), " (5¹)")
+      print("        세 행 전부 5배 →", round(np.linalg.det(전부), 6), " (5³ = 125)")
+      print("        det(cA) = cⁿ det(A) 이기 때문")
+      </div>
+    </details>
+
+    <div class="practice">
+      <b>실무에서 행렬식</b>
+      <ul>
+        <li><b>변수 변환의 야코비안</b> — 적분에서 좌표를 바꿀 때
+            <span class="m">dx dy = |det J| du dv</span>. <b>넓이 확대율</b>이 그대로 쓰입니다.</li>
+        <li><b>다변량 정규분포</b> — 확률밀도에 <span class="m">1/√det(Σ)</span> 가 들어갑니다.
+            공분산 행렬의 <b>"퍼진 부피"</b> 로 정규화하는 거죠.</li>
+        <li><b>컴퓨터 그래픽스</b> — 변환의 det 부호로 <b>면의 앞뒤가 뒤집혔는지</b> 판정합니다.</li>
+        <li><b>고윳값</b> — 다음 강의의 특성방정식 <span class="m">det(A − λI) = 0</span> 이
+            행렬식의 가장 중요한 쓰임새입니다.</li>
+      </ul>
+    </div>
+
+    <div class="summary">
+      <h3>12강 요약</h3>
+      <ul>
+        <li><b>|det| = 넓이(부피) 확대율.</b> 단위 정사각형이 얼마나 커지는가.</li>
+        <li><b>부호 = 배향.</b> 음수면 <b>거울 반사</b>가 섞여 있습니다. 회전은 +1, 반사는 −1.</li>
+        <li><b>det = 0 ⟺ 납작해짐 ⟺ 특이행렬 ⟺ 역행렬 없음 ⟺ 열이 종속.</b></li>
+        <li>공리는 셋 — <b>det(I)=1</b>, <b>행 교환 시 부호 반전</b>, <b>행에 대해 선형</b>.</li>
+        <li><span class="m">det(AB) = det(A)det(B)</span> 는 성립하지만
+            <b><span class="m">det(A+B) ≠ det(A)+det(B)</span></b>.</li>
+        <li><b>소거해도 det 는 안 변합니다</b> — 그래서 실제 계산은 LU 로 <span class="m">O(n³)</span>.</li>
+        <li>크라머 공식은 <b>이론용</b>입니다. 그리고 <b>특이성 판정에는 조건수를</b> 쓰세요.</li>
+      </ul>
+    </div>
+
+    <div class="colab-cta">
+      <div class="colab-text">
+        <b>더 자유롭게 실험하고 싶다면</b><br>
+        이 강의의 실습만 모은 노트북을 Colab에서 열 수 있습니다.
+      </div>
+      <a class="btn" id="colab-link" href="#" target="_blank" rel="noopener">Colab에서 열기</a>
+    </div>
+
+    <p class="next-up">
+      다음 → <b>13강 · 고윳값과 고유벡터</b><br>
+      변환을 해도 <b>방향이 안 바뀌는 축</b>을 직접 찾아봅니다.
+      그리고 그 축을 찾는 데 <b>오늘 배운 행렬식</b>이 쓰입니다.
+    </p>
+
+  </section>
+
+</div>
+
+<script src="../assets/viz.js?v=312b9476b0"></script>
+<script src="../assets/linalg.js?v=270d914364"></script>
+<script src="../assets/pylab.js?v=cb27f20364"></script>
+<script src="../assets/pycell.js?v=6dacc4c6ce"></script>
+<script>
+(function () {
+  'use strict';
+  var M = LA.M, num = LA.num;
+  function vs(v) { return '(' + num(v[0]) + ', ' + num(v[1]) + ')'; }
+
+  var START_U = [3, 1], START_V = [1, 2];
+  var u = START_U.slice(), v = START_V.slice();
+  var showGrid = true;
+
+  var board = new LA.Board(document.getElementById('cv'), { range: 4.5 });
+
+  function draw() {
+    var A = [[u[0], v[0]], [u[1], v[1]]];      // 열이 u, v
+    var det = M.det(A);
+    var area = Math.abs(det);
+
+    board.fit([u, v, M.add(u, v)]).begin().grid({ step: 1 });
+
+    if (showGrid) {
+      board.transformedGrid(A, { color: V.css('--accent'), alpha: 0.35, width: 1 });
+    }
+
+    // 단위 정사각형이 어디로 가는가 = 평행사변형
+    board.parallelogram(u, v, {
+      fill: det >= 0 ? V.css('--accent-soft') : V.css('--neg-soft'),
+      alpha: 0.6,
+      stroke: det >= 0 ? V.css('--accent') : V.css('--neg'),
+      width: 1.6
+    });
+
+    // 원래 단위 정사각형 (기준)
+    board.parallelogram([1, 0], [0, 1], {
+      fill: V.css('--text-dim'), alpha: 0.12,
+      stroke: V.css('--text-dim'), width: 1, dash: [4, 3]
+    });
+
+    board.arrow(u, { color: V.css('--accent'), width: 3, label: 'u' });
+    board.arrow(v, { color: V.css('--pos'), width: 3, label: 'v' });
+
+    // 넓이를 도형 가운데 적는다
+    var mid = M.scale(M.add(u, v), 0.5);
+    var c = board.ctx;
+    c.save();
+    c.font = '700 14px ' + V.FONT;
+    c.fillStyle = det >= 0 ? V.css('--accent') : V.css('--neg');
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText('넓이 ' + num(area), board.px(mid[0]), board.py(mid[1]));
+    c.restore();
+
+    board.handle(u, { color: V.css('--accent') });
+    board.handle(v, { color: V.css('--pos') });
+
+    V.setText('#d-u', vs(u));
+    V.setText('#d-v', vs(v));
+    V.setText('#d-det', num(det));
+    V.setText('#d-area', num(area));
+    V.setText('#d-or', Math.abs(det) < 1e-9 ? '없음 (납작)' : (det > 0 ? '반시계 (+)' : '시계 (−)'));
+    V.setText('#d-inv', Math.abs(det) < 1e-9 ? '없음 — 되돌릴 수 없다' : '있음');
+  }
+
+  LA.drag(board, [
+    { get: function () { return u; }, set: function (q) { u = q; } },
+    { get: function () { return v; }, set: function (q) { v = q; } }
+  ], draw, { snap: 0.5 });
+
+  V.check('showGrid', function (on) { showGrid = on; draw(); });
+  V.click('flat', function () {
+    // v 를 u 의 배수로 만들어 det = 0
+    v = [Math.round(u[0] * -1.5 * 2) / 2, Math.round(u[1] * -1.5 * 2) / 2];
+    draw();
+  });
+  V.click('swap', function () { var t = u; u = v; v = t; draw(); });
+  V.click('reset', function () { u = START_U.slice(); v = START_V.slice(); draw(); });
+
+  V.onRedraw(draw);
+  draw();
+
+  var a2 = document.getElementById('colab-link');
+  if (a2) a2.href = 'https://colab.research.google.com/github/mioon1402/timeseriesdata/blob/main/notebooks/L12-determinant.ipynb';
+})();
+</script>
+</body>
+</html>

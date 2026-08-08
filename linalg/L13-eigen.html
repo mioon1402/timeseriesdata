@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>고윳값과 고유벡터 · 선형대수</title>
+<meta name="description" content="변환해도 방향이 안 바뀌는 축을 직접 찾아봅니다. 회전행렬에 실수 고유벡터가 없는 이유까지.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%E2%9E%97%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css?v=b7dfb076b2">
+<link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">선형대수 13강 · 고윳값과 고유벡터</p>
+    <h1>고윳값과 고유벡터</h1>
+    <p class="lede">
+      행렬을 곱하면 벡터는 보통 <b>방향이 휩니다.</b>
+      그런데 어떤 특별한 방향들은 <b>변환 후에도 그대로 그 방향</b>을 봅니다.
+      길이만 늘거나 줄 뿐이죠. 그 방향이 <b>고유벡터</b>, 늘어난 배율이 <b>고윳값</b>입니다.
+      이 축을 찾으면 <b>복잡한 변환이 단순한 곱셈으로</b> 바뀝니다.
+    </p>
+  </header>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 강의에서 배우는 것</b>
+      <ol>
+        <li><a href="#s0">기초 다지기 — 무엇을 찾고 있는가</a></li>
+        <li><a href="#s1">직접 찾아보기</a></li>
+        <li><a href="#s2">특성방정식 — 행렬식이 쓰이는 곳</a></li>
+        <li><a href="#s3">고유벡터 구하기 = 영공간 구하기</a></li>
+        <li><a href="#s4">고윳값이 복소수일 때 (회전)</a></li>
+        <li><a href="#s5">빠른 확인법 — 대각합과 행렬식</a></li>
+        <li><a href="#s6">numpy 로 확인하기</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s0">0. 기초 다지기 — 무엇을 찾고 있는가</h2>
+    <p>
+      4강에서 행렬을 <b>격자를 휘는 기계</b>로 봤습니다.
+      대부분의 벡터는 이 기계를 통과하면 <b>가리키는 방향이 달라집니다.</b>
+      하지만 <b>어떤 방향</b>은 통과해도 그대로입니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">고유벡터의 정의</div>
+      <div class="eq" style="font-size:18px">
+        A x = λ x &nbsp;&nbsp;<span class="small">(x ≠ 0)</span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">x</span><span class="desc"><b>고유벡터</b>(eigenvector). 변환 후에도 <b>같은 직선 위</b>에 남는 방향</span></li>
+        <li><span class="sym">λ</span><span class="desc"><b>고윳값</b>(eigenvalue), "람다". 그 방향으로 <b>몇 배</b> 늘었는가</span></li>
+        <li><span class="sym">x ≠ 0</span><span class="desc">영벡터는 제외합니다. <span class="m">A·0 = λ·0</span> 은
+            어떤 λ 에도 성립해서 <b>아무 정보가 없거든요</b></span></li>
+        <li><span class="sym">λ 는 0 가능</span><span class="desc"><b>고윳값 0</b> 은 허용됩니다.
+            그 방향이 <b>영공간</b>이라는 뜻이죠(6강)</span></li>
+      </ul>
+    </div>
+
+    <div class="callout">
+      <b>"eigen" 은 독일어로 "고유한, 자기 자신의"</b><br>
+      번역하면 <b>"그 행렬 자신의 방향"</b> 입니다.
+      행렬마다 자기만의 특별한 축이 있고, 그 축에서 보면
+      행렬이 하는 일이 <b>그냥 늘이기</b>로 단순해집니다.
+    </div>
+
+    <h2 id="s1">1. 직접 찾아보기</h2>
+    <p>
+      아래에서 <b>파란 점을 원 위로 돌려</b> 보세요.
+      <span class="m">x</span>(파랑)와 <span class="m">Ax</span>(빨강)가
+      <b>같은 직선 위에 놓이는 순간</b>이 있습니다. 그때가 고유벡터입니다.
+    </p>
+
+    <div class="panel">
+      <div class="board"><canvas id="cv"></canvas></div>
+
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">벡터 x 의 각도 (°)</span><span class="val" id="th-val">30</span></span>
+          <input type="range" id="th" min="0" max="360" step="1" value="30">
+        </label>
+      </div>
+
+      <div class="seg" role="group" aria-label="행렬 선택" style="margin-top:10px">
+        <label><input type="radio" name="mm" value="sym" checked><span>대칭 [[2,1],[1,2]]</span></label>
+        <label><input type="radio" name="mm" value="diag"><span>대각 [[3,0],[0,1]]</span></label>
+        <label><input type="radio" name="mm" value="rot"><span>회전 (90°)</span></label>
+        <label><input type="radio" name="mm" value="shear"><span>전단 [[1,1],[0,1]]</span></label>
+      </div>
+
+      <div class="controls">
+        <label class="toggle"><input type="checkbox" id="showEig" checked> 고유벡터 축 표시</label>
+        <button class="btn" id="snap">가까운 고유벡터로 맞추기</button>
+      </div>
+
+      <div class="readout">
+        <div class="stat accent"><span class="k">x</span><span class="v" id="e-x">–</span></div>
+        <div class="stat neg"><span class="k">Ax</span><span class="v" id="e-ax">–</span></div>
+        <div class="stat warn"><span class="k">x 와 Ax 사이 각</span><span class="v" id="e-ang">–</span></div>
+        <div class="stat pos"><span class="k">고유벡터인가</span><span class="v" id="e-is">–</span></div>
+        <div class="stat purple"><span class="k">고윳값 λ</span><span class="v" id="e-lam">–</span></div>
+        <div class="stat"><span class="k">이 행렬의 λ 들</span><span class="v" id="e-all">–</span></div>
+      </div>
+    </div>
+
+    <div class="takeaway">
+      <b>네 가지를 꼭 눌러보세요 ·</b>
+      <b>대각행렬</b>은 고유벡터가 <b>x축·y축</b> 그대로입니다(가장 쉬운 경우).
+      <b>대칭행렬</b>은 고유벡터 두 개가 <b>서로 수직</b>입니다(15강의 주제).
+      <b>전단</b>은 고유벡터가 <b>하나뿐</b>이라 대각화가 안 됩니다(14강).
+      <b>회전</b>은 <b>실수 고유벡터가 아예 없습니다</b> — 모든 방향이 돌아가니까요(§4).
+    </div>
+
+    <h2 id="s2">2. 특성방정식 — 행렬식이 쓰이는 곳</h2>
+    <p>
+      정의식을 옮겨 적으면 <b>영공간 문제</b>가 됩니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">유도</div>
+      <div class="eq" style="font-size:15px;line-height:2.3">
+        A x = λ x &nbsp;⟹&nbsp; A x − λ x = 0 &nbsp;⟹&nbsp; <b>( A − λI ) x = 0</b>
+        <br>
+        <span class="small">x ≠ 0 인 해가 있어야 하므로 <b>(A − λI) 는 특이행렬</b></span><br>
+        ⟹ &nbsp; <b>det( A − λI ) = 0</b>
+      </div>
+      <ul class="where">
+        <li><span class="sym">왜 λI 인가</span><span class="desc"><span class="m">A − λ</span> 는
+            <b>행렬에서 숫자를 뺄 수 없어</b> 말이 안 됩니다.
+            <span class="m">λI</span> 로 만들어야 크기가 맞습니다</span></li>
+        <li><span class="sym">핵심 논리</span><span class="desc">"0이 아닌 x 를 0으로 보낸다" =
+            <b>영공간이 원점보다 크다</b> = 특이행렬 = <b>det = 0</b> (6·12강)</span></li>
+        <li><span class="sym">특성방정식</span><span class="desc">λ 에 대한 <b>n차 다항식</b>입니다.
+            그래서 <b>고윳값은 (중복 포함) n개</b>입니다</span></li>
+      </ul>
+    </div>
+
+    <div class="formula">
+      <div class="name">2×2 의 경우</div>
+      <div class="eq" style="font-size:15px">
+        det
+        <span class="mat" style="--cols:2"><span>a−λ</span><span>b</span><span>c</span><span>d−λ</span></span>
+        = λ<sup>2</sup> − (a+d) λ + (ad − bc) = 0
+      </div>
+      <ul class="where">
+        <li><span class="sym">a + d</span><span class="desc"><b>대각합(trace)</b>. 고윳값들의 <b>합</b>입니다</span></li>
+        <li><span class="sym">ad − bc</span><span class="desc"><b>행렬식</b>. 고윳값들의 <b>곱</b>입니다</span></li>
+      </ul>
+    </div>
+
+    <h2 id="s3">3. 고유벡터 구하기 = 영공간 구하기</h2>
+    <p>
+      λ 를 찾았으면 <span class="m">(A − λI)x = 0</span> 에 대입해서 <b>영공간을 구합니다.</b>
+      6강에서 배운 그 작업 그대로입니다.
+    </p>
+
+    <div class="callout">
+      <b>고유벡터는 길이가 정해지지 않습니다</b><br>
+      <span class="m">x</span> 가 고유벡터면 <span class="m">2x</span> 도, <span class="m">−5x</span> 도
+      고유벡터입니다. <b>방향(직선)만 의미가 있죠.</b>
+      <br><br>
+      그래서 라이브러리는 보통 <b>길이를 1로 맞춰서</b> 돌려줍니다.
+      부호나 배수가 교과서와 달라도 <b>같은 답</b>입니다.
+    </div>
+
+    <h2 id="s4">4. 고윳값이 복소수일 때 (회전)</h2>
+    <p>
+      위에서 <b>[회전]</b> 을 눌러보면 <span class="m">Ax</span> 가 <b>항상</b>
+      <span class="m">x</span> 와 90° 를 이룹니다. <b>어떤 방향도 그대로 남지 않죠.</b>
+      실수 고유벡터가 <b>존재하지 않습니다.</b>
+    </p>
+
+    <div class="formula">
+      <div class="name">90° 회전행렬</div>
+      <div class="eq" style="font-size:15px">
+        R =
+        <span class="mat" style="--cols:2"><span>0</span><span>−1</span><span>1</span><span>0</span></span>
+        &nbsp;⟹&nbsp; λ<sup>2</sup> + 1 = 0 &nbsp;⟹&nbsp; λ = ± i
+      </div>
+      <ul class="where">
+        <li><span class="sym">판별식 &lt; 0</span><span class="desc">실근이 없다 = <b>실수 고유벡터가 없다</b> =
+            <b>회전이 섞여 있다</b>는 신호입니다</span></li>
+        <li><span class="sym">복소수의 뜻</span><span class="desc">허수부는 <b>회전 속도</b>,
+            실수부는 <b>늘어나거나 줄어드는 정도</b>를 나타냅니다.
+            14강의 <b>시스템 안정성</b> 판정에서 결정적입니다</span></li>
+      </ul>
+    </div>
+
+    <div class="takeaway">
+      <b>진동하는 시스템은 복소 고윳값을 갖습니다 ·</b>
+      스프링, LC 회로, 흔들리는 다리 — 전부 <b>회전 성분</b>이 있어서 고윳값에 허수부가 생깁니다.
+      "이 시스템이 진동하는가"를 <b>고윳값을 보고 바로 판정</b>할 수 있는 이유입니다.
+    </div>
+
+    <h2 id="s5">5. 빠른 확인법 — 대각합과 행렬식</h2>
+
+    <div class="formula">
+      <div class="name">두 가지 검산</div>
+      <div class="eq" style="font-size:16px;line-height:2.2">
+        λ<sub>1</sub> + λ<sub>2</sub> + ⋯ + λ<sub>n</sub> = <b>trace(A)</b>
+        &nbsp;<span class="small">(대각 원소의 합)</span><br>
+        λ<sub>1</sub> λ<sub>2</sub> ⋯ λ<sub>n</sub> = <b>det(A)</b>
+      </div>
+      <ul class="where">
+        <li><span class="sym">쓸모</span><span class="desc">2×2 는 이 둘만으로 <b>암산이 됩니다</b>.
+            큰 행렬에서도 <b>계산 검산</b>에 유용합니다</span></li>
+        <li><span class="sym">따름정리</span><span class="desc"><b>det = 0 ⟺ 고윳값 중 하나가 0</b>.
+            "납작해지는 방향이 있다"는 뜻이죠(12강)</span></li>
+      </ul>
+    </div>
+
+    <h2 id="s6">6. numpy 로 확인하기</h2>
+
+    <div class="pycell" data-packages="numpy" data-title="13-1. 고윳값·고유벡터 구하기">
+    import numpy as np
+    np.set_printoptions(precision=4, suppress=True)
+
+    A = np.array([[2., 1.],
+                  [1., 2.]])
+
+    λ, V = np.linalg.eig(A)          # 고유벡터는 V 의 '열'
+    print("고윳값 λ =", λ)
+    print("\n고유벡터 (열마다 하나) =")
+    print(V)
+    print()
+
+    for i in range(len(λ)):
+        x = V[:, i]
+        print(f"λ={λ[i]:.4f}   A@x = {np.round(A @ x, 4)}   λ·x = {np.round(λ[i]*x, 4)}   같은가: {np.allclose(A @ x, λ[i]*x)}")
+    </div>
+
+    <div class="pitfall">
+      <b>고유벡터는 <code>V[:, i]</code> 입니다 (열!)</b>
+      <code>V[i]</code> 로 쓰면 <b>행</b>을 꺼내게 되어 완전히 다른 벡터가 나옵니다.
+      가장 흔한 실수 중 하나입니다.
+      정사각 대칭행렬에서는 우연히 맞을 때도 있어 <b>더 위험합니다.</b>
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="13-2. 검산 — 대각합과 행렬식">
+    print("trace(A) =", np.trace(A), "   λ 들의 합 =", λ.sum())
+    print("det(A)   =", round(np.linalg.det(A), 6), "   λ 들의 곱 =", round(λ.prod(), 6))
+    print()
+    print("특성방정식 λ² - (a+d)λ + (ad-bc) = 0 을 직접 풀어보면:")
+    tr, de = np.trace(A), np.linalg.det(A)
+    근 = np.roots([1, -tr, de])
+    print("  근 =", 근, "  ← eig 와 같다")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="13-3. 고유벡터 = 영공간">
+    from scipy.linalg import null_space
+
+    for lam in λ:
+        N = null_space(A - lam * np.eye(2))
+        print(f"λ = {lam:.4f} 일 때 (A - λI) 의 영공간:")
+        print(np.round(N, 4).ravel(), " ← 고유벡터")
+        print()
+
+    print("→ 고유벡터를 구하는 건 6강의 '영공간 구하기' 와 똑같은 작업이다.")
+    </div>
+
+    <div class="pycell" data-packages="numpy,scipy" data-title="13-4. 네 가지 행렬 비교">
+    행렬들 = {
+        "대각 [[3,0],[0,1]]"  : np.array([[3., 0.], [0., 1.]]),
+        "대칭 [[2,1],[1,2]]"  : np.array([[2., 1.], [1., 2.]]),
+        "전단 [[1,1],[0,1]]"  : np.array([[1., 1.], [0., 1.]]),
+        "회전 90°"            : np.array([[0., -1.], [1., 0.]]),
+    }
+
+    for 이름, Mx in 행렬들.items():
+        w, v = np.linalg.eig(Mx)
+        독립 = np.linalg.matrix_rank(v)
+        복소 = np.iscomplexobj(w) and np.abs(w.imag).max() > 1e-12
+        print(f"{이름:22s} λ = {np.round(w, 3)}")
+        print(f"{'':22s} 독립인 고유벡터 {독립}개"
+              + ("   ← 복소수! 실수 고유벡터 없음" if 복소 else "")
+              + ("   ← 부족하다. 대각화 불가 (14강)" if (독립 < 2 and not 복소) else ""))
+        print()
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="13-5. 대칭행렬은 고유벡터가 직교한다">
+    S = np.array([[4., 1., 0.],
+                  [1., 3., 1.],
+                  [0., 1., 2.]])                # 대칭
+
+    w, v = np.linalg.eigh(S)                    # 대칭 전용 함수 (더 빠르고 정확)
+    print("고윳값 =", w, "  ← 전부 실수")
+    print("\n고유벡터 =")
+    print(v)
+    print("\nVᵀV =")
+    print(np.round(v.T @ v, 10), "  ← 단위행렬 = 서로 직교하고 길이 1")
+    print()
+    print("→ 대칭행렬의 고유벡터는 자동으로 정규직교기저가 된다 (15강)")
+    </div>
+
+    <div class="pitfall">
+      <b>대칭행렬에는 <code>eigh</code> 를 쓰세요</b>
+      <code>eig</code> 는 일반 행렬용이라 대칭행렬에도 <b>아주 작은 허수부</b>를 붙여 돌려줄 수 있습니다.
+      이론상 실수여야 하는데도요.
+      <code>eigh</code> 는 대칭임을 가정해 <b>실수만</b> 돌려주고, 더 빠르며, 결과를 <b>오름차순으로 정렬</b>해줍니다.
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="13-6. 고윳값 0 = 영공간">
+    Z = np.array([[1., 2.],
+                  [2., 4.]])                    # 특이행렬
+
+    w, v = np.linalg.eig(Z)
+    print("고윳값 =", w, "  ← 하나가 0")
+    print("det =", round(np.linalg.det(Z), 10), " = λ 들의 곱")
+    print()
+    영_index = np.argmin(np.abs(w))
+    영벡터 = v[:, 영_index]
+    print("λ=0 의 고유벡터 =", np.round(영벡터, 4))
+    print("Z @ 그것 =", np.round(Z @ 영벡터, 10), "  ← 0. 바로 영공간이다")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="13-7. 연습문제">
+    # 문제 1. [[4,0],[0,-2]] 의 고윳값과 고유벡터를 예상해보고 확인하세요.
+
+    # 문제 2. 단위행렬 I 의 고윳값은? 고유벡터는 무엇일까요?
+
+    # 문제 3. trace 와 det 만으로 [[5,2],[2,5]] 의 고윳값을 암산해보세요.
+    #         (합이 10, 곱이 21 인 두 수)
+
+    # 아래에 직접 써보세요
+    </div>
+
+    <details style="margin:18px 0">
+      <summary style="cursor:pointer;font-weight:600;color:var(--accent)">모범 답안 보기</summary>
+      <div class="pycell" data-packages="numpy" data-title="모범 답안">
+      # 문제 1 — 대각행렬은 대각 원소가 그대로 고윳값, 축이 고유벡터
+      A1 = np.array([[4., 0.], [0., -2.]])
+      w1, v1 = np.linalg.eig(A1)
+      print("문제 1: λ =", w1, "  고유벡터 =\n", v1)
+      print("        음수 고윳값 = 그 방향으로 뒤집히며 늘어난다")
+
+      # 문제 2 — 모든 방향이 고유벡터
+      w2, v2 = np.linalg.eig(np.eye(2))
+      print("\n문제 2: λ =", w2, " (전부 1)")
+      print("        I 는 아무것도 안 하므로 '모든' 벡터가 고유벡터다")
+
+      # 문제 3 — 합 10, 곱 21 → 7 과 3
+      A3 = np.array([[5., 2.], [2., 5.]])
+      print("\n문제 3: trace =", np.trace(A3), " det =", round(np.linalg.det(A3), 6))
+      print("        합 10, 곱 21 → 7 과 3")
+      print("        확인:", np.linalg.eigvals(A3))
+      </div>
+    </details>
+
+    <div class="practice">
+      <b>실무에서 고윳값</b>
+      <ul>
+        <li><b>PCA</b> — 공분산 행렬의 <b>가장 큰 고윳값에 해당하는 고유벡터</b>가
+            데이터가 가장 넓게 퍼진 방향(제1주성분)입니다(15강).</li>
+        <li><b>구글 페이지랭크</b> — 웹 링크 행렬의 <b>고윳값 1에 해당하는 고유벡터</b>가
+            페이지 순위입니다(20강).</li>
+        <li><b>진동 해석</b> — 건물·다리의 <b>고유진동수</b>가 말 그대로 고윳값입니다.
+            외력의 주파수가 여기 맞으면 <b>공진</b>으로 무너집니다.</li>
+        <li><b>제어 시스템</b> — 고윳값의 <b>실수부 부호</b>가 안정성을 결정합니다(14강).</li>
+      </ul>
+    </div>
+
+    <div class="summary">
+      <h3>13강 요약</h3>
+      <ul>
+        <li><b><span class="m">Ax = λx</span></b> — 변환해도 <b>방향이 안 바뀌는</b> 축이 고유벡터,
+            그 배율이 고윳값입니다.</li>
+        <li><b>특성방정식 <span class="m">det(A − λI) = 0</span></b>.
+            "0이 아닌 해가 있다 = 특이행렬 = det 0" 이라는 논리입니다.</li>
+        <li>λ 를 찾은 뒤 <b><span class="m">(A − λI)x = 0</span> 의 영공간</b>을 구하면 고유벡터입니다.</li>
+        <li>고유벡터는 <b>길이가 정해지지 않습니다.</b> 방향만 의미가 있습니다.</li>
+        <li><b>회전은 실수 고유벡터가 없습니다</b> — 고윳값이 복소수가 되고, 허수부가 <b>회전 속도</b>입니다.</li>
+        <li><b><span class="m">Σλ = trace</span></b>, <b><span class="m">Πλ = det</span></b> 로 빠르게 검산합니다.</li>
+        <li>코드에서 고유벡터는 <b><code>V[:, i]</code> (열)</b>. 대칭행렬에는 <b><code>eigh</code></b>.</li>
+      </ul>
+    </div>
+
+    <div class="colab-cta">
+      <div class="colab-text">
+        <b>더 자유롭게 실험하고 싶다면</b><br>
+        이 강의의 실습만 모은 노트북을 Colab에서 열 수 있습니다.
+      </div>
+      <a class="btn" id="colab-link" href="#" target="_blank" rel="noopener">Colab에서 열기</a>
+    </div>
+
+    <p class="next-up">
+      다음 → <b>14강 · 대각화와 동적 시스템</b><br>
+      고유벡터를 <b>새 기저로 삼으면</b> 행렬이 대각행렬로 단순해집니다.
+      그러면 <span class="m">A<sup>k</sup></span> 가 순식간에 계산되고,
+      마르코프 체인과 미분방정식의 <b>장기 거동</b>이 보입니다.
+    </p>
+
+  </section>
+
+</div>
+
+<script src="../assets/viz.js?v=312b9476b0"></script>
+<script src="../assets/linalg.js?v=270d914364"></script>
+<script src="../assets/pylab.js?v=cb27f20364"></script>
+<script src="../assets/pycell.js?v=6dacc4c6ce"></script>
+<script>
+(function () {
+  'use strict';
+  var M = LA.M, num = LA.num;
+  function vs(v) { return '(' + num(v[0]) + ', ' + num(v[1]) + ')'; }
+
+  var MATS = {
+    sym:   [[2, 1], [1, 2]],
+    diag:  [[3, 0], [0, 1]],
+    rot:   [[0, -1], [1, 0]],
+    shear: [[1, 1], [0, 1]]
+  };
+  var mode = 'sym';
+  var thDeg = 30;
+  var showEig = true;
+  var R = 2.2;                          // x 의 길이(원의 반지름)
+
+  var board = new LA.Board(document.getElementById('cv'), { range: 5 });
+
+  function draw() {
+    var A = MATS[mode];
+    var t = thDeg * Math.PI / 180;
+    var x = [R * Math.cos(t), R * Math.sin(t)];
+    var Ax = M.mv(A, x);
+    var e = M.eig(A);
+
+    board.fit([x, Ax]).begin().grid({ step: 1 });
+
+    // x 가 움직이는 원
+    board.ellipse(null, { color: V.css('--text-dim'), width: 1, dash: [4, 4], alpha: 0.5 });
+    var c = board.ctx;
+    c.save();
+    c.globalAlpha = 0.35;
+    c.strokeStyle = V.css('--text-dim');
+    c.setLineDash([3, 4]);
+    c.lineWidth = 1;
+    c.beginPath();
+    c.arc(board.px(0), board.py(0), R * board.scale, 0, Math.PI * 2);
+    c.stroke();
+    c.restore();
+
+    // 고유벡터 축
+    if (showEig && e.real) {
+      e.vectors.forEach(function (v, i) {
+        board.span(v, {
+          color: i === 0 ? V.css('--pos') : V.css('--purple'),
+          width: 2, alpha: 0.75, dash: [7, 5]
+        });
+      });
+    }
+
+    // x 와 Ax
+    board.arrow(x, { color: V.css('--accent'), width: 3, label: 'x' });
+    board.arrow(Ax, { color: V.css('--neg'), width: 3, label: 'Ax' });
+
+    /* --- 판정 --- */
+    var nx = M.norm(x), nax = M.norm(Ax);
+    var cross = x[0] * Ax[1] - x[1] * Ax[0];
+    var parallel = nax > 1e-9 && Math.abs(cross) / (nx * nax) < 2e-3;
+    var cos = nax > 1e-9 ? Math.max(-1, Math.min(1, M.dot(x, Ax) / (nx * nax))) : 0;
+    var ang = Math.acos(cos) * 180 / Math.PI;
+    var lam = parallel ? M.dot(x, Ax) / (nx * nx) : null;
+
+    if (parallel) {
+      // 고유벡터일 때 강조
+      c.save();
+      c.strokeStyle = V.css('--pos');
+      c.lineWidth = 3;
+      c.globalAlpha = 0.25;
+      c.beginPath();
+      c.moveTo(board.px(-x[0] * 3), board.py(-x[1] * 3));
+      c.lineTo(board.px(x[0] * 3), board.py(x[1] * 3));
+      c.stroke();
+      c.restore();
+    }
+
+    V.setText('#e-x', vs(x));
+    V.setText('#e-ax', vs(Ax));
+    V.setText('#e-ang', nax > 1e-9 ? num(ang) + '°' : '–');
+    V.setText('#e-is', parallel ? '고유벡터 ✓' : '아니다');
+    V.setText('#e-lam', lam === null ? '–' : num(lam));
+    V.setText('#e-all', e.real
+      ? e.values.map(function (l) { return num(l); }).join(', ')
+      : '복소수 (실수 고유벡터 없음)');
+  }
+
+  V.range('th', function (v) { thDeg = v; draw(); });
+  V.radios('mm', function (v) { mode = v; draw(); });
+  V.check('showEig', function (on) { showEig = on; draw(); });
+
+  V.click('snap', function () {
+    var e = M.eig(MATS[mode]);
+    if (!e.real) return;
+    // 현재 각도에서 가장 가까운 고유벡터 방향으로 맞춘다
+    var t = thDeg * Math.PI / 180;
+    var cur = [Math.cos(t), Math.sin(t)];
+    var best = null, bestD = -2;
+    e.vectors.forEach(function (v) {
+      [1, -1].forEach(function (s) {
+        var d = M.dot(cur, M.scale(v, s));
+        if (d > bestD) { bestD = d; best = M.scale(v, s); }
+      });
+    });
+    var deg = Math.atan2(best[1], best[0]) * 180 / Math.PI;
+    if (deg < 0) deg += 360;
+    document.getElementById('th').value = Math.round(deg);
+    thDeg = Math.round(deg);
+    V.setText('#th-val', String(thDeg));
+    draw();
+  });
+
+  V.onRedraw(draw);
+  draw();
+
+  var a2 = document.getElementById('colab-link');
+  if (a2) a2.href = 'https://colab.research.google.com/github/mioon1402/timeseriesdata/blob/main/notebooks/L13-eigen.ipynb';
+})();
+</script>
+</body>
+</html>
