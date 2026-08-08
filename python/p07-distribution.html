@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>분포 확인하기 · 파이썬 데이터 분석</title>
+<meta name="description" content="값을 구간으로 묶고, 이상치를 찾는 기준을 세웁니다. IQR과 3시그마의 차이까지.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%F0%9F%90%8D%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css?v=92187514af">
+<link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">파이썬 7강 · 요약과 통계</p>
+    <h1>분포 확인하기</h1>
+    <p class="lede">
+      요약값은 <b>모양을 대신할 수 없습니다.</b>
+      값을 구간으로 묶어 세어보고, "이건 이상치다"라고 말할 수 있는
+      <b>기준</b>을 세웁시다. 그리고 그 기준이 왜 하나가 아닌지도요.
+    </p>
+  </header>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 강의에서 배우는 것</b>
+      <ol>
+        <li><a href="#s1">범주 세기 — value_counts</a></li>
+        <li><a href="#s2">숫자를 구간으로 묶기 — cut</a></li>
+        <li><a href="#s3">같은 개수로 나누기 — qcut</a></li>
+        <li><a href="#s4">이상치 기준 ① IQR 울타리</a></li>
+        <li><a href="#s5">이상치 기준 ② 3시그마 — 그리고 왜 위험한가</a></li>
+        <li><a href="#s6">이상치를 발견한 다음</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s1">1. 범주 세기 — value_counts</h2>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="7-1. 개수와 비율">
+    import pandas as pd
+    df = pd.read_csv("cafe_sales.csv", parse_dates=["date"])
+
+    print("요일별 일수")
+    print(df["weekday"].value_counts().to_string())
+
+    print("\n공휴일 비율 (%)")
+    print((df["is_holiday"].value_counts(normalize=True) * 100).round(1).to_string())
+    </div>
+
+    <div class="practice">
+      <b><code>value_counts</code> 는 데이터 점검의 첫 도구입니다</b>
+      <ul>
+        <li><code>normalize=True</code> — 개수 대신 <b>비율</b>로</li>
+        <li><code>dropna=False</code> — <b>결측치도 하나의 범주</b>로 세어줍니다. 결측 확인에 유용</li>
+        <li>범주형 열을 처음 볼 때 이걸 돌리면 <b>오타·표기 불일치</b>가 바로 보입니다
+            (3강의 <code>'수'</code> vs <code>'  수 '</code> 문제)</li>
+      </ul>
+    </div>
+
+    <h2 id="s2">2. 숫자를 구간으로 묶기 — cut</h2>
+    <p>
+      연속된 숫자는 그대로 세면 의미가 없습니다(기온 12.3도가 몇 번 나왔는지가 궁금한 게 아니죠).
+      <b>구간으로 묶어야</b> 패턴이 보입니다.
+    </p>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="7-2. 기온대별로 묶어보기">
+    df["기온대"] = pd.cut(
+        df["avg_temp"],
+        bins=[-20, 0, 10, 20, 30, 40],
+        labels=["영하", "0~10도", "10~20도", "20~30도", "30도 이상"],
+    )
+
+    결과 = df.groupby("기온대", observed=True)["visitors"].agg(
+        일수=("size"), 평균방문=("mean")
+    ).round(1)
+    print(결과.to_string())
+    </div>
+
+    <p>
+      기온이 오를수록 방문객이 늘어나는 게 <b>계단식으로</b> 보입니다.
+      144명 → 155 → 190 → 197 → 242명.
+      숫자 하나(상관계수)로 요약하기 전에 이렇게 <b>구간별로 보면 관계의 모양</b>을 알 수 있습니다.
+    </p>
+
+    <div class="pitfall">
+      <b>맨 끝 구간의 일수를 보세요 — 단 8일입니다</b>
+      "30도 이상일 때 242명"이라는 숫자는 <b>8일의 평균</b>입니다.
+      그중에 방송 대박 하루(754명)가 들어 있다면 이 숫자는 완전히 왜곡됩니다.
+      <b>구간을 나눌 때는 각 구간의 개수를 반드시 확인하세요.</b>
+      개수가 너무 적은 구간은 다른 구간과 합치는 게 낫습니다.
+    </div>
+
+    <h2 id="s3">3. 같은 개수로 나누기 — qcut</h2>
+    <p>
+      <code>cut</code> 은 <b>값의 폭</b>을 기준으로 나눕니다(0~10도, 10~20도…).
+      <code>qcut</code> 은 <b>개수</b>를 기준으로 나눕니다(하위 20%, 그다음 20%…).
+    </p>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="7-3. 매출 5등급으로">
+    df["매출등급"] = pd.qcut(df["sales"], 5, labels=["최하", "하", "중", "상", "최상"])
+
+    결과 = df.groupby("매출등급", observed=True)["sales"].agg(
+        일수=("size"), 최소=("min"), 최대=("max")
+    ).round(0)
+    print(결과.to_string())
+    </div>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th></th><th><code>cut</code></th><th><code>qcut</code></th></tr></thead>
+        <tbody>
+          <tr><td><b>기준</b></td><td>값의 범위 (내가 정함)</td><td>개수 (자동으로 균등)</td></tr>
+          <tr><td><b>각 구간 개수</b></td><td>제각각</td><td><b>거의 같음</b></td></tr>
+          <tr><td><b>쓰는 곳</b></td><td>의미 있는 경계가 있을 때<br>(성인 기준 19세, 영상/영하 0도)</td><td>상대적 순위가 필요할 때<br>(상위 20% 고객, 성적 등급)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      결과를 보면 각 등급이 145~146일로 <b>거의 균등하게</b> 나뉘었습니다.
+      그런데 <b>구간의 폭은 전혀 균등하지 않습니다</b> —
+      "중" 등급은 797,123~902,393원(약 10만원 폭)인데
+      "최상"은 1,045,064~3,775,305원(약 273만원 폭)입니다.
+      <b>위로 갈수록 폭이 넓어지는 것 자체가 오른쪽 치우침의 증거</b>입니다.
+    </p>
+
+    <h2 id="s4">4. 이상치 기준 ① IQR 울타리</h2>
+    <p>
+      "이건 이상한 값이다"라고 말하려면 기준이 있어야 합니다.
+      가장 널리 쓰이는 게 <b>Tukey의 1.5 IQR 울타리</b>입니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">1.5 IQR 울타리</div>
+      <div class="eq">
+        아래 울타리 = Q1 − 1.5 × IQR
+        <br>
+        위 울타리 = Q3 + 1.5 × IQR
+        <br>
+        <span class="small">IQR = Q3 − Q1 (가운데 50%의 폭)</span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">1.5</span><span class="desc">정규분포라면 이 바깥에 약 <b>0.7%</b>만 남도록 정해진 관례값.
+            더 엄격하게 보려면 3.0</span></li>
+        <li><span class="sym">강점</span><span class="desc">Q1·Q3 계산에 <b>극단값이 들어가지 않습니다.</b>
+            이상치가 자기 판정 기준을 오염시키지 못합니다</span></li>
+      </ul>
+    </div>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="7-4. IQR 울타리로 이상치 찾기">
+    v = df["visitors"]
+    q1, q3 = v.quantile(0.25), v.quantile(0.75)
+    iqr = q3 - q1
+    아래, 위 = q1 - 1.5 * iqr, q3 + 1.5 * iqr
+
+    이상치 = df[(v < 아래) | (v > 위)]
+
+    print(f"Q1={q1:.0f}  Q3={q3:.0f}  IQR={iqr:.0f}")
+    print(f"울타리: {아래:.1f} ~ {위:.1f}")
+    print(f"이상치: {len(이상치)}일 ({len(이상치)/len(df)*100:.1f}%)")
+    print()
+    print("[너무 많았던 날]")
+    print(이상치.nlargest(3, "visitors")[["date", "weekday", "visitors"]].to_string(index=False))
+    print("\n[너무 적었던 날]")
+    print(이상치.nsmallest(3, "visitors")[["date", "weekday", "visitors"]].to_string(index=False))
+    </div>
+
+    <p>
+      17일이 걸렸습니다. 위쪽에는 방송 대박(754명)과 성수기 토요일들이,
+      아래쪽에는 <b>휴점한 이틀(0명)</b>과 커피머신이 고장 난 날(63명)이 있습니다.
+      기계적인 기준인데도 <b>실제로 특별했던 날들을 정확히 집어냈습니다.</b>
+    </p>
+
+    <h2 id="s5">5. 이상치 기준 ② 3시그마 — 그리고 왜 위험한가</h2>
+    <p>
+      다른 흔한 기준은 <b>"평균에서 3 표준편차 밖"</b>입니다.
+      정규분포라면 0.27%만 걸리는 엄격한 기준이죠. 비교해봅시다.
+    </p>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="7-5. 두 기준 비교">
+    m, s = v.mean(), v.std()
+    삼시그마 = df[(v < m - 3*s) | (v > m + 3*s)]
+
+    print(f"평균 {m:.1f}, 표준편차 {s:.1f}")
+    print(f"3σ 범위: {m - 3*s:.1f} ~ {m + 3*s:.1f}")
+    print()
+    print(f"3σ 기준으로 걸린 날 : {len(삼시그마):2d}일")
+    print(f"IQR 기준으로 걸린 날: {len(이상치):2d}일")
+    print()
+    print("3σ 가 놓친 것 중 하나:", 이상치.nsmallest(1, "visitors")[["date", "visitors"]].to_string(index=False))
+    </div>
+
+    <div class="pitfall">
+      <b>3σ가 17일 중 3일밖에 못 잡은 이유 — 가면 효과 (masking)</b>
+      <p style="margin:6px 0">
+        표준편차 <b>48.7</b> 이라는 값 자체가 <b>이상치들이 부풀려 놓은 숫자</b>입니다.
+        방송 대박(754명) 하나가 표준편차를 크게 밀어올렸고,
+        그 커진 σ로 만든 울타리는 너무 넓어져서 <b>정작 그 이상치들을 놓칩니다.</b>
+      </p>
+      <p style="margin:6px 0">
+        실제로 이상치를 뺀 뒤 표준편차를 다시 재면 <b>48.7 → 39.9</b> 로 줄어듭니다.
+        "범인이 자기를 재는 자를 조작한" 셈이죠.
+      </p>
+      <p style="margin:6px 0 0">
+        <b>그래서 이상치 탐지에는 IQR을 씁니다.</b> Q1과 Q3은 극단값의 영향을 받지 않으니까요.
+        (<a href="../modules/02-distribution-shape.html">모듈 02</a>에서 이 현상을 슬라이더로 볼 수 있습니다.)
+      </p>
+    </div>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="7-6. 가면 효과 직접 확인">
+    깨끗 = v[(v >= 아래) & (v <= 위)]
+
+    print(f"전체 표준편차       {v.std():.1f}")
+    print(f"이상치 제외 표준편차 {깨끗.std():.1f}")
+    print(f"→ {(1 - 깨끗.std()/v.std())*100:.1f}% 부풀려져 있었습니다")
+    </div>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>기준</th><th>강점</th><th>약점</th><th>쓸 곳</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><b>1.5 IQR</b></td>
+            <td>이상치에 오염되지 않음</td>
+            <td>치우친 분포에서 한쪽만 많이 걸림</td>
+            <td><b>기본 선택</b></td>
+          </tr>
+          <tr>
+            <td><b>3σ</b></td>
+            <td>계산이 간단, 정규분포에 이론적 근거</td>
+            <td><b>가면 효과</b>, 정규분포 아니면 무의미</td>
+            <td>공정관리처럼 분포가 안정적일 때</td>
+          </tr>
+          <tr>
+            <td><b>분위수 직접 지정</b><br>(예: 상위 1%)</td>
+            <td>비율을 내가 통제</td>
+            <td>"이상함"의 근거가 없음</td>
+            <td>처리량이 정해져 있을 때</td>
+          </tr>
+          <tr>
+            <td><b>도메인 규칙</b><br>(예: 매출 0원 = 휴점)</td>
+            <td><b>가장 정확</b></td>
+            <td>사람이 알아야 함</td>
+            <td>가능하면 항상 병행</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 id="s6">6. 이상치를 발견한 다음</h2>
+
+    <div class="myth">
+      <div class="bad">
+        <b>✗ 하지 말 것</b>
+        발견하자마자 <code>df = df[~이상치]</code> 로 지우기<br>
+        <span style="font-size:13px;opacity:.85">
+        → 왜 그런 값이 나왔는지 모르는 채로 지우면,
+        데이터에서 가장 정보가 많은 부분을 버리는 것일 수 있습니다.</span>
+      </div>
+      <div class="good">
+        <b>✓ 순서대로</b>
+        ① 그 행을 <b>직접 열어본다</b> → ② 원인을 찾는다 → ③ 원인에 맞게 처리한다 →
+        ④ <b>무엇을 왜 했는지 기록한다</b>
+      </div>
+    </div>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="7-7. 이상치의 정체 확인하기">
+    # 전체 열을 다 보면서 '왜 이런 값이 나왔는지' 단서를 찾는다
+    print(이상치.sort_values("visitors")[
+        ["date", "weekday", "visitors", "sales", "avg_temp", "rain_mm", "is_holiday"]
+    ].head(6).to_string(index=False))
+    </div>
+
+    <div class="practice">
+      <b>우리 데이터의 이상치를 어떻게 처리해야 할까</b>
+      <div class="tbl-wrap" style="margin:8px 0 0">
+        <table class="tbl">
+          <thead><tr><th>날짜</th><th>정체</th><th>처리</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>2024-07-15, 16<br>(0명, 0원)</td>
+              <td><b>휴점</b>. 장사가 안 된 게 아니라 안 한 것</td>
+              <td>"영업일 분석"에서는 <b>제외</b>.<br>"월 매출 예측"에서는 <b>포함</b></td>
+            </tr>
+            <tr>
+              <td>2025-04-19<br>(754명)</td>
+              <td><b>방송 노출.</b> 진짜 일어난 일</td>
+              <td>평상시 패턴 분석에서는 제외하되,<br><b>마케팅 효과 분석에서는 핵심 데이터</b></td>
+            </tr>
+            <tr>
+              <td>2025-09-08<br>(63명)</td>
+              <td><b>커피머신 고장</b></td>
+              <td>수요가 아니라 <b>공급</b> 문제.<br>수요 예측에서는 제외가 타당</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="margin-top:10px">
+        <b>핵심:</b> 같은 이상치라도 <b>목적에 따라 처리가 달라집니다.</b>
+        "정답"은 없지만 <b>"기록"은 필수</b>입니다.
+      </p>
+    </div>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="7-8. 지우지 말고 표시하기">
+    # 지우는 대신 '이상치 여부' 열을 만들어두면 나중에 골라 쓸 수 있다
+    df["휴점"] = df["visitors"] == 0
+    df["이상치"] = (v < 아래) | (v > 위)
+
+    영업일 = df[~df["휴점"]]
+    평상시 = df[~df["이상치"]]
+
+    print(f"전체     {len(df):3d}일  평균 {df['visitors'].mean():.1f}명")
+    print(f"영업일만 {len(영업일):3d}일  평균 {영업일['visitors'].mean():.1f}명")
+    print(f"평상시만 {len(평상시):3d}일  평균 {평상시['visitors'].mean():.1f}명  "
+          f"(SD {평상시['visitors'].std():.1f})")
+    </div>
+
+    <div class="takeaway">
+      <b>실무 습관 ·</b> 이상치는 <b>지우지 말고 표시</b>하세요.
+      <code>df["이상치"] = ...</code> 한 줄이면 원본을 보존하면서
+      필요할 때마다 포함/제외를 바꿔가며 분석할 수 있습니다.
+      되돌릴 수 없는 삭제는 마지막에, 그것도 사본에서만.
+    </div>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="연습 · 직접 써보세요">
+    # 문제 1. 매출(sales)에 대해 IQR 울타리를 구하고 이상치가 몇 일인지 세어보세요.
+
+
+    # 문제 2. 강수량(rain_mm)을 '없음 / 약함(0~10) / 보통(10~30) / 많음(30 이상)'
+    #        네 구간으로 나누고, 구간별 평균 방문객을 구해보세요.
+    #        힌트: pd.cut(df["rain_mm"], bins=[-0.1, 0, 10, 30, 100], labels=[...])
+
+
+    # 문제 3. 방문객을 qcut으로 3등분(하/중/상)하고, 등급별 평균 기온을 구해보세요.
+    </div>
+
+    <details style="margin:18px 0">
+      <summary style="cursor:pointer;font-weight:600;color:var(--accent)">모범 답안 보기</summary>
+      <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="모범 답안">
+      # 문제 1
+      s = df["sales"]
+      sq1, sq3 = s.quantile(0.25), s.quantile(0.75)
+      siqr = sq3 - sq1
+      s이상치 = df[(s < sq1 - 1.5*siqr) | (s > sq3 + 1.5*siqr)]
+      print(f"매출 이상치: {len(s이상치)}일")
+
+      # 문제 2
+      df["강수대"] = pd.cut(df["rain_mm"], bins=[-0.1, 0, 10, 30, 100],
+                          labels=["없음", "약함", "보통", "많음"])
+      print()
+      print(df.groupby("강수대", observed=True)["visitors"]
+              .agg(일수=("size"), 평균=("mean")).round(1).to_string())
+
+      # 문제 3
+      df["방문등급"] = pd.qcut(df["visitors"], 3, labels=["하", "중", "상"])
+      print()
+      print(df.groupby("방문등급", observed=True)["avg_temp"]
+              .agg(일수=("size"), 평균기온=("mean")).round(1).to_string())
+      </div>
+    </details>
+
+    <div class="colab-cta">
+      <div class="colab-text">
+        <b>더 자유롭게 해보고 싶다면</b>
+        Google Colab에서 같은 데이터로 실습할 수 있습니다.
+      </div>
+      <a class="btn" id="colab-link" href="#" target="_blank" rel="noopener">Colab에서 열기</a>
+    </div>
+
+    <div class="summary">
+      <h3>7강 요약</h3>
+      <ul>
+        <li><code>value_counts()</code> 는 범주 점검의 첫 도구. <code>normalize</code>, <code>dropna=False</code> 활용.</li>
+        <li><code>cut</code> = 값의 폭으로 · <code>qcut</code> = 개수로 나눈다. <b>각 구간의 개수를 꼭 확인.</b></li>
+        <li><b>1.5 IQR 울타리</b>가 이상치 탐지의 기본. Q1·Q3은 극단값에 오염되지 않는다.</li>
+        <li><b>3σ는 가면 효과 때문에 위험하다.</b> 이 데이터에서 σ가 18% 부풀려져 17일 중 3일만 잡았다.</li>
+        <li>기준은 여러 개를 병행하고, <b>도메인 규칙</b>(0원=휴점)이 가장 정확하다.</li>
+        <li>이상치는 <b>지우지 말고 표시</b>. 목적에 따라 포함/제외가 달라진다.</li>
+      </ul>
+    </div>
+
+    <p class="next-up">
+      다음 → <b>8강 · 두 데이터 합치기</b><br>
+      매출 데이터에 날씨를 붙입니다. 붙이다 행이 사라지는 사고를 막는 법까지.
+    </p>
+  </section>
+
+</div>
+
+<script src="../assets/viz.js?v=312b9476b0"></script>
+<script src="../assets/pylab.js?v=869ae9b12b"></script>
+<script src="../assets/pycell.js?v=6dacc4c6ce"></script>
+<script>
+(function () {
+  var a = document.getElementById('colab-link');
+  if (a) a.href = 'https://colab.research.google.com/github/mioon1402/timeseriesdata/blob/main/notebooks/p07-distribution.ipynb';
+})();
+</script>
+</body>
+</html>

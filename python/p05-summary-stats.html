@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>숫자로 요약하기 · 파이썬 데이터 분석</title>
+<meta name="description" content="평균·표준편차·분위수를 직접 계산하며 그 숫자가 무엇을 뜻하는지 짚습니다.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%F0%9F%90%8D%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css?v=92187514af">
+<link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">파이썬 5강 · 요약과 통계</p>
+    <h1>숫자로 요약하기</h1>
+    <p class="lede">
+      731일치 데이터를 숫자 몇 개로 줄이는 일입니다.
+      <b>어떤 숫자를 고르느냐</b>, 그리고 <b>그 숫자를 어떻게 읽느냐</b>가
+      분석의 수준을 가릅니다. 여기서부터 진짜 통계입니다.
+    </p>
+  </header>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 강의에서 배우는 것</b>
+      <ol>
+        <li><a href="#s1">기본 통계량 총정리</a></li>
+        <li><a href="#s2">n으로 나눌까 n−1로 나눌까 (ddof 함정)</a></li>
+        <li><a href="#s3">분위수 — 평균이 못 보는 것</a></li>
+        <li><a href="#s4">변동계수 — 단위가 다른 것끼리 비교</a></li>
+        <li><a href="#s5">왜도와 첨도 — 모양을 숫자로</a></li>
+        <li><a href="#s6">agg — 한 번에 여러 통계</a></li>
+        <li><a href="#s7">보고서에 어떻게 쓸 것인가</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s1">1. 기본 통계량 총정리</h2>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="5-1. 하나씩 계산해보기">
+    import pandas as pd
+    df = pd.read_csv("cafe_sales.csv", parse_dates=["date"])
+    v = df["visitors"]
+
+    print(f"개수    {v.count():>10,}")
+    print(f"합계    {v.sum():>10,}")
+    print(f"평균    {v.mean():>10.2f}")
+    print(f"중앙값  {v.median():>10.1f}")
+    print(f"최빈값  {v.mode()[0]:>10}")
+    print(f"분산    {v.var():>10,.1f}")
+    print(f"표준편차 {v.std():>9.2f}")
+    print(f"최솟값  {v.min():>10}")
+    print(f"최댓값  {v.max():>10}")
+    print(f"범위    {v.max() - v.min():>10}")
+    </div>
+
+    <div class="formula">
+      <div class="name">이 숫자들의 관계</div>
+      <div class="eq">
+        분산 &nbsp;=&nbsp; (표준편차)<sup>2</sup>
+        &nbsp;&nbsp;&nbsp;&nbsp;
+        표준편차 &nbsp;=&nbsp; <span class="rad">√<span>분산</span></span>
+        <br>
+        <span class="small">2375.7 = 48.74<sup>2</sup></span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">분산</span><span class="desc">단위가 <b>제곱</b>(명²)이라 해석이 안 됩니다. 계산 중간 단계로만 씁니다</span></li>
+        <li><span class="sym">표준편차</span><span class="desc">원래 단위(명)로 돌아온 값. <b>보고할 때는 이쪽</b></span></li>
+      </ul>
+    </div>
+
+    <div class="practice">
+      <b>표준편차를 읽는 법 — 범위로 번역하세요</b>
+      <p style="margin:6px 0">
+        "평균 176.5명, 표준편차 48.7명"이라는 말은 이런 뜻입니다.
+      </p>
+      <ul>
+        <li><b>평균 ± 1σ</b> = 128 ~ 225명 안에 대략 <b>3분의 2</b>가 들어감</li>
+        <li><b>평균 ± 2σ</b> = 79 ~ 274명 안에 대략 <b>95%</b>가 들어감</li>
+      </ul>
+      <p style="margin-top:8px">
+        단 이건 <b>분포가 종 모양일 때</b> 성립합니다(모듈 03).
+        우리 데이터는 오른쪽으로 치우쳐 있어 정확히 맞지는 않습니다 — §5에서 확인합니다.
+      </p>
+    </div>
+
+    <h2 id="s2">2. n으로 나눌까 n−1로 나눌까</h2>
+    <p>
+      표준편차를 구할 때 <b>분모</b>가 두 가지입니다. 그리고
+      <b>도구마다 기본값이 다릅니다.</b> 실무에서 정말 자주 터지는 함정입니다.
+    </p>
+
+    <div class="pycell" data-packages="pandas,numpy" data-data="cafe_sales.csv" data-title="5-2. 같은 데이터, 다른 답">
+    import numpy as np
+
+    print("pandas  v.std()          ", round(v.std(), 4), "  ← ddof=1 (표본표준편차)")
+    print("pandas  v.std(ddof=0)    ", round(v.std(ddof=0), 4), "  ← 모표준편차")
+    print()
+    print("numpy   np.std(v)        ", round(np.std(v), 4), "  ← ddof=0 이 기본!")
+    print("numpy   np.std(v, ddof=1)", round(np.std(v, ddof=1), 4))
+    </div>
+
+    <div class="formula">
+      <div class="name">두 가지 표준편차</div>
+      <div class="eq">
+        s &nbsp;=&nbsp; <span class="rad">√<span>
+          <span class="frac"><span>1</span><span>n − 1</span></span>
+          <span class="sig">Σ</span>(x<sub>i</sub> − x̄)<sup>2</sup></span></span>
+        &nbsp;&nbsp;&nbsp;&nbsp;
+        σ &nbsp;=&nbsp; <span class="rad">√<span>
+          <span class="frac"><span>1</span><span>n</span></span>
+          <span class="sig">Σ</span>(x<sub>i</sub> − μ)<sup>2</sup></span></span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">s (n−1)</span><span class="desc"><b>표본표준편차.</b> 이 데이터가 더 큰 모집단에서 <b>뽑아온 표본</b>일 때.
+            거의 항상 이쪽입니다</span></li>
+        <li><span class="sym">σ (n)</span><span class="desc"><b>모표준편차.</b> 이 데이터가 <b>전부</b>일 때만</span></li>
+        <li><span class="sym">왜 n−1</span><span class="desc">표본평균은 그 표본에 가장 가까이 붙어 있어서 제곱합이
+            실제보다 작게 나옵니다. 분모를 줄여 보정하는 것 —
+            <a href="../modules/01-center-spread.html">모듈 01 §5</a></span></li>
+      </ul>
+    </div>
+
+    <div class="pitfall">
+      <b>이것 때문에 반나절을 날리는 사람이 많습니다</b>
+      <div class="tbl-wrap" style="margin:8px 0 0">
+        <table class="tbl">
+          <thead><tr><th>도구</th><th>기본 분모</th><th>표본(n−1)로 쓰려면</th></tr></thead>
+          <tbody>
+            <tr><td>pandas <code>.std()</code></td><td><b>n−1</b></td><td>그대로</td></tr>
+            <tr><td>numpy <code>np.std()</code></td><td><b>n</b> ⚠️</td><td><code>ddof=1</code> 을 붙일 것</td></tr>
+            <tr><td>Excel <code>STDEV.S</code> / <code>STDEV.P</code></td><td>명시적</td><td><code>STDEV.S</code></td></tr>
+            <tr><td>R <code>sd()</code></td><td><b>n−1</b></td><td>그대로</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="margin-top:10px">
+        같은 데이터인데 pandas와 numpy가 다른 값을 내면 십중팔구 이것입니다.
+        n이 크면 차이는 미미하지만(위에서 48.7407 vs 48.7073),
+        <b>n이 10 이하일 때는 눈에 띄게 벌어집니다.</b>
+        코드로 낼 땐 <code>ddof</code> 를 명시하는 습관을 들이세요.
+      </p>
+    </div>
+
+    <h2 id="s3">3. 분위수 — 평균이 못 보는 것</h2>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="5-3. 분위수 살펴보기">
+    분위 = v.quantile([0, 0.25, 0.5, 0.75, 0.90, 0.95, 1.0])
+    print(분위.round(1).to_string())
+
+    q1, q3 = v.quantile(0.25), v.quantile(0.75)
+    print()
+    print(f"IQR (가운데 50%의 폭) = {q3 - q1:.1f}명")
+    print(f"상위 5% 기준선 = {v.quantile(0.95):.0f}명")
+    </div>
+
+    <p>
+      <b>0.95 분위수(p95)가 260명</b>이라는 건
+      "100일 중 5일은 260명 넘게 온다"는 뜻입니다.
+      평균 176명만 보고 인력을 배치하면 <b>1년에 18일쯤은 아수라장</b>이 됩니다.
+    </p>
+
+    <div class="practice">
+      <b>실무에서 분위수를 쓰는 곳</b>
+      <ul>
+        <li><b>용량 설계</b> — 좌석·인력·서버는 평균이 아니라 <b>p95, p99</b> 기준으로 잡습니다.</li>
+        <li><b>서비스 성능</b> — "평균 응답 200ms"보다 "p99가 4초"가 훨씬 중요한 정보입니다.</li>
+        <li><b>이상치에 강함</b> — IQR은 극단값이 계산에 아예 안 들어갑니다(7강에서 자세히).</li>
+      </ul>
+      <p style="margin-top:8px">
+        <b>주의:</b> 분위수는 <b>평균 낼 수 없습니다.</b> 지점 3곳의 p95를 평균 내도
+        전체 p95가 아닙니다. 원본 데이터를 합쳐서 다시 계산해야 합니다.
+      </p>
+    </div>
+
+    <h2 id="s4">4. 변동계수 — 단위가 다른 것끼리 비교</h2>
+    <p>
+      "방문객(명)과 매출(원) 중 어느 쪽이 더 들쭉날쭉한가?"
+      표준편차를 그냥 비교할 수는 없습니다 — 48.7명과 249,538원은 단위가 다르니까요.
+      <b>평균 대비 비율</b>로 바꾸면 비교가 됩니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">변동계수 (Coefficient of Variation)</div>
+      <div class="eq">
+        CV &nbsp;=&nbsp;
+        <span class="frac"><span>s</span><span>x̄</span></span>
+        &nbsp;× 100 (%)
+      </div>
+      <ul class="where">
+        <li><span class="sym">해석</span><span class="desc">"평균의 몇 %만큼 흔들리는가". <b>단위가 사라져</b> 서로 다른 지표를 비교할 수 있습니다</span></li>
+        <li><span class="sym">주의</span><span class="desc">평균이 0에 가깝거나 <b>음수가 섞이면</b> 의미가 없습니다. 기온 같은 데이터엔 쓰면 안 됩니다</span></li>
+      </ul>
+    </div>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="5-4. 변동계수 비교">
+    for col in ["visitors", "sales", "avg_temp"]:
+        s = df[col].dropna()
+        cv = s.std() / s.mean() * 100
+        print(f"{col:10s} 평균 {s.mean():>10,.1f}  표준편차 {s.std():>9,.1f}  CV {cv:>6.1f}%")
+    </div>
+
+    <div class="pitfall">
+      <b>기온의 CV 79%는 의미 없는 숫자입니다</b>
+      기온은 영하로 내려가 <b>평균이 작아지는</b> 값입니다.
+      평균이 0에 가까우면 CV가 무한대로 튀고, 평균이 음수면 부호까지 뒤집힙니다.
+      <b>CV는 항상 양수이고 절대영점이 있는 값</b>(매출, 인원, 길이, 무게)에만 쓰세요.
+      섭씨온도는 조건을 만족하지 않습니다.
+    </div>
+
+    <h2 id="s5">5. 왜도와 첨도 — 모양을 숫자로</h2>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="5-5. 분포의 모양">
+    for col in ["visitors", "sales", "avg_temp"]:
+        s = df[col].dropna()
+        print(f"{col:10s} 왜도 {s.skew():>7.3f}   첨도 {s.kurt():>7.3f}   "
+              f"평균 {s.mean():>9,.1f}  중앙값 {s.median():>9,.1f}")
+    </div>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>지표</th><th>뜻</th><th>읽는 법</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><b>왜도</b> (skew)</td>
+            <td>좌우 비대칭 정도</td>
+            <td>+ 면 오른쪽 긴 꼬리 · 0이면 대칭 · − 면 왼쪽 긴 꼬리<br>
+                <b>절댓값 0.5 넘으면</b> 눈에 띄는 치우침</td>
+          </tr>
+          <tr>
+            <td><b>첨도</b> (kurtosis)</td>
+            <td>꼬리의 두께</td>
+            <td>정규분포가 0(pandas 기준). <b>클수록 극단값이 자주</b> 나옴</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      <code>visitors</code> 의 왜도가 <b>2.55</b>, 첨도가 <b>26.6</b> 으로 매우 큽니다.
+      "방송 대박 하루(754명)" 때문입니다. 값 하나가 이 지표들을 통째로 흔든 겁니다.
+      반면 <code>avg_temp</code> 는 왜도가 거의 <b>0</b> — 사계절이 대칭적으로 오가니까요.
+    </p>
+
+    <div class="takeaway">
+      <b>평균과 중앙값을 나란히 보세요 ·</b>
+      <code>visitors</code> 는 평균 176.5, 중앙값 169로 <b>평균이 더 큽니다.</b>
+      이것만으로도 "오른쪽으로 치우쳤다"를 알 수 있습니다.
+      왜도를 계산하기 전에 이 비교부터 하는 게 빠릅니다.
+    </div>
+
+    <div class="practice">
+      <b>왜도가 크면 무엇을 바꿔야 하나</b>
+      <ul>
+        <li>대표값을 <b>평균 → 중앙값</b>으로 바꾼다</li>
+        <li>퍼짐을 <b>표준편차 → IQR</b>로 바꾼다</li>
+        <li>"평균 ± σ" 해석을 <b>쓰지 않는다</b> (음수 구간이 나올 수 있음)</li>
+        <li>필요하면 <b>로그 변환</b> 후 분석한다</li>
+      </ul>
+    </div>
+
+    <h2 id="s6">6. agg — 한 번에 여러 통계</h2>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="5-6. 여러 열 × 여러 통계">
+    결과 = df.agg({
+        "visitors": ["count", "mean", "median", "std", "min", "max"],
+        "sales":    ["count", "mean", "median", "std", "min", "max"],
+    })
+    print(결과.round(1).to_string())
+    </div>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="5-7. describe 를 원하는 대로">
+    # 기본 describe 는 25/50/75% 만 보여준다. 원하는 분위수를 지정할 수 있다.
+    df[["visitors", "sales"]].describe(percentiles=[0.05, 0.25, 0.5, 0.75, 0.95]).round(1)
+    </div>
+
+    <h2 id="s7">7. 보고서에 어떻게 쓸 것인가</h2>
+
+    <div class="myth">
+      <div class="bad">
+        <b>✗ 정보가 절반도 안 되는 보고</b>
+        "일평균 방문객은 177명입니다."
+      </div>
+      <div class="good">
+        <b>✓ 판단할 수 있는 보고</b>
+        "일평균 방문객 <b>177명</b> (중앙값 169, SD 49, IQR 146–200, n=731).
+        오른쪽으로 치우쳐 있으며(왜도 2.5), 상위 5%인 날은 260명을 넘습니다."
+      </div>
+    </div>
+
+    <div class="practice">
+      <b>중심값에는 반드시 짝이 있습니다</b>
+      <div class="tbl-wrap" style="margin:8px 0 0">
+        <table class="tbl">
+          <thead><tr><th>데이터 성격</th><th>중심</th><th>퍼짐</th><th>함께 적을 것</th></tr></thead>
+          <tbody>
+            <tr><td>대칭 · 이상치 없음</td><td>평균</td><td>표준편차</td><td>n</td></tr>
+            <tr><td>치우침 · 이상치 있음</td><td>중앙값</td><td>IQR 또는 p95</td><td>n, 이상치 처리 방법</td></tr>
+            <tr><td>비교가 목적</td><td>평균</td><td>CV</td><td>단위가 같은지 확인</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="연습 · 직접 써보세요">
+    # 문제 1. 매출(sales)의 평균, 중앙값, 표준편차, IQR을 한 번에 출력해보세요.
+
+
+    # 문제 2. 매출의 CV(변동계수)를 구하고, 방문객의 CV와 비교해보세요.
+    #        어느 쪽이 더 들쭉날쭉한가요?
+
+
+    # 문제 3. 방문객이 0인 날(휴점)을 제외하면 평균과 표준편차가 어떻게 달라지나요?
+    </div>
+
+    <details style="margin:18px 0">
+      <summary style="cursor:pointer;font-weight:600;color:var(--accent)">모범 답안 보기</summary>
+      <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="모범 답안">
+      s = df["sales"].dropna()
+
+      # 문제 1
+      q1, q3 = s.quantile(0.25), s.quantile(0.75)
+      print(f"평균 {s.mean():,.0f}  중앙값 {s.median():,.0f}  SD {s.std():,.0f}  IQR {q3-q1:,.0f}")
+
+      # 문제 2
+      print(f"\n매출   CV {s.std()/s.mean()*100:.1f}%")
+      print(f"방문객 CV {v.std()/v.mean()*100:.1f}%")
+
+      # 문제 3
+      영업일 = df[df["visitors"] > 0]["visitors"]
+      print(f"\n전체     평균 {v.mean():.1f}  SD {v.std():.1f}  n={len(v)}")
+      print(f"영업일만 평균 {영업일.mean():.1f}  SD {영업일.std():.1f}  n={len(영업일)}")
+      </div>
+      <p style="font-size:13.5px;color:var(--text-dim)">
+        문제 3이 중요합니다. 휴점 이틀을 빼면 평균이 <b>올라가고</b> 표준편차가 <b>내려갑니다.</b>
+        "우리 카페 일평균 방문객"을 물었을 때 <b>휴점일을 포함하는 게 맞을까요?</b>
+        답은 목적에 달렸습니다 — 매장 운영 효율을 보려면 빼야 하고,
+        월 매출을 예측하려면 넣어야 합니다.
+        <b>정답은 없지만, 무엇을 했는지 밝히는 건 필수</b>입니다.
+      </p>
+    </details>
+
+    <div class="colab-cta">
+      <div class="colab-text">
+        <b>더 자유롭게 해보고 싶다면</b>
+        Google Colab에서 같은 데이터로 실습할 수 있습니다.
+      </div>
+      <a class="btn" id="colab-link" href="#" target="_blank" rel="noopener">Colab에서 열기</a>
+    </div>
+
+    <div class="summary">
+      <h3>5강 요약</h3>
+      <ul>
+        <li>분산 = 표준편차². 보고할 땐 <b>단위가 살아 있는 표준편차</b>로.</li>
+        <li><b>ddof 함정</b> — pandas는 n−1, numpy는 n이 기본. 명시할 것.</li>
+        <li>분위수는 <b>용량 설계</b>(p95·p99)와 <b>이상치에 강한 요약</b>(IQR)에 쓴다. 평균 낼 수 없다.</li>
+        <li><b>CV = s/x̄</b> 로 단위가 다른 지표를 비교. 단, 음수가 있는 값엔 쓰지 말 것.</li>
+        <li>왜도 &gt; 0.5면 치우침 → 중앙값·IQR로 전환. <b>평균 vs 중앙값 비교가 더 빠르다.</b></li>
+        <li>중심값은 <b>반드시 퍼짐·n과 함께</b> 보고한다.</li>
+      </ul>
+    </div>
+
+    <p class="next-up">
+      다음 → <b>6강 · 그룹별로 나눠 보기</b><br>
+      전체 평균이 숨기고 있던 패턴을 요일별·월별로 쪼개서 드러냅니다.
+    </p>
+  </section>
+
+</div>
+
+<script src="../assets/viz.js?v=312b9476b0"></script>
+<script src="../assets/pylab.js?v=869ae9b12b"></script>
+<script src="../assets/pycell.js?v=6dacc4c6ce"></script>
+<script>
+(function () {
+  var a = document.getElementById('colab-link');
+  if (a) a.href = 'https://colab.research.google.com/github/mioon1402/timeseriesdata/blob/main/notebooks/p05-summary-stats.ipynb';
+})();
+</script>
+</body>
+</html>
