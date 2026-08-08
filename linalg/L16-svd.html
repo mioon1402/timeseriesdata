@@ -1,0 +1,557 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>특이값 분해 (SVD) · 선형대수</title>
+<meta name="description" content="단위원이 타원으로 변하는 그림 하나가 SVD의 전부입니다. 어떤 모양의 행렬에도 통합니다.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%E2%9E%97%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css?v=b7dfb076b2">
+<link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">선형대수 16강 · 특이값 분해</p>
+    <h1>특이값 분해 (SVD)</h1>
+    <p class="lede">
+      고유분해는 <b>정사각행렬</b>에만, 스펙트럼 정리는 <b>대칭행렬</b>에만 통했습니다.
+      <b>SVD 는 어떤 모양의 행렬에도 항상 존재합니다.</b>
+      그리고 그림은 딱 하나입니다 — <b>단위원이 타원이 된다.</b>
+      선형대수의 최종 병기라 불리는 이유입니다.
+    </p>
+  </header>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 강의에서 배우는 것</b>
+      <ol>
+        <li><a href="#s0">기초 다지기 — 고유분해의 한계</a></li>
+        <li><a href="#s1">단위원 → 타원 (직접 해보기)</a></li>
+        <li><a href="#s2">A = UΣVᵀ — 회전·늘림·회전</a></li>
+        <li><a href="#s3">어떻게 찾는가 — AᵀA 의 힘</a></li>
+        <li><a href="#s4">특이값이 알려주는 것</a></li>
+        <li><a href="#s5">SVD 와 네 부분공간</a></li>
+        <li><a href="#s6">numpy 로 확인하기</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s0">0. 기초 다지기 — 고유분해의 한계</h2>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>분해</th><th>조건</th><th>문제</th></tr></thead>
+        <tbody>
+          <tr><td><span class="m">A = SΛS<sup>−1</sup></span></td><td>정사각 + 독립 고유벡터 n개</td>
+              <td>전단행렬처럼 <b>실패할 수 있음</b>. S가 직교가 아니라 <b>수치적으로 불안정</b></td></tr>
+          <tr><td><span class="m">S = QΛQ<sup>T</sup></span></td><td><b>대칭</b>행렬</td>
+              <td>완벽하지만 <b>적용 범위가 너무 좁음</b></td></tr>
+          <tr><td><b><span class="m">A = UΣV<sup>T</sup></span></b></td><td><b>없음</b></td>
+              <td><b>모든 <span class="m">m×n</span> 실수 행렬에 항상 존재</b></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout">
+      <b>왜 항상 되는가 — 한 줄 아이디어</b><br>
+      고유분해는 <b>같은 기저</b>를 입력과 출력에 쓰려다 실패합니다.
+      SVD 는 <b>입력 쪽과 출력 쪽에 서로 다른 기저를 씁니다.</b>
+      <br><br>
+      "입력 공간에 좋은 직교 기저 <span class="m">V</span> 를 고르고,
+      출력 공간에도 따로 직교 기저 <span class="m">U</span> 를 골라서
+      <b>둘 사이를 그냥 늘이기만</b> 하도록 만든다" —
+      자유도가 두 배라서 <b>언제나 성공</b>합니다.
+    </div>
+
+    <h2 id="s1">1. 단위원 → 타원</h2>
+    <p>
+      아래에서 행렬 값을 바꿔보세요. <b>왼쪽의 원 위 벡터</b>가
+      <b>오른쪽의 타원 위</b>로 갑니다.
+      <b>직교하는 두 방향(초록·보라)이 변환 후에도 직교</b>한다는 게 핵심입니다.
+    </p>
+
+    <div class="panel">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px">
+        <div>
+          <p class="panel-title" style="text-align:center">입력 — 단위원과 v₁, v₂</p>
+          <div class="board"><canvas id="cv-in"></canvas></div>
+        </div>
+        <div>
+          <p class="panel-title" style="text-align:center">출력 — 타원과 σ₁u₁, σ₂u₂</p>
+          <div class="board"><canvas id="cv-out"></canvas></div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">a</span><span class="val" id="a11-val">3</span></span>
+          <input type="range" id="a11" min="-3" max="4" step="0.25" value="3">
+        </label>
+        <label class="ctrl">
+          <span class="label-row"><span class="name">b</span><span class="val" id="a12-val">0</span></span>
+          <input type="range" id="a12" min="-3" max="4" step="0.25" value="0">
+        </label>
+        <label class="ctrl">
+          <span class="label-row"><span class="name">c</span><span class="val" id="a21-val">4</span></span>
+          <input type="range" id="a21" min="-3" max="4" step="0.25" value="4">
+        </label>
+        <label class="ctrl">
+          <span class="label-row"><span class="name">d</span><span class="val" id="a22-val">5</span></span>
+          <input type="range" id="a22" min="-3" max="4" step="0.25" value="5">
+        </label>
+      </div>
+
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">임의의 벡터 각도 (°)</span><span class="val" id="th-val">105</span></span>
+          <input type="range" id="th" min="0" max="360" step="1" value="105">
+        </label>
+        <label class="toggle"><input type="checkbox" id="flat"> 특이행렬로 (열이 평행)</label>
+      </div>
+
+      <div class="readout">
+        <div class="stat pos"><span class="k">v₁ (입력 축)</span><span class="v" id="s-v1">–</span></div>
+        <div class="stat purple"><span class="k">v₂</span><span class="v" id="s-v2">–</span></div>
+        <div class="stat warn"><span class="k">특이값 σ₁, σ₂</span><span class="v" id="s-sig">–</span></div>
+        <div class="stat accent"><span class="k">u₁ (출력 축)</span><span class="v" id="s-u1">–</span></div>
+        <div class="stat"><span class="k">조건수 σ₁/σ₂</span><span class="v" id="s-cond">–</span></div>
+        <div class="stat neg"><span class="k">랭크</span><span class="v" id="s-rank">–</span></div>
+      </div>
+    </div>
+
+    <div class="takeaway">
+      <b>SVD 의 기하학적 사실 ·</b>
+      "단위원 위에서 <b>서로 직교한 두 방향</b>을 잘 고르면,
+      <b>변환 후에도 여전히 직교</b>하게 만들 수 있다."
+      <br><br>
+      그 <b>입력 쪽 방향</b>이 <span class="m">v₁, v₂</span>,
+      <b>출력 쪽 방향</b>이 <span class="m">u₁, u₂</span>,
+      <b>늘어난 배율</b>이 <span class="m">σ₁, σ₂</span> 입니다.
+      그리고 이 방향들이 <b>타원의 장축·단축</b>이죠.
+    </div>
+
+    <h2 id="s2">2. A = UΣVᵀ — 회전·늘림·회전</h2>
+
+    <div class="formula">
+      <div class="name">특이값 분해</div>
+      <div class="eq" style="font-size:18px">
+        A &nbsp;=&nbsp; U Σ V<sup>T</sup>
+      </div>
+      <ul class="where">
+        <li><span class="sym">V</span><span class="desc"><b>입력 쪽 직교 기저</b> (n×n).
+            열이 <b>오른쪽 특이벡터</b> <span class="m">v<sub>i</sub></span></span></li>
+        <li><span class="sym">Σ</span><span class="desc"><b>특이값</b> <span class="m">σ₁ ≥ σ₂ ≥ ⋯ ≥ 0</span> 을
+            대각에 둔 m×n 행렬. <b>전부 0 이상</b>입니다</span></li>
+        <li><span class="sym">U</span><span class="desc"><b>출력 쪽 직교 기저</b> (m×m).
+            열이 <b>왼쪽 특이벡터</b> <span class="m">u<sub>i</sub></span></span></li>
+      </ul>
+    </div>
+
+    <div class="formula">
+      <div class="name">벡터 수준으로 풀면</div>
+      <div class="eq" style="font-size:17px">
+        A v<sub>i</sub> &nbsp;=&nbsp; σ<sub>i</sub> u<sub>i</sub>
+      </div>
+      <ul class="where">
+        <li><span class="sym">고유값과 비교</span><span class="desc"><span class="m">Ax = λx</span> 는
+            <b>같은 x</b> 가 양쪽에 있지만, SVD 는 <b>들어간 것(v)과 나온 것(u)이 다릅니다.</b>
+            그 자유도 덕분에 <b>정사각이 아니어도</b> 됩니다</span></li>
+      </ul>
+    </div>
+
+    <div class="callout">
+      <b>세 동작으로 읽기</b><br>
+      <span class="m">Ax = U Σ V<sup>T</sup> x</span> 를 오른쪽부터:
+      <br><br>
+      <b>①<span class="m">V<sup>T</sup></span></b> — 입력 공간에서 <b>회전</b> (v 축들을 좌표축에 맞춤)<br>
+      <b>②<span class="m">Σ</span></b> — 각 축을 <b>σ배 늘림</b> (여기서만 모양이 변함)<br>
+      <b>③<span class="m">U</span></b> — 출력 공간에서 <b>회전</b>
+      <br><br>
+      <b>어떤 선형변환이든 "돌리고 → 늘이고 → 돌리기"로 분해된다</b>는 뜻입니다.
+      늘이는 것 말고는 아무 일도 안 일어납니다.
+    </div>
+
+    <h2 id="s3">3. 어떻게 찾는가 — AᵀA 의 힘</h2>
+    <p>
+      비대칭 직사각 행렬에서 어떻게 직교 기저를 찾을까요?
+      <b>대칭행렬을 스스로 만들어냅니다.</b>
+    </p>
+
+    <div class="formula">
+      <div class="name">유도</div>
+      <div class="eq" style="font-size:14.5px;line-height:2.3;text-align:left;padding-left:22px">
+        A<sup>T</sup>A = (UΣV<sup>T</sup>)<sup>T</sup>(UΣV<sup>T</sup>)
+        = VΣ<sup>T</sup><span style="color:var(--pos)">U<sup>T</sup>U</span>ΣV<sup>T</sup>
+        = <b>V (Σ<sup>T</sup>Σ) V<sup>T</sup></b><br>
+        <span class="small">↑ 이건 대칭행렬의 <b>스펙트럼 분해</b>(15강)다!</span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">V</span><span class="desc"><b><span class="m">A<sup>T</sup>A</span> 의 고유벡터</b> (n×n 대칭)</span></li>
+        <li><span class="sym">U</span><span class="desc"><b><span class="m">AA<sup>T</sup></span> 의 고유벡터</b> (m×m 대칭)</span></li>
+        <li><span class="sym">σ<sub>i</sub></span><span class="desc">= <b>√(고윳값)</b>.
+            <span class="m">A<sup>T</sup>A</span> 는 PSD 라 고윳값이 <b>음수가 아니므로</b>(15강)
+            제곱근이 항상 실수입니다</span></li>
+      </ul>
+    </div>
+
+    <div class="takeaway">
+      <b>15강이 여기서 쓰입니다 ·</b>
+      <span class="m">A<sup>T</sup>A</span> 는 <b>항상 대칭이고 항상 PSD</b> 였습니다.
+      그래서 <b>스펙트럼 정리가 언제나 적용</b>되고,
+      고윳값이 <b>음수가 아니라</b> √를 씌울 수 있죠.
+      <b>SVD 가 항상 존재하는 진짜 이유</b>가 이것입니다.
+    </div>
+
+    <div class="pitfall">
+      <b>실제 계산은 <span class="m">A<sup>T</sup>A</span> 로 하지 않습니다</b>
+      11강에서 봤듯이 <span class="m">A<sup>T</sup>A</span> 를 만들면 <b>조건수가 제곱</b>됩니다.
+      <span class="m">σ</span> 가 작은 쪽이 반올림 오차에 묻혀버리죠.
+      <br><br>
+      <b>위 유도는 "왜 존재하는가"를 설명할 뿐</b>이고,
+      <code>numpy.linalg.svd</code> 는 A 를 직접 다루는
+      <b>이중대각화 + QR 반복</b> 알고리즘을 씁니다.
+    </div>
+
+    <h2 id="s4">4. 특이값이 알려주는 것</h2>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>특이값에서</th><th>얻는 것</th></tr></thead>
+        <tbody>
+          <tr><td><b>0이 아닌 σ 의 개수</b></td><td><b>랭크</b>. 가장 <b>믿을 만한 랭크 계산법</b>입니다</td></tr>
+          <tr><td><span class="m">σ<sub>1</sub></span> (최대)</td><td><b>최대 확대율</b>. <span class="m">‖A‖₂</span> (스펙트럼 노름)</td></tr>
+          <tr><td><span class="m">σ<sub>1</sub> / σ<sub>r</sub></span></td><td><b>조건수</b>. 계산이 얼마나 위험한지</td></tr>
+          <tr><td><span class="m">Π σ<sub>i</sub></span></td><td><b>|det|</b> (정사각일 때). 부피 확대율(12강)</td></tr>
+          <tr><td><span class="m">σ</span> 가 급격히 작아지는 지점</td><td><b>정보의 유효 차원</b>. 압축·잡음 제거의 기준(17강)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout">
+      <b>랭크는 SVD 로 판정합니다</b><br>
+      12강에서 <b>det 로 특이성을 판정하면 안 된다</b>고 했습니다.
+      소거로 세는 피봇 개수도 <b>반올림 오차에 취약</b>합니다.
+      <br><br>
+      실제로 <code>np.linalg.matrix_rank</code> 는 내부에서 <b>SVD 를 돌려
+      "충분히 큰 σ 의 개수"</b> 를 셉니다.
+      "얼마나 0에 가까운가"를 <b>연속적인 값으로</b> 볼 수 있어서죠.
+    </div>
+
+    <h2 id="s5">5. SVD 와 네 부분공간</h2>
+    <p>
+      7강의 Big Picture 가 SVD 로 <b>완전히 채워집니다.</b>
+      U 와 V 의 열들이 네 부분공간의 <b>정규직교 기저</b>를 그대로 줍니다.
+    </p>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>부분공간</th><th>기저</th><th>차원</th></tr></thead>
+        <tbody>
+          <tr><td><b>행공간</b> <span class="m">C(A<sup>T</sup>)</span></td>
+              <td><span class="m">v<sub>1</sub> … v<sub>r</sub></span></td><td>r</td></tr>
+          <tr><td><b>영공간</b> <span class="m">N(A)</span></td>
+              <td><span class="m">v<sub>r+1</sub> … v<sub>n</sub></span></td><td>n − r</td></tr>
+          <tr><td><b>열공간</b> <span class="m">C(A)</span></td>
+              <td><span class="m">u<sub>1</sub> … u<sub>r</sub></span></td><td>r</td></tr>
+          <tr><td><b>좌영공간</b> <span class="m">N(A<sup>T</sup>)</span></td>
+              <td><span class="m">u<sub>r+1</sub> … u<sub>m</sub></span></td><td>m − r</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="takeaway">
+      <b>왜 이렇게 되나 ·</b> <span class="m">σ<sub>i</sub> = 0</span> 이면
+      <span class="m">Av<sub>i</sub> = 0·u<sub>i</sub> = 0</span> —
+      그 <span class="m">v<sub>i</sub></span> 는 <b>영공간</b>에 있습니다.
+      <span class="m">σ<sub>i</sub> &gt; 0</span> 인 <span class="m">v<sub>i</sub></span> 들은
+      <b>행공간</b>을 이루고, 그 상들 <span class="m">u<sub>i</sub></span> 가 <b>열공간</b>을 이룹니다.
+      <br><br>
+      게다가 <b>전부 정규직교</b>입니다. 8강에서 증명한 직교성이
+      <b>기저 수준에서 눈에 보이게</b> 정리된 셈이죠.
+    </div>
+
+    <h2 id="s6">6. numpy 로 확인하기</h2>
+
+    <div class="pycell" data-packages="numpy" data-title="16-1. SVD 계산과 복원">
+    import numpy as np
+    np.set_printoptions(precision=4, suppress=True)
+
+    A = np.array([[3., 0.],
+                  [4., 5.]])
+
+    U, σ, Vt = np.linalg.svd(A)      # 주의: 세 번째는 V 가 아니라 Vᵀ 다
+
+    print("U =")
+    print(U)
+    print("\nσ =", σ, "  ← 내림차순, 전부 0 이상")
+    print("\nVᵀ =")
+    print(Vt)
+    print()
+    print("복원 U @ diag(σ) @ Vᵀ =")
+    print(U @ np.diag(σ) @ Vt)
+    print("A 와 같은가:", np.allclose(U @ np.diag(σ) @ Vt, A))
+    </div>
+
+    <div class="pitfall">
+      <b><code>svd</code> 는 <span class="m">V</span> 가 아니라 <span class="m">V<sup>T</sup></span> 를 돌려줍니다</b>
+      <span class="m">v<sub>i</sub></span> 를 꺼내려면 <code>Vt[i]</code> (행) 또는 <code>Vt.T[:, i]</code> (열) 입니다.
+      반면 <span class="m">u<sub>i</sub></span> 는 <code>U[:, i]</code> (열)이죠.
+      <b>한쪽은 행, 한쪽은 열</b>이라 헷갈리기 쉽습니다.
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="16-2. Avᵢ = σᵢuᵢ 확인">
+    for i in range(2):
+        v = Vt[i]                    # i번째 오른쪽 특이벡터 (행!)
+        u = U[:, i]                  # i번째 왼쪽 특이벡터 (열!)
+        print(f"i={i}:  A@v = {np.round(A @ v, 4)}   σ·u = {np.round(σ[i] * u, 4)}   "
+              f"같은가: {np.allclose(A @ v, σ[i] * u)}")
+
+    print()
+    print("UᵀU =", np.round(U.T @ U, 10).tolist(), " ← 직교")
+    print("VᵀV =", np.round(Vt @ Vt.T, 10).tolist(), " ← 직교")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="16-3. 원이 정말 타원이 되는가">
+    각도 = np.linspace(0, 2*np.pi, 8, endpoint=False)
+    원 = np.column_stack([np.cos(각도), np.sin(각도)])     # 단위원 위 8개 점
+
+    타원 = 원 @ A.T                                        # 각 점에 A 를 적용
+
+    print(f"{'입력(길이 1)':>22}  {'출력':>22}  {'길이':>8}")
+    for i in range(len(원)):
+        print(f"{str(np.round(원[i], 3)):>22}  {str(np.round(타원[i], 3)):>22}  {np.linalg.norm(타원[i]):8.4f}")
+
+    print()
+    print(f"출력 길이의 최대 = {np.linalg.norm(타원, axis=1).max():.4f}  (σ₁ = {σ[0]:.4f} 에 근접)")
+    print(f"           최소 = {np.linalg.norm(타원, axis=1).min():.4f}  (σ₂ = {σ[1]:.4f} 이상)")
+    print("→ 점을 촘촘히 찍을수록 정확히 σ₁, σ₂ 에 도달한다")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="16-4. σ² 는 AᵀA 의 고윳값">
+    AtA = A.T @ A
+    print("AᵀA =")
+    print(AtA, "  대칭:", np.allclose(AtA, AtA.T))
+    print()
+    print("AᵀA 의 고윳값 =", np.sort(np.linalg.eigvalsh(AtA))[::-1])
+    print("σ²          =", σ ** 2)
+    print("같은가:", np.allclose(np.sort(np.linalg.eigvalsh(AtA))[::-1], σ ** 2))
+    print()
+    print("AAᵀ 의 고윳값 =", np.sort(np.linalg.eigvalsh(A @ A.T))[::-1], " ← 같다")
+    print("→ AᵀA 와 AAᵀ 는 크기가 달라도 0 아닌 고윳값이 동일하다")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="16-5. 직사각·특이 행렬도 전부 된다">
+    행렬들 = {
+        "정사각 가역"   : np.array([[3., 0.], [4., 5.]]),
+        "키가 큰 4×2"   : np.array([[1., 0.], [0., 1.], [1., 1.], [2., -1.]]),
+        "납작한 2×4"    : np.array([[1., 2., 3., 4.], [5., 6., 7., 8.]]),
+        "랭크 1 (특이)" : np.array([[1., 2., 3.], [2., 4., 6.]]),
+        "영행렬"        : np.zeros((2, 3)),
+    }
+
+    for 이름, Mx in 행렬들.items():
+        U2, s2, Vt2 = np.linalg.svd(Mx)
+        복원 = U2[:, :len(s2)] @ np.diag(s2) @ Vt2[:len(s2)]
+        print(f"{이름:16s} {str(Mx.shape):8s} σ = {np.round(s2, 4)}")
+        print(f"{'':16s} 랭크 {np.linalg.matrix_rank(Mx)}   복원 정확: {np.allclose(복원, Mx)}")
+    print()
+    print("→ 어떤 모양이든, 특이해도, 영행렬이어도 SVD 는 존재한다")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="16-6. 특이값이 알려주는 것들">
+    B = np.array([[3., 0.], [4., 5.]])
+    U3, s3, Vt3 = np.linalg.svd(B)
+
+    print("σ =", s3)
+    print()
+    print("랭크         =", int((s3 > 1e-10).sum()), " (numpy:", np.linalg.matrix_rank(B), ")")
+    print("‖B‖₂ (최대확대) =", s3[0], " (numpy:", round(np.linalg.norm(B, 2), 6), ")")
+    print("조건수        =", s3[0] / s3[-1], " (numpy:", round(np.linalg.cond(B), 6), ")")
+    print("|det|        =", np.prod(s3), " (numpy:", round(abs(np.linalg.det(B)), 6), ")")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="16-7. 네 부분공간의 기저">
+    C = np.array([[1., 2., 3.],
+                  [2., 4., 6.],
+                  [1., 1., 1.]])
+    U4, s4, Vt4 = np.linalg.svd(C)
+    r = int((s4 > 1e-10).sum())
+    m, n = C.shape
+
+    print("σ =", np.round(s4, 6), "  랭크 r =", r)
+    print()
+    print(f"열공간   기저 = U 의 앞 {r}열")
+    print(np.round(U4[:, :r], 4))
+    print(f"\n좌영공간 기저 = U 의 나머지 {m-r}열")
+    print(np.round(U4[:, r:], 4))
+    print(f"\n행공간   기저 = Vᵀ 의 앞 {r}행")
+    print(np.round(Vt4[:r], 4))
+    print(f"\n영공간   기저 = Vᵀ 의 나머지 {n-r}행")
+    print(np.round(Vt4[r:], 4))
+    print()
+    print("확인: C @ (영공간 기저) =", np.round(C @ Vt4[r:].T, 10).ravel())
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="16-8. 연습문제">
+    # 문제 1. 대각행렬 [[3,0],[0,2]] 의 SVD 는 어떤 모양일까요?
+    #         (힌트: 이미 '늘이기' 만 하고 있다)
+
+    # 문제 2. 회전행렬의 특이값은? 왜 그럴까요?
+
+    # 문제 3. 대칭 양의 정부호 행렬의 SVD 와 고유분해는 어떤 관계일까요?
+    #         [[4,1],[1,3]] 으로 확인해보세요.
+
+    # 아래에 직접 써보세요
+    </div>
+
+    <details style="margin:18px 0">
+      <summary style="cursor:pointer;font-weight:600;color:var(--accent)">모범 답안 보기</summary>
+      <div class="pycell" data-packages="numpy" data-title="모범 답안">
+      # 문제 1 — U 와 V 는 (부호를 빼면) 단위행렬, σ 는 대각 원소
+      D = np.array([[3., 0.], [0., 2.]])
+      U1, s1, V1 = np.linalg.svd(D)
+      print("문제 1: σ =", s1, "\nU =\n", U1, "\nVᵀ =\n", V1)
+      print("→ 이미 축 방향으로만 늘이고 있어 회전이 필요 없다")
+
+      # 문제 2 — 회전은 길이를 보존하므로 모든 σ = 1
+      θ = np.deg2rad(37)
+      R = np.array([[np.cos(θ), -np.sin(θ)], [np.sin(θ), np.cos(θ)]])
+      print("\n문제 2: σ =", np.round(np.linalg.svd(R)[1], 10))
+      print("→ 원이 원으로 간다. 늘어나는 방향이 없으므로 전부 1 (11강)")
+
+      # 문제 3 — PD 대칭이면 σ = λ, U = V = Q
+      S3 = np.array([[4., 1.], [1., 3.]])
+      λ3, Q3 = np.linalg.eigh(S3)
+      U3, s3, Vt3 = np.linalg.svd(S3)
+      print("\n문제 3: 고윳값 =", np.sort(λ3)[::-1], "   σ =", s3)
+      print("        |U| 와 |V| 가 같은가:", np.allclose(np.abs(U3), np.abs(Vt3.T)))
+      print("→ 양의 정부호 대칭행렬에서는 SVD 와 고유분해가 사실상 같다.")
+      print("   고윳값이 음수면 σ = |λ| 가 되고 부호가 U 로 흡수된다.")
+      </div>
+    </details>
+
+    <div class="practice">
+      <b>실무에서 SVD</b>
+      <ul>
+        <li><b>랭크·조건수 판정</b> — <code>matrix_rank</code>, <code>cond</code>, <code>lstsq</code> 가
+            전부 내부에서 SVD 를 씁니다.</li>
+        <li><b>차원 축소</b> — PCA 는 사실 <b>중심화한 데이터 행렬의 SVD</b> 입니다.
+            공분산 행렬을 만들지 않아 <b>더 정확</b>합니다(20강).</li>
+        <li><b>압축·잡음 제거</b> — 작은 σ 를 버립니다(17강).</li>
+        <li><b>추천 시스템</b> — 사용자-아이템 행렬을 저랭크로 근사(18강).</li>
+        <li><b>의사역행렬</b> — 역행렬이 없어도 <b>가장 합리적인 해</b>를 줍니다(18강).</li>
+      </ul>
+    </div>
+
+    <div class="summary">
+      <h3>16강 요약</h3>
+      <ul>
+        <li><b>SVD 는 모든 <span class="m">m×n</span> 행렬에 항상 존재</b>합니다. 조건이 없습니다.</li>
+        <li>그림 하나: <b>단위원 → 타원.</b> 직교하던 두 방향이 <b>변환 후에도 직교</b>합니다.</li>
+        <li><b><span class="m">A = UΣV<sup>T</sup></span></b> = <b>회전 → 늘림 → 회전</b>.
+            벡터로는 <span class="m">Av<sub>i</sub> = σ<sub>i</sub>u<sub>i</sub></span>.</li>
+        <li>고유분해와의 차이: <b>입력 기저와 출력 기저가 다릅니다.</b> 그 자유도 덕에 항상 성공합니다.</li>
+        <li>존재 이유: <span class="m">A<sup>T</sup>A</span> 가 <b>항상 대칭·PSD</b> 라서
+            스펙트럼 정리가 적용되고 <span class="m">σ = √λ</span> 가 실수입니다(15강).</li>
+        <li>σ 에서 <b>랭크·노름·조건수·|det|</b> 를 전부 읽습니다. <b>랭크 판정의 표준</b>입니다.</li>
+        <li><b>U, V 의 열이 네 부분공간의 정규직교 기저</b>입니다 — 7강 Big Picture 의 완성.</li>
+      </ul>
+    </div>
+
+    <div class="colab-cta">
+      <div class="colab-text">
+        <b>더 자유롭게 실험하고 싶다면</b><br>
+        이 강의의 실습만 모은 노트북을 Colab에서 열 수 있습니다.
+      </div>
+      <a class="btn" id="colab-link" href="#" target="_blank" rel="noopener">Colab에서 열기</a>
+    </div>
+
+    <p class="next-up">
+      다음 → <b>17강 · Low-rank 근사와 이미지 압축</b><br>
+      큰 σ 몇 개만 남기고 버리면 어떻게 될까요?
+      <b>Eckart-Young 정리</b>가 "그게 수학적으로 최선"임을 보장합니다.
+    </p>
+
+  </section>
+
+</div>
+
+<script src="../assets/viz.js?v=312b9476b0"></script>
+<script src="../assets/linalg.js?v=270d914364"></script>
+<script src="../assets/pylab.js?v=cb27f20364"></script>
+<script src="../assets/pycell.js?v=6dacc4c6ce"></script>
+<script>
+(function () {
+  'use strict';
+  var M = LA.M, num = LA.num;
+  function vs(v) { return '(' + num(v[0]) + ', ' + num(v[1]) + ')'; }
+
+  var a11 = 3, a12 = 0, a21 = 4, a22 = 5;
+  var thDeg = 105, flat = false;
+
+  var bIn = new LA.Board(document.getElementById('cv-in'), { range: 2 });
+  var bOut = new LA.Board(document.getElementById('cv-out'), { range: 7 });
+
+  function matrix() {
+    if (!flat) return [[a11, a12], [a21, a22]];
+    // 두 번째 열을 첫 번째 열의 배수로 → 랭크 1
+    return [[a11, a11 * 0.5], [a21, a21 * 0.5]];
+  }
+
+  function draw() {
+    var A = matrix();
+    var sv = M.svd(A);
+    var v1 = sv.V[0], v2 = sv.V[1], u1 = sv.U[0], u2 = sv.U[1];
+    var s1 = sv.sigma[0], s2 = sv.sigma[1];
+
+    var t = thDeg * Math.PI / 180;
+    var x = [Math.cos(t), Math.sin(t)];
+    var Ax = M.mv(A, x);
+
+    /* ---------- 왼쪽: 단위원 ---------- */
+    bIn.begin().grid({ step: 1 });
+    bIn.ellipse(null, { color: V.css('--text-dim'), width: 1.8, alpha: 0.7 });
+    bIn.arrow(v1, { color: V.css('--pos'), width: 3, label: 'v₁' });
+    bIn.arrow(v2, { color: V.css('--purple'), width: 3, label: 'v₂' });
+    bIn.rightAngle([0, 0], v1, v2, { size: 13, color: V.css('--text-dim') });
+    bIn.arrow(x, { color: V.css('--neg'), width: 2.4, label: 'x' });
+
+    /* ---------- 오른쪽: 타원 ---------- */
+    bOut.fit([M.scale(u1, s1), M.scale(u2, s2), Ax]).begin().grid({ step: 1 });
+    bOut.ellipse(A, { color: V.css('--accent'), width: 2.2, alpha: 0.9,
+                      fill: V.css('--accent-soft') });
+    bOut.arrow(M.scale(u1, s1), { color: V.css('--pos'), width: 3, label: 'σ₁u₁' });
+    bOut.arrow(M.scale(u2, s2), { color: V.css('--purple'), width: 3, label: 'σ₂u₂' });
+    if (s2 > 1e-6) {
+      bOut.rightAngle([0, 0], u1, u2, { size: 13, color: V.css('--text-dim') });
+    }
+    bOut.arrow(Ax, { color: V.css('--neg'), width: 2.4, label: 'Ax' });
+
+    /* ---------- 읽기 ---------- */
+    V.setText('#s-v1', vs(v1));
+    V.setText('#s-v2', vs(v2));
+    V.setText('#s-sig', num(s1) + ', ' + num(s2));
+    V.setText('#s-u1', vs(u1));
+    V.setText('#s-cond', s2 > 1e-9 ? num(s1 / s2) : '∞ (특이)');
+    V.setText('#s-rank', s2 > 1e-9 ? '2' : (s1 > 1e-9 ? '1 — 타원이 선으로' : '0'));
+  }
+
+  V.range('a11', function (v) { a11 = v; draw(); });
+  V.range('a12', function (v) { a12 = v; draw(); });
+  V.range('a21', function (v) { a21 = v; draw(); });
+  V.range('a22', function (v) { a22 = v; draw(); });
+  V.range('th', function (v) { thDeg = v; draw(); });
+  V.check('flat', function (on) { flat = on; draw(); });
+
+  V.onRedraw(draw);
+  draw();
+
+  var a2 = document.getElementById('colab-link');
+  if (a2) a2.href = 'https://colab.research.google.com/github/mioon1402/timeseriesdata/blob/main/notebooks/L16-svd.ipynb';
+})();
+</script>
+</body>
+</html>

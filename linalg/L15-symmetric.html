@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>대칭행렬과 양의 정부호 · 선형대수</title>
+<meta name="description" content="고윳값이 전부 실수이고 고유벡터가 직교하는 특별한 행렬. 최적화의 '그릇 모양'을 보장하는 조건.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%E2%9E%97%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css?v=b7dfb076b2">
+<link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">선형대수 15강 · 대칭행렬과 양의 정부호</p>
+    <h1>대칭행렬과 양의 정부호</h1>
+    <p class="lede">
+      데이터 공학에서 만나는 행렬은 이상하리만치 자주 <b>대칭</b>입니다 —
+      공분산 행렬, <span class="m">A<sup>T</sup>A</span>, 그래프의 인접 행렬, 헤시안.
+      우연이 아닙니다. 그리고 대칭행렬은 <b>모든 것이 잘 풀립니다</b> —
+      고윳값이 전부 실수이고, 고유벡터가 <b>저절로 직교</b>합니다.
+    </p>
+  </header>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 강의에서 배우는 것</b>
+      <ol>
+        <li><a href="#s0">기초 다지기 — 왜 대칭행렬이 자주 나오나</a></li>
+        <li><a href="#s1">스펙트럼 정리 — S = QΛQᵀ</a></li>
+        <li><a href="#s2">양의 정부호 — 네 가지 동치 조건</a></li>
+        <li><a href="#s3">이차 형식과 그릇 모양 (직접 해보기)</a></li>
+        <li><a href="#s4">타원의 축이 곧 고유벡터</a></li>
+        <li><a href="#s5">Rayleigh 몫과 PCA</a></li>
+        <li><a href="#s6">numpy 로 확인하기</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s0">0. 기초 다지기 — 왜 대칭행렬이 자주 나오나</h2>
+    <p>
+      <b>대칭행렬</b>은 <span class="m">S<sup>T</sup> = S</span>,
+      즉 <b>대각선을 기준으로 거울처럼 같은</b> 행렬입니다.
+      <span class="m">s<sub>ij</sub> = s<sub>ji</sub></span> 이죠.
+    </p>
+
+    <div class="callout">
+      <b>"관계"를 담으면 대칭이 됩니다</b><br>
+      A와 B의 <b>상관관계</b>는 B와 A의 상관관계와 같습니다.
+      두 도시 사이의 <b>거리</b>도 방향에 무관하죠.
+      친구 관계도 서로에게 성립합니다.
+      <br><br>
+      이렇게 <b>순서가 상관없는 관계</b>를 행렬로 담으면 <b>자동으로 대칭</b>이 됩니다.
+      데이터 분석이 결국 "변수들 사이의 관계"를 다루는 일이라 대칭행렬이 계속 나오는 겁니다.
+    </div>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>대칭행렬</th><th>어디서</th></tr></thead>
+        <tbody>
+          <tr><td><b>공분산 행렬</b> <span class="m">Σ</span></td><td>통계·PCA. Cov(X,Y) = Cov(Y,X)</td></tr>
+          <tr><td><b><span class="m">A<sup>T</sup>A</span></b></td><td>최소제곱(10강), SVD(16강). <b>항상 대칭</b>입니다</td></tr>
+          <tr><td><b>헤시안 행렬</b> H</td><td>최적화. 편미분 순서가 무관하므로 대칭</td></tr>
+          <tr><td><b>인접 행렬</b></td><td>무방향 그래프. 소셜 네트워크</td></tr>
+          <tr><td><b>거리·유사도 행렬</b></td><td>클러스터링, 커널 방법</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="15-0. AᵀA 는 항상 대칭이다">
+    import numpy as np
+    np.set_printoptions(precision=4, suppress=True)
+
+    rng = np.random.default_rng(0)
+    for m, n in [(5, 3), (3, 7), (4, 4)]:
+        A = rng.normal(size=(m, n))
+        S = A.T @ A
+        print(f"A 가 {m}×{n} → AᵀA 는 {S.shape}, 대칭인가: {np.allclose(S, S.T)}")
+
+    print()
+    print("증명: (AᵀA)ᵀ = Aᵀ(Aᵀ)ᵀ = AᵀA   ← 4강의 (AB)ᵀ = BᵀAᵀ")
+    </div>
+
+    <h2 id="s1">1. 스펙트럼 정리 — S = QΛQᵀ</h2>
+
+    <div class="formula">
+      <div class="name">스펙트럼 정리 (Spectral Theorem)</div>
+      <div class="eq" style="font-size:15px;line-height:2.2">
+        <b>①</b> 실수 대칭행렬의 고윳값은 <b>항상 실수</b>다<br>
+        <b>②</b> 서로 다른 고윳값의 고유벡터는 <b>항상 직교</b>한다<br>
+        ⟹ &nbsp; <b>S = Q Λ Q<sup>T</sup></b>
+      </div>
+      <ul class="where">
+        <li><span class="sym">Q</span><span class="desc"><b>직교행렬</b>(11강). 고유벡터가 정규직교기저를 이룹니다</span></li>
+        <li><span class="sym">Q<sup>T</sup></span><span class="desc">14강의 <span class="m">S<sup>−1</sup></span> 자리에
+            <b>전치가 들어왔습니다</b>. <span class="m">Q<sup>−1</sup> = Q<sup>T</sup></span> 이니까요 —
+            역행렬 계산이 사라집니다</span></li>
+        <li><span class="sym">항상 대각화</span><span class="desc">대칭행렬은 <b>결손행렬이 될 수 없습니다.</b>
+            고윳값이 중복이어도 고유벡터가 충분히 나옵니다</span></li>
+      </ul>
+    </div>
+
+    <div class="callout">
+      <b>②의 증명 — 세 줄</b><br>
+      <span class="m">Sx = λx</span>, <span class="m">Sy = μy</span>, <span class="m">λ ≠ μ</span> 라 하면
+      <br>
+      <span class="m">λ(x<sup>T</sup>y) = (Sx)<sup>T</sup>y = x<sup>T</sup>S<sup>T</sup>y
+      = x<sup>T</sup>Sy = μ(x<sup>T</sup>y)</span>
+      <br>
+      ⟹ <span class="m">(λ − μ)(x<sup>T</sup>y) = 0</span>, 그런데 <span class="m">λ ≠ μ</span> 이므로
+      <b><span class="m">x<sup>T</sup>y = 0</span></b> ∎
+      <br><br>
+      <b><span class="m">S<sup>T</sup> = S</span> 를 쓴 가운데 단계가 전부</b>입니다.
+      대칭이 아니면 이 증명이 무너집니다.
+    </div>
+
+    <div class="formula">
+      <div class="name">외적 합으로 읽으면</div>
+      <div class="eq" style="font-size:15px">
+        S = λ<sub>1</sub> q<sub>1</sub>q<sub>1</sub><sup>T</sup>
+        + λ<sub>2</sub> q<sub>2</sub>q<sub>2</sub><sup>T</sup> + ⋯
+        + λ<sub>n</sub> q<sub>n</sub>q<sub>n</sub><sup>T</sup>
+      </div>
+      <ul class="where">
+        <li><span class="sym">q q<sup>T</sup></span><span class="desc">9강의 <b>투영행렬</b>입니다
+            (정규직교이므로 <span class="m">P = qq<sup>T</sup></span>)</span></li>
+        <li><span class="sym">읽는 법</span><span class="desc">"S 는 <b>서로 수직인 방향으로의 투영들을 λ배씩 섞은 것</b>"</span></li>
+        <li><span class="sym">4강 ④관점</span><span class="desc">행렬 곱의 <b>외적 합</b> 관점 그대로입니다.
+            16·17강에서 이 형태가 <b>압축</b>의 열쇠가 됩니다</span></li>
+      </ul>
+    </div>
+
+    <h2 id="s2">2. 양의 정부호 — 네 가지 동치 조건</h2>
+    <p>
+      대칭행렬 중에서도 <b>고윳값이 전부 양수</b>인 것을
+      <b>양의 정부호(Positive Definite, PD)</b> 라고 합니다.
+      최적화 이론의 중심에 있는 개념이죠.
+    </p>
+
+    <div class="formula">
+      <div class="name">정의</div>
+      <div class="eq" style="font-size:17px">
+        <b>모든 x ≠ 0 에 대해 &nbsp; x<sup>T</sup>S x &gt; 0</b>
+      </div>
+      <ul class="where">
+        <li><span class="sym">x<sup>T</sup>Sx</span><span class="desc"><b>이차 형식</b>(quadratic form).
+            벡터를 넣으면 <b>숫자 하나</b>가 나옵니다 — 일종의 "에너지"</span></li>
+      </ul>
+    </div>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>관점</th><th>조건</th><th>확인법</th></tr></thead>
+        <tbody>
+          <tr><td><b>① 에너지</b></td><td>모든 <span class="m">x≠0</span> 에 대해 <span class="m">x<sup>T</sup>Sx &gt; 0</span></td>
+              <td>정의. 직접 확인은 어려움</td></tr>
+          <tr><td><b>② 고윳값</b></td><td>모든 <span class="m">λ<sub>i</sub> &gt; 0</span></td>
+              <td><code>eigvalsh</code> — 가장 직관적</td></tr>
+          <tr><td><b>③ 피봇</b></td><td>소거했을 때 <b>모든 피봇 &gt; 0</b></td>
+              <td>3강의 소거. <b>가장 빠름</b></td></tr>
+          <tr><td><b>④ 소행렬식</b></td><td>좌상단부터의 <b>모든 선행 주소행렬식 &gt; 0</b></td>
+              <td>손으로 작은 행렬 판정할 때</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="takeaway">
+      <b>넷 중 하나만 확인하면 됩니다 ·</b> 서로 <b>완전히 동치</b>입니다.
+      실무 코드에서는 <b><code>np.linalg.cholesky</code> 가 성공하는지</b>로 판정하는 게 가장 빠릅니다 —
+      촐레스키 분해는 <b>PD 일 때만</b> 성공하거든요.
+    </div>
+
+    <h2 id="s3">3. 이차 형식과 그릇 모양</h2>
+    <p>
+      <span class="m">f(x) = x<sup>T</sup>Sx</span> 의 그래프를 그려봅시다.
+      1차원의 <span class="m">f(x) = ax²</span> 를 다차원으로 확장한 것입니다.
+    </p>
+
+    <div class="panel">
+      <div class="board"><canvas id="cv"></canvas></div>
+
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">S 의 (1,1) 성분 a</span><span class="val" id="sa-val">4</span></span>
+          <input type="range" id="sa" min="-3" max="6" step="0.25" value="4">
+        </label>
+        <label class="ctrl">
+          <span class="label-row"><span class="name">S 의 (1,2)=(2,1) 성분 b</span><span class="val" id="sb-val">1</span></span>
+          <input type="range" id="sb" min="-4" max="4" step="0.25" value="1">
+        </label>
+        <label class="ctrl">
+          <span class="label-row"><span class="name">S 의 (2,2) 성분 c</span><span class="val" id="sc-val">3</span></span>
+          <input type="range" id="sc" min="-3" max="6" step="0.25" value="3">
+        </label>
+      </div>
+
+      <div class="controls">
+        <label class="toggle"><input type="checkbox" id="showAxes" checked> 고유벡터 축 표시</label>
+        <button class="btn" id="pd">양의 정부호 예</button>
+        <button class="btn" id="psd">반정부호 예 (λ=0)</button>
+        <button class="btn" id="indef">부정부호 예 (말안장)</button>
+      </div>
+
+      <div class="readout">
+        <div class="stat accent"><span class="k">고윳값</span><span class="v" id="q-lam">–</span></div>
+        <div class="stat pos"><span class="k">피봇</span><span class="v" id="q-piv">–</span></div>
+        <div class="stat warn"><span class="k">선행 소행렬식</span><span class="v" id="q-min">–</span></div>
+        <div class="stat neg"><span class="k">판정</span><span class="v" id="q-cls">–</span></div>
+        <div class="stat purple"><span class="k">xᵀSx = 1 의 모양</span><span class="v" id="q-shape">–</span></div>
+      </div>
+    </div>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>고윳값</th><th>이름</th><th>그래프 모양</th><th>x<sup>T</sup>Sx = 1</th></tr></thead>
+        <tbody>
+          <tr><td>전부 <b>&gt; 0</b></td><td><b>양의 정부호</b> (PD)</td><td>아래로 볼록한 <b>그릇</b></td><td>타원</td></tr>
+          <tr><td>전부 <b>≥ 0</b>, 0 포함</td><td><b>양의 반정부호</b> (PSD)</td><td>바닥이 평평한 <b>골짜기</b></td><td>평행한 두 직선</td></tr>
+          <tr><td>양수와 음수 <b>섞임</b></td><td><b>부정부호</b> (indefinite)</td><td><b>말안장</b></td><td>쌍곡선</td></tr>
+          <tr><td>전부 <b>&lt; 0</b></td><td>음의 정부호</td><td>위로 볼록한 <b>돔</b></td><td>(실수 해 없음)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="takeaway">
+      <b>최적화에서 왜 중요한가 ·</b>
+      비용 함수를 최소화할 때, 그 지점의 <b>헤시안 행렬이 PD</b> 이면
+      그래프가 <b>그릇 모양</b>이라 <b>진짜 최소점</b>임이 보장됩니다.
+      <br><br>
+      <b>부정부호</b>면 <b>말안장점</b>(saddle point) —
+      어떤 방향으로는 최소, 다른 방향으로는 최대입니다.
+      딥러닝에서 학습이 "멈춘 것 같은데 최소가 아닌" 상황의 정체가 이것입니다.
+    </div>
+
+    <h2 id="s4">4. 타원의 축이 곧 고유벡터</h2>
+    <p>
+      위 그림에서 <b>고유벡터 축을 켜</b> 보세요. 타원의 <b>장축·단축과 정확히 일치</b>합니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">타원의 형태는 고유분해가 결정한다</div>
+      <div class="eq" style="font-size:15px;line-height:2.1;text-align:left;padding-left:22px">
+        <b>축의 방향</b> = 고유벡터 q<sub>1</sub>, …, q<sub>n</sub><br>
+        <b>축의 반지름</b> = 1 / <span class="rad">√<span>λ<sub>i</sub></span></span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">주의</span><span class="desc"><b>고윳값이 클수록 축이 짧습니다</b>(역수·제곱근).
+            그 방향으로 함수가 <b>가파르게</b> 올라가 <span class="m">= 1</span> 에 빨리 닿기 때문이죠</span></li>
+        <li><span class="sym">최적화에서</span><span class="desc">고윳값 비율(<b>조건수</b>)이 크면
+            타원이 <b>길쭉</b>합니다 → 경사하강법이 <b>지그재그</b>로 느리게 갑니다</span></li>
+      </ul>
+    </div>
+
+    <h2 id="s5">5. Rayleigh 몫과 PCA</h2>
+
+    <div class="formula">
+      <div class="name">Rayleigh 몫</div>
+      <div class="eq">
+        R(x) &nbsp;=&nbsp;
+        <span class="frac"><span>x<sup>T</sup> S x</span><span>x<sup>T</sup> x</span></span>
+        &nbsp;&nbsp;&nbsp;<span class="small">λ<sub>min</sub> ≤ R(x) ≤ λ<sub>max</sub></span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">최댓값</span><span class="desc"><b>가장 큰 고윳값</b>. 그때 x 는 그 <b>고유벡터</b></span></li>
+        <li><span class="sym">최솟값</span><span class="desc"><b>가장 작은 고윳값</b>. 마찬가지</span></li>
+        <li><span class="sym">쓸모</span><span class="desc">고윳값을 <b>최적화 문제로</b> 바꿔 풉니다.
+            거대한 행렬에서 <b>가장 큰 고윳값만</b> 근사로 찾을 때 씁니다(멱승법)</span></li>
+      </ul>
+    </div>
+
+    <div class="callout">
+      <b>PCA 는 이 두 가지를 합친 것입니다</b><br>
+      데이터의 <b>공분산 행렬</b>(대칭!)을 만들고,
+      <b>"어느 방향으로 투영해야 분산이 최대인가?"</b> 를 묻습니다.
+      <br><br>
+      그런데 그 질문이 정확히 <b>Rayleigh 몫의 최대화</b>이고,
+      답은 <b>가장 큰 고윳값의 고유벡터</b> — 즉 <b>제1주성분</b>입니다.
+      <br><br>
+      고유벡터가 <b>서로 직교</b>하므로(스펙트럼 정리) 주성분들도 자동으로 직교하고,
+      그래서 <b>서로 중복되지 않는 정보</b>를 담습니다.
+    </div>
+
+    <h2 id="s6">6. numpy 로 확인하기</h2>
+
+    <div class="pycell" data-packages="numpy" data-title="15-1. 스펙트럼 정리 확인">
+    S = np.array([[4., 1.],
+                  [1., 3.]])
+
+    λ, Q = np.linalg.eigh(S)          # 대칭 전용 (13강)
+    print("고윳값 =", λ, "  ← 전부 실수")
+    print("\n고유벡터 Q =")
+    print(Q)
+    print("\nQᵀQ =")
+    print(np.round(Q.T @ Q, 12), "  ← 직교행렬")
+    print("\nQ Λ Qᵀ =")
+    print(Q @ np.diag(λ) @ Q.T)
+    print("S 와 같은가:", np.allclose(Q @ np.diag(λ) @ Q.T, S))
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="15-2. 외적 합으로도 같다">
+    합 = sum(λ[i] * np.outer(Q[:, i], Q[:, i]) for i in range(2))
+    print("Σ λᵢ qᵢqᵢᵀ =")
+    print(합)
+    print("S 와 같은가:", np.allclose(합, S))
+    print()
+    for i in range(2):
+        P = np.outer(Q[:, i], Q[:, i])
+        print(f"q{i+1}q{i+1}ᵀ 가 투영행렬인가:  P²=P {np.allclose(P@P, P)},  Pᵀ=P {np.allclose(P.T, P)}")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="15-3. 양의 정부호 — 네 조건이 전부 일치하는가">
+    def 판정(S, 이름):
+        λ = np.linalg.eigvalsh(S)
+
+        # 피봇 (소거)
+        U = S.astype(float).copy()
+        피봇 = []
+        ok = True
+        for i in range(len(U)):
+            if abs(U[i, i]) < 1e-12:
+                ok = False
+                break
+            피봇.append(U[i, i])
+            for j in range(i + 1, len(U)):
+                U[j] -= U[j, i] / U[i, i] * U[i]
+
+        # 선행 주소행렬식
+        소 = [np.linalg.det(S[:k, :k]) for k in range(1, len(S) + 1)]
+
+        # 촐레스키
+        try:
+            np.linalg.cholesky(S)
+            chol = True
+        except np.linalg.LinAlgError:
+            chol = False
+
+        print(f"[{이름}]")
+        print(f"  ② 고윳값     {np.round(λ, 4)}         전부 > 0 : {bool((λ > 1e-12).all())}")
+        print(f"  ③ 피봇       {np.round(피봇, 4) if ok else '소거 실패'}  전부 > 0 : {ok and all(p > 1e-12 for p in 피봇)}")
+        print(f"  ④ 소행렬식   {np.round(소, 4)}         전부 > 0 : {all(d > 1e-12 for d in 소)}")
+        print(f"  촐레스키 성공: {chol}")
+        print()
+
+    판정(np.array([[4., 1.], [1., 3.]]), "양의 정부호")
+    판정(np.array([[1., 1.], [1., 1.]]), "반정부호 (λ 하나가 0)")
+    판정(np.array([[1., 2.], [2., 1.]]), "부정부호 (말안장)")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="15-4. 에너지 xᵀSx 를 직접 재보기">
+    rng = np.random.default_rng(0)
+    x들 = rng.normal(size=(2000, 2))
+
+    for 이름, Mx in [("PD",  np.array([[4., 1.], [1., 3.]])),
+                     ("부정", np.array([[1., 2.], [2., 1.]]))]:
+        에너지 = np.einsum('ij,jk,ik->i', x들, Mx, x들)      # 각 x 에 대해 xᵀSx
+        print(f"[{이름}]  최소 {에너지.min():8.3f}   최대 {에너지.max():8.3f}   "
+              f"음수 비율 {(에너지 < 0).mean():.1%}")
+
+    print()
+    print("→ PD 는 어떤 x 를 넣어도 양수. 부정부호는 방향에 따라 부호가 바뀐다.")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="15-5. Rayleigh 몫의 최대·최소">
+    S = np.array([[4., 1.], [1., 3.]])
+    λ = np.linalg.eigvalsh(S)
+
+    각도 = np.linspace(0, np.pi, 721)
+    값 = [(np.array([np.cos(t), np.sin(t)]) @ S @ np.array([np.cos(t), np.sin(t)]))
+          for t in 각도]
+
+    print(f"Rayleigh 몫의 최솟값 = {min(값):.6f}")
+    print(f"           최댓값 = {max(값):.6f}")
+    print(f"고윳값             = {λ}")
+    print()
+    best = 각도[int(np.argmax(값))]
+    print(f"최댓값이 나오는 방향 = {np.round([np.cos(best), np.sin(best)], 4)}")
+    print(f"가장 큰 고윳값의 고유벡터 = {np.round(np.linalg.eigh(S)[1][:, -1], 4)}")
+    print("→ 같은 방향 (부호는 다를 수 있음)")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="15-6. PCA 맛보기">
+    # 길쭉한 방향으로 퍼진 데이터를 만든다
+    rng = np.random.default_rng(1)
+    기본 = rng.normal(size=(400, 2)) * np.array([3.0, 0.6])
+    각 = np.deg2rad(30)
+    회전 = np.array([[np.cos(각), -np.sin(각)], [np.sin(각), np.cos(각)]])
+    X = 기본 @ 회전.T
+
+    X = X - X.mean(axis=0)                 # 평균을 0으로 (PCA 의 필수 단계)
+    C = np.cov(X, rowvar=False)            # 공분산 행렬 — 대칭이다
+
+    print("공분산 행렬 =")
+    print(C, "  대칭:", np.allclose(C, C.T))
+    print()
+
+    λc, Qc = np.linalg.eigh(C)
+    순서 = np.argsort(λc)[::-1]            # 큰 것부터
+    λc, Qc = λc[순서], Qc[:, 순서]
+
+    print("고윳값(=각 주성분의 분산) =", np.round(λc, 4))
+    print("설명 비율 =", np.round(λc / λc.sum(), 4))
+    print()
+    print("제1주성분 방향 =", np.round(Qc[:, 0], 4))
+    print("실제 만든 방향 =", np.round([np.cos(각), np.sin(각)], 4), " ← 30°")
+    print()
+    print("→ 데이터가 가장 넓게 퍼진 방향을 정확히 찾아냈다.")
+    </div>
+
+    <div class="pitfall">
+      <b>PCA 전에 평균을 빼는 걸 잊지 마세요</b>
+      공분산은 <b>평균 중심</b>을 가정합니다. 안 빼면 첫 번째 주성분이
+      <b>데이터의 중심 방향</b>을 가리켜버려 아무 의미가 없습니다.
+      <br><br>
+      또 <b>변수 단위가 다르면 표준화</b>해야 합니다.
+      키(cm)와 몸무게(kg)를 그냥 넣으면 <b>숫자가 큰 변수가 주성분을 독차지</b>합니다.
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="15-7. 연습문제">
+    # 문제 1. [[2,0],[0,5]] 는 양의 정부호인가요? 타원의 축 방향과 길이는?
+
+    # 문제 2. [[1,3],[3,1]] 의 고윳값을 구하고 어떤 모양인지 판정하세요.
+
+    # 문제 3. 임의의 행렬 A 에 대해 AᵀA 는 항상 PSD 입니다.
+    #         왜 그럴까요? (힌트: xᵀAᵀAx = ‖Ax‖²)
+    #         언제 PD 가 될까요?
+
+    # 아래에 직접 써보세요
+    </div>
+
+    <details style="margin:18px 0">
+      <summary style="cursor:pointer;font-weight:600;color:var(--accent)">모범 답안 보기</summary>
+      <div class="pycell" data-packages="numpy" data-title="모범 답안">
+      # 문제 1 — 대각행렬이므로 고윳값이 그대로, 축은 x·y축
+      A1 = np.array([[2., 0.], [0., 5.]])
+      λ1 = np.linalg.eigvalsh(A1)
+      print("문제 1: λ =", λ1, " 전부 양수 → PD")
+      print("        축 반지름 = 1/√λ =", np.round(1/np.sqrt(λ1), 4))
+      print("        λ 가 큰 y축 방향이 더 짧다")
+
+      # 문제 2 — 4 와 -2 → 부정부호(말안장)
+      A2 = np.array([[1., 3.], [3., 1.]])
+      print("\n문제 2: λ =", np.linalg.eigvalsh(A2), " → 부호가 섞임 = 말안장")
+
+      # 문제 3
+      rng2 = np.random.default_rng(3)
+      for m, n in [(5, 3), (2, 4)]:
+          A3 = rng2.normal(size=(m, n))
+          λ3 = np.linalg.eigvalsh(A3.T @ A3)
+          print(f"\n문제 3: A 가 {m}×{n}, AᵀA 의 λ = {np.round(λ3, 6)}")
+          print(f"        최소 고윳값 {λ3.min():.2e}, 랭크 {np.linalg.matrix_rank(A3)}/{n}")
+      print("\nxᵀAᵀAx = (Ax)ᵀ(Ax) = ‖Ax‖² ≥ 0 이므로 항상 PSD.")
+      print("Ax = 0 인 x≠0 가 없으면(= 열이 독립이면) 항상 > 0 이라 PD 가 된다.")
+      </div>
+    </details>
+
+    <div class="summary">
+      <h3>15강 요약</h3>
+      <ul>
+        <li>"관계"를 담으면 행렬이 <b>대칭</b>이 됩니다. 공분산·<span class="m">A<sup>T</sup>A</span>·헤시안·인접행렬.</li>
+        <li><b>스펙트럼 정리</b>: 고윳값은 <b>전부 실수</b>, 고유벡터는 <b>서로 직교</b>
+            ⟹ <b><span class="m">S = QΛQ<sup>T</sup></span></b>. 역행렬이 전치로 대체됩니다.</li>
+        <li><span class="m">S = Σ λᵢqᵢqᵢ<sup>T</sup></span> — <b>수직 방향 투영들의 가중합</b>입니다.</li>
+        <li><b>양의 정부호</b>: 에너지 &gt; 0 ⟺ 고윳값 &gt; 0 ⟺ 피봇 &gt; 0 ⟺ 선행 소행렬식 &gt; 0.
+            코드에서는 <b>촐레스키 성공 여부</b>가 가장 빠릅니다.</li>
+        <li><b>PD = 그릇</b>(유일한 최소점), <b>PSD = 평평한 골짜기</b>, <b>부정부호 = 말안장</b>.</li>
+        <li><span class="m">x<sup>T</sup>Sx = 1</span> 은 <b>타원</b>이고, <b>축 방향 = 고유벡터</b>,
+            <b>축 반지름 = 1/√λ</b>.</li>
+        <li><b>PCA</b> = 공분산 행렬(대칭)의 <b>Rayleigh 몫 최대화</b> = 가장 큰 고윳값의 고유벡터.</li>
+      </ul>
+    </div>
+
+    <div class="colab-cta">
+      <div class="colab-text">
+        <b>더 자유롭게 실험하고 싶다면</b><br>
+        이 강의의 실습만 모은 노트북을 Colab에서 열 수 있습니다.
+      </div>
+      <a class="btn" id="colab-link" href="#" target="_blank" rel="noopener">Colab에서 열기</a>
+    </div>
+
+    <p class="next-up">
+      다음 → <b>16강 · 특이값 분해 (SVD)</b><br>
+      스펙트럼 정리는 <b>대칭·정사각</b> 행렬에만 통합니다.
+      이걸 <b>어떤 모양의 행렬로든</b> 확장한 것이 SVD 입니다.
+      <b>단위원이 타원이 되는 그림</b> 하나가 전부입니다.
+    </p>
+
+  </section>
+
+</div>
+
+<script src="../assets/viz.js?v=312b9476b0"></script>
+<script src="../assets/linalg.js?v=270d914364"></script>
+<script src="../assets/pylab.js?v=cb27f20364"></script>
+<script src="../assets/pycell.js?v=6dacc4c6ce"></script>
+<script>
+(function () {
+  'use strict';
+  var M = LA.M, num = LA.num;
+
+  var sa = 4, sb = 1, sc = 3;
+  var showAxes = true;
+  var board = new LA.Board(document.getElementById('cv'), { range: 3 });
+
+  function draw() {
+    var S = [[sa, sb], [sb, sc]];
+    var e = M.eig(S);                     // 대칭이라 항상 실수
+    var l1 = e.values[0], l2 = e.values[1];
+
+    board.begin().grid({ step: 1 });
+
+    /* x^T S x = 1 의 등고선을 각도를 훑어 직접 그린다 */
+    var c = board.ctx;
+    c.save();
+    c.beginPath();
+    c.rect(board.plot.margin.left, board.plot.margin.top, board.plot.pw, board.plot.ph);
+    c.clip();
+
+    // 여러 등고선 (0.5, 1, 2, 4)
+    [0.5, 1, 2, 4].forEach(function (level, idx) {
+      c.beginPath();
+      var started = false;
+      for (var i = 0; i <= 720; i++) {
+        var t = i / 720 * Math.PI * 2;
+        var d = [Math.cos(t), Math.sin(t)];
+        var q = M.dot(d, M.mv(S, d));      // 방향 d 에서의 이차형식 값
+        if (q <= 1e-9) { started = false; continue; }   // 그 방향엔 등고선이 없다
+        var r = Math.sqrt(level / q);
+        var p = M.scale(d, r);
+        var X = board.px(p[0]), Y = board.py(p[1]);
+        if (!started) { c.moveTo(X, Y); started = true; } else c.lineTo(X, Y);
+      }
+      c.strokeStyle = idx === 1 ? V.css('--accent') : V.css('--text-dim');
+      c.lineWidth = idx === 1 ? 2.6 : 1.2;
+      c.globalAlpha = idx === 1 ? 1 : 0.45;
+      c.stroke();
+    });
+    c.restore();
+
+    if (showAxes) {
+      e.vectors.forEach(function (v, i) {
+        board.span(v, {
+          color: i === 0 ? V.css('--pos') : V.css('--purple'),
+          width: 2, alpha: 0.8, dash: [7, 5]
+        });
+      });
+    }
+
+    /* 피봇과 소행렬식 */
+    var piv = [];
+    var okPiv = Math.abs(sa) > 1e-12;
+    if (okPiv) {
+      piv.push(sa);
+      piv.push(sc - sb * sb / sa);
+    }
+    var m1 = sa, m2 = sa * sc - sb * sb;
+
+    var allPos = l1 > 1e-9 && l2 > 1e-9;
+    var anyNeg = l1 < -1e-9 || l2 < -1e-9;
+    var hasZero = Math.abs(l1) < 1e-9 || Math.abs(l2) < 1e-9;
+
+    var cls, shape;
+    if (allPos) { cls = '양의 정부호 (그릇)'; shape = '타원'; }
+    else if (anyNeg && (l1 > 1e-9 || l2 > 1e-9)) { cls = '부정부호 (말안장)'; shape = '쌍곡선'; }
+    else if (hasZero && !anyNeg) { cls = '양의 반정부호 (골짜기)'; shape = '평행한 두 직선'; }
+    else if (l1 < 0 && l2 < 0) { cls = '음의 정부호 (돔)'; shape = '없음 (전부 음수)'; }
+    else { cls = '반정부호'; shape = '—'; }
+
+    V.setText('#q-lam', num(l1) + ', ' + num(l2));
+    V.setText('#q-piv', okPiv ? piv.map(function (p) { return num(p); }).join(', ') : '소거 실패');
+    V.setText('#q-min', num(m1) + ', ' + num(m2));
+    V.setText('#q-cls', cls);
+    V.setText('#q-shape', shape);
+  }
+
+  var rA = V.range('sa', function (v) { sa = v; draw(); });
+  var rB = V.range('sb', function (v) { sb = v; draw(); });
+  var rC = V.range('sc', function (v) { sc = v; draw(); });
+  V.check('showAxes', function (on) { showAxes = on; draw(); });
+
+  V.click('pd', function () { rA.set(4); rB.set(1); rC.set(3); });
+  V.click('psd', function () { rA.set(1); rB.set(1); rC.set(1); });
+  V.click('indef', function () { rA.set(1); rB.set(2); rC.set(1); });
+
+  V.onRedraw(draw);
+  draw();
+
+  var a2 = document.getElementById('colab-link');
+  if (a2) a2.href = 'https://colab.research.google.com/github/mioon1402/timeseriesdata/blob/main/notebooks/L15-symmetric.ipynb';
+})();
+</script>
+</body>
+</html>

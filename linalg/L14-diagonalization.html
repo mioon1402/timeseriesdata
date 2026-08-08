@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>대각화와 동적 시스템 · 선형대수</title>
+<meta name="description" content="A=SΛS⁻¹ 로 거듭제곱이 붕괴합니다. 마르코프 체인과 미분방정식의 장기 거동까지.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%E2%9E%97%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css?v=b7dfb076b2">
+<link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">선형대수 14강 · 고윳값과 고유벡터</p>
+    <h1>대각화와 동적 시스템</h1>
+    <p class="lede">
+      고유벡터를 <b>새로운 좌표축</b>으로 삼으면 어떻게 될까요?
+      그 축에서 보면 행렬이 하는 일은 <b>각 축을 λ배 늘리는 것</b>뿐입니다.
+      즉 <b>대각행렬</b>이 되죠. 이 관점 전환 하나로
+      <span class="m">A<sup>100</sup></span> 이 순식간에 계산되고,
+      <b>시스템의 100년 뒤 모습</b>이 보입니다.
+    </p>
+  </header>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 강의에서 배우는 것</b>
+      <ol>
+        <li><a href="#s0">기초 다지기 — 왜 거듭제곱이 어려운가</a></li>
+        <li><a href="#s1">A = SΛS⁻¹ 유도</a></li>
+        <li><a href="#s2">Aᵏ 가 붕괴한다</a></li>
+        <li><a href="#s3">대각화가 안 되는 경우</a></li>
+        <li><a href="#s4">차분방정식 — 반복하면 어디로 가나 (직접 해보기)</a></li>
+        <li><a href="#s5">미분방정식과 안정성</a></li>
+        <li><a href="#s6">numpy 로 확인하기</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s0">0. 기초 다지기 — 왜 거듭제곱이 어려운가</h2>
+    <p>
+      숫자는 <span class="m">2<sup>100</sup></span> 을 바로 구할 수 있습니다.
+      그런데 행렬 <span class="m">A<sup>100</sup></span> 은요?
+      <b>행렬 곱을 99번</b> 해야 합니다. <span class="m">n×n</span> 이면
+      <span class="m">99 × n³</span> 번의 곱셈이죠.
+    </p>
+    <p>
+      단 <b>대각행렬</b>이라면 이야기가 다릅니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">대각행렬의 거듭제곱은 공짜</div>
+      <div class="eq">
+        <span class="mat" style="--cols:2"><span>3</span><span>0</span><span>0</span><span>2</span></span><sup>10</sup>
+        &nbsp;=&nbsp;
+        <span class="mat" style="--cols:2"><span>3<sup>10</sup></span><span>0</span><span>0</span><span>2<sup>10</sup></span></span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">왜</span><span class="desc">대각행렬은 <b>축끼리 섞이지 않습니다.</b>
+            각 축이 독립적으로 λ배씩 늘어날 뿐이죠</span></li>
+      </ul>
+    </div>
+
+    <div class="takeaway">
+      <b>전략 ·</b> "일반 행렬을 <b>대각행렬로 바꿔 계산하고 되돌린다.</b>"
+      바꾸는 방법이 <b>고유벡터를 축으로 삼는 것</b>입니다.
+    </div>
+
+    <h2 id="s1">1. A = SΛS⁻¹ 유도</h2>
+    <p>
+      고유벡터 <span class="m">x₁, …, x<sub>n</sub></span> 이
+      <b>서로 독립</b>이라고 합시다. 이들을 <b>열로 세워</b> 행렬 <span class="m">S</span> 를 만듭니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">유도 — 두 줄</div>
+      <div class="eq" style="font-size:14.5px;line-height:2.4;text-align:left;padding-left:22px">
+        A S = A [ x<sub>1</sub> ⋯ x<sub>n</sub> ] = [ λ<sub>1</sub>x<sub>1</sub> ⋯ λ<sub>n</sub>x<sub>n</sub> ]
+        = S Λ
+        &nbsp;<span class="small">← 각 열이 λ배 되었을 뿐</span><br>
+        ⟹ <b>A = S Λ S<sup>−1</sup></b> &nbsp;그리고&nbsp; <b>Λ = S<sup>−1</sup> A S</b>
+      </div>
+      <ul class="where">
+        <li><span class="sym">S</span><span class="desc"><b>고유벡터 행렬.</b> 열이 고유벡터</span></li>
+        <li><span class="sym">Λ</span><span class="desc"><b>대각행렬.</b> 대각선에 고윳값들 (람다 대문자)</span></li>
+        <li><span class="sym">S<sup>−1</sup> 존재?</span><span class="desc">고유벡터가 <b>n개 독립</b>이어야 합니다.
+            이게 <b>대각화의 유일한 조건</b>입니다</span></li>
+      </ul>
+    </div>
+
+    <div class="callout">
+      <b>읽는 법 — 세 단계의 여정</b><br>
+      <span class="m">A x</span> 를 <span class="m">S Λ S<sup>−1</sup> x</span> 로 읽으면:
+      <br><br>
+      <b>①<span class="m">S<sup>−1</sup></span></b> — 고유벡터 좌표계로 <b>갈아탄다</b><br>
+      <b>②<span class="m">Λ</span></b> — 각 축을 <b>λ배 늘린다</b> (여기가 전부!)<br>
+      <b>③<span class="m">S</span></b> — 원래 좌표계로 <b>돌아온다</b>
+      <br><br>
+      복잡해 보이던 변환이 <b>"적절한 축에서 보면 그냥 늘이기"</b> 였던 겁니다.
+      이것이 8강 <b>기저 변환</b>(19강에서 다시)의 가장 중요한 사례입니다.
+    </div>
+
+    <h2 id="s2">2. Aᵏ 가 붕괴한다</h2>
+
+    <div class="formula">
+      <div class="name">가운데가 약분된다</div>
+      <div class="eq" style="font-size:14.5px;line-height:2.3;text-align:left;padding-left:22px">
+        A<sup>2</sup> = (SΛS<sup>−1</sup>)(SΛS<sup>−1</sup>)
+        = SΛ<span style="color:var(--pos)">(S<sup>−1</sup>S)</span>ΛS<sup>−1</sup>
+        = SΛ<sup>2</sup>S<sup>−1</sup><br>
+        ⟹ &nbsp; <b>A<sup>k</sup> = S Λ<sup>k</sup> S<sup>−1</sup></b>
+      </div>
+      <ul class="where">
+        <li><span class="sym">Λᵏ</span><span class="desc">대각 원소를 <b>각각 k제곱</b>하면 끝.
+            행렬 곱이 <b>딱 두 번</b>으로 줄었습니다</span></li>
+        <li><span class="sym">더 중요한 건</span><span class="desc"><b>k가 커질 때 무슨 일이 일어나는지</b> 보인다는 점입니다 —
+            <span class="m">λ<sup>k</sup></span> 만 보면 되니까요</span></li>
+      </ul>
+    </div>
+
+    <h2 id="s3">3. 대각화가 안 되는 경우</h2>
+    <p>
+      13강의 <b>전단행렬</b> <span class="m">[[1,1],[0,1]]</span> 을 떠올려보세요.
+      고윳값이 <span class="m">1, 1</span> 로 중복인데
+      <b>독립인 고유벡터가 하나뿐</b>이었습니다.
+      그러면 <span class="m">S</span> 가 특이행렬이 되어 <span class="m">S<sup>−1</sup></span> 이 없습니다.
+    </p>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>상황</th><th>대각화</th></tr></thead>
+        <tbody>
+          <tr><td>고윳값이 <b>전부 다름</b></td>
+              <td style="color:var(--pos)">✓ 항상 가능 (다른 λ의 고유벡터는 자동으로 독립)</td></tr>
+          <tr><td>고윳값이 중복이지만 <b>고유벡터가 충분</b></td>
+              <td style="color:var(--pos)">✓ 가능 (예: 단위행렬)</td></tr>
+          <tr><td>고윳값이 중복이고 <b>고유벡터가 부족</b></td>
+              <td style="color:var(--neg)">✗ 불가능 (결손행렬, defective)</td></tr>
+          <tr><td><b>대칭행렬</b></td>
+              <td style="color:var(--pos)">✓ <b>항상</b> 가능, 게다가 <b>직교 고유벡터</b>로 (15강)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout">
+      <b>대각화 불가능해도 방법은 있습니다</b><br>
+      <b>조르당 표준형</b>(Jordan form)이라는 "거의 대각"인 형태로 만들 수 있지만,
+      <b>수치적으로 불안정해서 공학에서는 거의 안 씁니다.</b>
+      대신 <b>SVD</b>(16강)를 쓰죠 — SVD는 <b>어떤 행렬이든, 정사각이 아니어도</b> 항상 가능합니다.
+    </div>
+
+    <h2 id="s4">4. 차분방정식 — 반복하면 어디로 가나</h2>
+    <p>
+      시간에 따라 상태가 <span class="m">u<sub>k+1</sub> = A u<sub>k</sub></span> 로 변하는 시스템을
+      <b>차분방정식</b>이라고 합니다. 그러면 <span class="m">u<sub>k</sub> = A<sup>k</sup> u<sub>0</sub></span> 이죠.
+    </p>
+
+    <div class="panel">
+      <div class="board"><canvas id="cv"></canvas></div>
+
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">반복 횟수 k</span><span class="val" id="k-val">0</span></span>
+          <input type="range" id="k" min="0" max="12" step="1" value="0">
+        </label>
+        <label class="ctrl">
+          <span class="label-row"><span class="name">시작점의 각도 (°)</span><span class="val" id="a0-val">100</span></span>
+          <input type="range" id="a0" min="0" max="360" step="5" value="100">
+        </label>
+      </div>
+
+      <div class="seg" role="group" aria-label="시스템 선택" style="margin-top:10px">
+        <label><input type="radio" name="sys" value="grow" checked><span>λ = 1.4, 0.6 (한쪽만 성장)</span></label>
+        <label><input type="radio" name="sys" value="decay"><span>λ = 0.8, 0.4 (전부 감쇠)</span></label>
+        <label><input type="radio" name="sys" value="markov"><span>마르코프 (λ = 1, 0.7)</span></label>
+      </div>
+
+      <div class="readout">
+        <div class="stat accent"><span class="k">현재 상태 u<sub>k</sub></span><span class="v" id="s-uk">–</span></div>
+        <div class="stat"><span class="k">‖u<sub>k</sub>‖</span><span class="v" id="s-nrm">–</span></div>
+        <div class="stat pos"><span class="k">고윳값</span><span class="v" id="s-lam">–</span></div>
+        <div class="stat warn"><span class="k">지배 고유벡터와의 각</span><span class="v" id="s-ang">–</span></div>
+        <div class="stat purple"><span class="k">장기 거동</span><span class="v" id="s-fate">–</span></div>
+      </div>
+    </div>
+
+    <div class="formula">
+      <div class="name">고유벡터로 쪼개서 보면</div>
+      <div class="eq" style="font-size:15px;line-height:2.2">
+        u<sub>0</sub> = c<sub>1</sub>x<sub>1</sub> + ⋯ + c<sub>n</sub>x<sub>n</sub>
+        &nbsp;⟹&nbsp;
+        <b>u<sub>k</sub> = c<sub>1</sub>λ<sub>1</sub><sup>k</sup>x<sub>1</sub> + ⋯ + c<sub>n</sub>λ<sub>n</sub><sup>k</sup>x<sub>n</sub></b>
+      </div>
+      <ul class="where">
+        <li><span class="sym">각 축이 따로</span><span class="desc">고유벡터 방향끼리 <b>섞이지 않으므로</b>
+            각각 <span class="m">λ<sup>k</sup></span> 배씩 갑니다</span></li>
+        <li><span class="sym">지배 고윳값</span><span class="desc"><b>|λ| 가 가장 큰 항</b>이 k가 커질수록 나머지를 압도합니다.
+            그래서 <b>모든 시작점이 결국 그 방향으로</b> 수렴합니다 — 위에서 확인해보세요</span></li>
+      </ul>
+    </div>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>가장 큰 |λ|</th><th>장기 거동</th><th>예</th></tr></thead>
+        <tbody>
+          <tr><td><b>&gt; 1</b></td><td>무한히 <b>발산</b></td><td>복리, 인구 폭발, 불안정한 제어</td></tr>
+          <tr><td><b>= 1</b></td><td><b>정상상태</b>로 수렴</td><td>마르코프 체인, 페이지랭크</td></tr>
+          <tr><td><b>&lt; 1</b></td><td>원점으로 <b>붕괴</b></td><td>감쇠 진동, 안정한 시스템</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 id="s5">5. 미분방정식과 안정성</h2>
+    <p>
+      시간이 <b>연속</b>이면 <span class="m">du/dt = Au</span> 가 됩니다.
+      해는 스칼라 <span class="m">e<sup>at</sup></span> 와 <b>똑같은 모양</b>입니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">행렬 지수함수</div>
+      <div class="eq" style="font-size:15px;line-height:2.2">
+        u(t) = e<sup>At</sup> u(0),
+        &nbsp;&nbsp; e<sup>At</sup> = I + At +
+        <span class="frac"><span>(At)<sup>2</sup></span><span>2!</span></span> +
+        <span class="frac"><span>(At)<sup>3</sup></span><span>3!</span></span> + ⋯
+        <br>
+        <span class="small">대각화하면 &nbsp; e<sup>At</sup> = S e<sup>Λt</sup> S<sup>−1</sup>,
+        &nbsp; e<sup>Λt</sup> = diag( e<sup>λ₁t</sup>, …, e<sup>λₙt</sup> )</span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">무한급수가</span><span class="desc">대각화 덕분에 <b>정확한 해석적 해</b>로 바뀝니다.
+            <span class="m">Λ</span> 의 지수함수는 대각 원소를 각각 지수함수로 바꾸면 끝이니까요</span></li>
+        <li><span class="sym">주의</span><span class="desc"><span class="m">e<sup>A</sup>e<sup>B</sup> ≠ e<sup>A+B</sup></span>
+            — <b>AB = BA 일 때만</b> 성립합니다. 행렬은 순서가 중요하니까요(4강)</span></li>
+      </ul>
+    </div>
+
+    <div class="formula">
+      <div class="name">안정성 판정 — 고윳값의 실수부</div>
+      <div class="eq" style="font-size:15px;line-height:2.1;text-align:left;padding-left:22px">
+        λ = a + b i 일 때 &nbsp; e<sup>λt</sup> = e<sup>at</sup>( cos bt + i sin bt )
+        <br>
+        <b>a &lt; 0</b> → 0 으로 수렴 <b>(안정)</b><br>
+        <b>a &gt; 0</b> → 발산 <b>(불안정)</b><br>
+        <b>a = 0</b> → 진폭 유지, 진동 <b>(중립)</b>
+      </div>
+      <ul class="where">
+        <li><span class="sym">실수부 a</span><span class="desc"><b>커지느냐 줄어드느냐</b>를 결정</span></li>
+        <li><span class="sym">허수부 b</span><span class="desc"><b>얼마나 빨리 도느냐</b>(진동 주파수)를 결정</span></li>
+        <li><span class="sym">차이 주의</span><span class="desc">이산(차분)은 <b>|λ| &lt; 1</b>,
+            연속(미분)은 <b>Re(λ) &lt; 0</b> 이 안정 조건입니다. <b>기준이 다릅니다</b></span></li>
+      </ul>
+    </div>
+
+    <h2 id="s6">6. numpy 로 확인하기</h2>
+
+    <div class="pycell" data-packages="numpy" data-title="14-1. 대각화 해보기">
+    import numpy as np
+    np.set_printoptions(precision=4, suppress=True)
+
+    A = np.array([[2., 1.],
+                  [1., 2.]])
+
+    λ, S = np.linalg.eig(A)
+    Λ = np.diag(λ)
+
+    print("S (고유벡터를 열로) =")
+    print(S)
+    print("\nΛ =")
+    print(Λ)
+    print("\nS Λ S⁻¹ =")
+    print(S @ Λ @ np.linalg.inv(S))
+    print("\nA 와 같은가:", np.allclose(S @ Λ @ np.linalg.inv(S), A))
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="14-2. Aᵏ 가 정말 붕괴하는가">
+    k = 10
+    직접 = np.linalg.matrix_power(A, k)
+    대각화 = S @ np.diag(λ ** k) @ np.linalg.inv(S)
+
+    print(f"A^{k} 직접 계산 =")
+    print(직접)
+    print(f"\nS Λ^{k} S⁻¹ =")
+    print(대각화)
+    print("\n같은가:", np.allclose(직접, 대각화))
+    print()
+    print("λ^k =", λ ** k, "  ← 대각 원소를 k제곱한 것뿐")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="14-3. 대각화가 안 되는 행렬">
+    전단 = np.array([[1., 1.],
+                     [0., 1.]])
+
+    w, v = np.linalg.eig(전단)
+    print("고윳값 =", w, "  ← 1 이 두 번 (중복)")
+    print("고유벡터 =")
+    print(v)
+    print("\n고유벡터 행렬의 랭크 =", np.linalg.matrix_rank(v), "/ 2")
+    print("→ 독립인 고유벡터가 1개뿐이라 S⁻¹ 가 없다. 대각화 불가.")
+    print()
+    print("그래도 거듭제곱은 규칙적이다:")
+    for k in [1, 2, 5]:
+        print(f"  전단^{k} =", np.linalg.matrix_power(전단, k).ravel())
+    print("→ 위쪽 값이 k 로 '선형' 증가. 지수가 아니라서 λ^k 로 설명이 안 된다.")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="14-4. 마르코프 체인 — 장기 예측">
+    # 열의 합이 1 인 행렬. 각 열이 '그 상태에서 어디로 갈 확률'
+    M = np.array([[0.9, 0.2],      # 도시 → 도시,  시골 → 도시
+                  [0.1, 0.8]])     # 도시 → 시골,  시골 → 시골
+
+    print("열의 합 =", M.sum(axis=0), "  ← 확률이므로 각 열이 1")
+    w, v = np.linalg.eig(M)
+    print("고윳값 =", w, "  ← 하나가 정확히 1")
+    print()
+
+    u = np.array([1., 0.])          # 전부 도시에서 시작
+    for t in [0, 1, 5, 20, 100]:
+        상태 = np.linalg.matrix_power(M, t) @ u
+        print(f"  t={t:3d}:  도시 {상태[0]:.4f}  시골 {상태[1]:.4f}")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="14-5. 정상상태 = 고윳값 1의 고유벡터">
+    i = np.argmin(np.abs(w - 1))
+    정상 = np.real(v[:, i])
+    정상 = 정상 / 정상.sum()          # 확률이므로 합을 1로
+
+    print("정상상태 =", 정상)
+    print("M @ 정상 =", M @ 정상, "  ← 변하지 않는다. 그래서 '정상' 상태")
+    print()
+    print("시작점을 바꿔도 같은 곳으로 가는가:")
+    for 시작 in [np.array([1., 0.]), np.array([0., 1.]), np.array([0.3, 0.7])]:
+        끝 = np.linalg.matrix_power(M, 200) @ 시작
+        print(f"  {시작} → {np.round(끝, 6)}")
+    print()
+    print("→ 두 번째 고윳값 0.7 의 성분이 0.7²⁰⁰ ≈ 0 으로 사라졌기 때문")
+    </div>
+
+    <div class="pycell" data-packages="numpy,scipy" data-title="14-6. 미분방정식과 안정성">
+    from scipy.linalg import expm
+
+    시스템들 = {
+        "안정   (Re λ < 0)": np.array([[-1., 1.], [0., -2.]]),
+        "불안정 (Re λ > 0)": np.array([[1., 0.], [0., 0.5]]),
+        "진동   (Re λ = 0)": np.array([[0., -2.], [2., 0.]]),
+    }
+
+    u0 = np.array([1., 1.])
+    for 이름, B in 시스템들.items():
+        λs = np.linalg.eigvals(B)
+        crit = λs.real.max()
+        print(f"{이름}  λ = {np.round(λs, 3)}   최대 실수부 = {crit:+.2f}")
+        for t in [0., 1., 3.]:
+            u = expm(B * t) @ u0
+            print(f"     t={t:.0f}  u = {np.round(u, 4)}   ‖u‖ = {np.linalg.norm(u):.4f}")
+        print()
+    </div>
+
+    <div class="pycell" data-packages="numpy,scipy" data-title="14-7. expm 도 대각화로 계산된다">
+    from scipy.linalg import expm
+
+    직접 = expm(A)
+    대각화 = S @ np.diag(np.exp(λ)) @ np.linalg.inv(S)
+
+    print("expm(A) =")
+    print(직접)
+    print("\nS e^Λ S⁻¹ =")
+    print(대각화)
+    print("\n같은가:", np.allclose(직접, 대각화))
+    print()
+    print("무한급수를 직접 더해도 같은가 (20항까지):")
+    from math import factorial
+    급수 = sum(np.linalg.matrix_power(A, n) / factorial(n) for n in range(20))
+    print(np.round(급수, 6))
+    print("일치:", np.allclose(급수, 직접))
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="14-8. 연습문제">
+    # 문제 1. [[3,0],[0,0.5]] 를 100번 반복하면 (1,1) 은 어디로 갈까요?
+
+    # 문제 2. 마르코프 행렬 [[0.7,0.4],[0.3,0.6]] 의 정상상태를 구하세요.
+
+    # 문제 3. du/dt = Au 에서 A = [[-2,0],[0,3]] 은 안정할까요?
+    #         (힌트: 한 방향만 발산해도 전체는 불안정)
+
+    # 아래에 직접 써보세요
+    </div>
+
+    <details style="margin:18px 0">
+      <summary style="cursor:pointer;font-weight:600;color:var(--accent)">모범 답안 보기</summary>
+      <div class="pycell" data-packages="numpy" data-title="모범 답안">
+      # 문제 1 — x축 성분만 3^100 으로 폭발, y축은 0.5^100 으로 소멸
+      A1 = np.array([[3., 0.], [0., 0.5]])
+      u = np.linalg.matrix_power(A1, 100) @ np.array([1., 1.])
+      print("문제 1:", u)
+      print("        방향 =", u / np.linalg.norm(u), " ← 사실상 (1,0). 지배 고유벡터")
+
+      # 문제 2
+      M2 = np.array([[0.7, 0.4], [0.3, 0.6]])
+      w2, v2 = np.linalg.eig(M2)
+      i2 = np.argmin(np.abs(w2 - 1))
+      st = np.real(v2[:, i2]); st = st / st.sum()
+      print("\n문제 2: 정상상태 =", st, "  확인:", M2 @ st)
+
+      # 문제 3 — 고윳값 -2 와 +3. 하나라도 양수면 불안정
+      A3 = np.array([[-2., 0.], [0., 3.]])
+      print("\n문제 3: λ =", np.linalg.eigvals(A3))
+      print("        최대 실수부 =", np.linalg.eigvals(A3).real.max(), "> 0 → 불안정")
+      print("        x 방향은 잦아들지만 y 방향이 폭발한다")
+      </div>
+    </details>
+
+    <div class="practice">
+      <b>실무에서 대각화</b>
+      <ul>
+        <li><b>페이지랭크</b> — 웹 링크 마르코프 행렬의 <b>고윳값 1 고유벡터</b>가 순위입니다(20강).
+            실제로는 <span class="m">A<sup>k</sup>u</span> 를 반복하는 <b>멱승법</b>을 씁니다 —
+            수십억 차원에서 대각화는 불가능하니까요.</li>
+        <li><b>제어 시스템</b> — 극점(pole) = 고윳값. <b>전부 좌반평면에 있어야</b> 안정입니다.</li>
+        <li><b>진동 해석</b> — 각 고유모드가 독립적으로 진동합니다. 그래서 <b>모드 분해</b>가 가능하죠.</li>
+        <li><b>주의</b> — 실무에서는 대각화보다 <b>SVD</b>(16강)를 훨씬 많이 씁니다.
+            항상 존재하고, 수치적으로 안정하며, 정사각이 아니어도 되니까요.</li>
+      </ul>
+    </div>
+
+    <div class="summary">
+      <h3>14강 요약</h3>
+      <ul>
+        <li><b><span class="m">A = SΛS<sup>−1</sup></span></b> — S는 고유벡터를 열로 세운 행렬, Λ는 고윳값 대각행렬.</li>
+        <li>읽는 법: <b>고유벡터 좌표로 갈아타 → 각 축을 λ배 → 되돌아온다.</b></li>
+        <li><b><span class="m">A<sup>k</sup> = SΛ<sup>k</sup>S<sup>−1</sup></span></b> — 가운데가 약분되어 붕괴합니다.</li>
+        <li>대각화 조건은 <b>독립인 고유벡터 n개</b>. 전단행렬처럼 부족하면 불가능합니다.</li>
+        <li>차분방정식은 <b>|λ| 가 가장 큰 항이 지배</b>합니다 → 모든 시작점이 그 방향으로 수렴.</li>
+        <li>미분방정식은 <b><span class="m">e<sup>At</sup> = Se<sup>Λt</sup>S<sup>−1</sup></span></b>.
+            안정성은 <b>고윳값의 실수부 부호</b>가 결정합니다.</li>
+        <li>안정 조건이 <b>이산은 |λ|&lt;1, 연속은 Re(λ)&lt;0</b> — 헷갈리지 마세요.</li>
+      </ul>
+    </div>
+
+    <div class="colab-cta">
+      <div class="colab-text">
+        <b>더 자유롭게 실험하고 싶다면</b><br>
+        이 강의의 실습만 모은 노트북을 Colab에서 열 수 있습니다.
+      </div>
+      <a class="btn" id="colab-link" href="#" target="_blank" rel="noopener">Colab에서 열기</a>
+    </div>
+
+    <p class="next-up">
+      다음 → <b>15강 · 대칭행렬과 양의 정부호</b><br>
+      고윳값이 <b>전부 실수</b>이고 고유벡터가 <b>서로 직교</b>한 특별한 행렬.
+      최적화에서 "그릇 모양"을 보장하는 조건이기도 합니다.
+    </p>
+
+  </section>
+
+</div>
+
+<script src="../assets/viz.js?v=312b9476b0"></script>
+<script src="../assets/linalg.js?v=270d914364"></script>
+<script src="../assets/pylab.js?v=cb27f20364"></script>
+<script src="../assets/pycell.js?v=6dacc4c6ce"></script>
+<script>
+(function () {
+  'use strict';
+  var M = LA.M, num = LA.num;
+  function vs(v) { return '(' + num(v[0]) + ', ' + num(v[1]) + ')'; }
+
+  /* 고유벡터를 (1,1), (1,−1) 로 고정하고 고윳값만 바꾼 시스템들 */
+  function build(l1, l2) {
+    var S = [[1, 1], [1, -1]];
+    var Si = M.inv(S);
+    return M.mul(M.mul(S, [[l1, 0], [0, l2]]), Si);
+  }
+  var SYS = {
+    grow:   build(1.4, 0.6),
+    decay:  build(0.8, 0.4),
+    markov: [[0.9, 0.2], [0.1, 0.8]]
+  };
+
+  var mode = 'grow', kk = 0, a0 = 100;
+  var board = new LA.Board(document.getElementById('cv'), { range: 4 });
+
+  function draw() {
+    var A = SYS[mode];
+    var e = M.eig(A);
+    var t = a0 * Math.PI / 180;
+    var u0 = [2 * Math.cos(t), 2 * Math.sin(t)];
+
+    // 궤적
+    var path = [u0.slice()];
+    var u = u0.slice();
+    for (var i = 0; i < kk; i++) { u = M.mv(A, u); path.push(u.slice()); }
+
+    board.fit(path.concat([[3, 3]])).begin().grid({ step: 1 });
+
+    // 고유벡터 축
+    if (e.real) {
+      var big = Math.abs(e.values[0]) >= Math.abs(e.values[1]) ? 0 : 1;
+      e.vectors.forEach(function (v, i) {
+        board.span(v, {
+          color: i === big ? V.css('--pos') : V.css('--purple'),
+          width: i === big ? 2.4 : 1.6,
+          alpha: i === big ? 0.85 : 0.5,
+          dash: [7, 5]
+        });
+      });
+    }
+
+    // 궤적 점들
+    var c = board.ctx;
+    c.save();
+    for (var j = 0; j < path.length; j++) {
+      var q = path[j];
+      c.beginPath();
+      c.arc(board.px(q[0]), board.py(q[1]), j === path.length - 1 ? 5.5 : 3, 0, Math.PI * 2);
+      c.fillStyle = j === path.length - 1 ? V.css('--neg') : V.css('--accent');
+      c.globalAlpha = j === path.length - 1 ? 1 : 0.35 + 0.5 * (j / Math.max(1, path.length - 1));
+      c.fill();
+      if (j > 0) {
+        c.beginPath();
+        c.strokeStyle = V.css('--accent');
+        c.globalAlpha = 0.35;
+        c.lineWidth = 1.4;
+        c.moveTo(board.px(path[j - 1][0]), board.py(path[j - 1][1]));
+        c.lineTo(board.px(q[0]), board.py(q[1]));
+        c.stroke();
+      }
+    }
+    c.restore();
+
+    board.arrow(u, { color: V.css('--neg'), width: 2.6, label: 'u' + kk });
+
+    /* 읽기 */
+    V.setText('#s-uk', vs(u));
+    V.setText('#s-nrm', num(M.norm(u)));
+    V.setText('#s-lam', e.real ? e.values.map(function (l) { return num(l); }).join(', ') : '복소수');
+
+    if (e.real && M.norm(u) > 1e-9) {
+      var bigv = Math.abs(e.values[0]) >= Math.abs(e.values[1]) ? e.vectors[0] : e.vectors[1];
+      var cos = Math.abs(M.dot(M.unit(u), bigv));
+      V.setText('#s-ang', num(Math.acos(Math.min(1, cos)) * 180 / Math.PI) + '°');
+    } else V.setText('#s-ang', '–');
+
+    var maxAbs = e.real ? Math.max(Math.abs(e.values[0]), Math.abs(e.values[1])) : 1;
+    V.setText('#s-fate',
+      Math.abs(maxAbs - 1) < 1e-6 ? '정상상태로 수렴' :
+      (maxAbs > 1 ? '발산 (지배 방향으로)' : '원점으로 붕괴'));
+  }
+
+  V.range('k', function (v) { kk = v; draw(); });
+  V.range('a0', function (v) { a0 = v; draw(); });
+  V.radios('sys', function (v) { mode = v; draw(); });
+
+  V.onRedraw(draw);
+  draw();
+
+  var a2 = document.getElementById('colab-link');
+  if (a2) a2.href = 'https://colab.research.google.com/github/mioon1402/timeseriesdata/blob/main/notebooks/L14-diagonalization.ipynb';
+})();
+</script>
+</body>
+</html>
