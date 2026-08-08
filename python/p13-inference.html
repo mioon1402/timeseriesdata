@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>신뢰구간과 가설검정 · 파이썬 데이터 분석</title>
+<meta name="description" content="t검정, 신뢰구간, 효과크기, 순열검정. 차이가 우연인지 판정하는 법.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%F0%9F%90%8D%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css?v=92187514af">
+<link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">파이썬 13강 · 통계적 추론</p>
+    <h1>신뢰구간과 가설검정</h1>
+    <p class="lede">
+      2강부터 계속 미뤄왔던 질문에 드디어 답합니다 —
+      <b>"이 차이가 우연일 수는 없나?"</b>
+      주말이 평일보다 37명 많다는 걸 발견했는데, 그게 진짜인지 확인해봅시다.
+    </p>
+  </header>
+
+  <div class="pyintro">
+    <b>개념을 그림으로 먼저 보고 싶다면</b>
+    <ul>
+      <li><a href="../modules/05-confidence-interval.html">모듈 05</a> — 신뢰구간 200개를 그려보면 "95%"의 뜻이 보입니다.</li>
+      <li><a href="../modules/06-pvalue.html">모듈 06</a> — 카드를 섞어 p값을 직접 만들어봅니다.</li>
+    </ul>
+  </div>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 강의에서 배우는 것</b>
+      <ol>
+        <li><a href="#s1">평균의 신뢰구간</a></li>
+        <li><a href="#s2">두 그룹 비교 — t검정</a></li>
+        <li><a href="#s3">p값보다 중요한 것 — 차이의 신뢰구간</a></li>
+        <li><a href="#s4">효과크기 — 차이가 얼마나 큰가</a></li>
+        <li><a href="#s5">순열검정 — 가정 없이 하기</a></li>
+        <li><a href="#s6">여러 번 검정할 때</a></li>
+        <li><a href="#s7">보고서에 쓰는 법</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s1">1. 평균의 신뢰구간</h2>
+    <p>
+      "일평균 방문객 176.5명"이라고 했을 때, 이 숫자는 <b>731일의 표본</b>에서 나온 것입니다.
+      진짜 평균(모평균)은 조금 다를 수 있죠. <b>얼마나 다를 수 있는지</b>를 구간으로 나타냅니다.
+    </p>
+
+    <div class="pycell" data-packages="pandas,scipy" data-data="cafe_sales.csv" data-title="13-1. 신뢰구간 구하기">
+    import pandas as pd
+    from scipy import stats
+
+    df = pd.read_csv("cafe_sales.csv", parse_dates=["date"])
+    v = df["visitors"]
+
+    lo, hi = stats.t.interval(0.95, len(v) - 1,
+                              loc=v.mean(), scale=stats.sem(v))
+
+    print(f"표본평균  {v.mean():.1f}명   (n = {len(v)})")
+    print(f"표준오차  {stats.sem(v):.2f}")
+    print(f"95% 신뢰구간  [{lo:.1f}, {hi:.1f}]")
+    print(f"오차범위  ±{(hi - lo) / 2:.1f}명")
+    </div>
+
+    <div class="formula">
+      <div class="name">평균의 신뢰구간</div>
+      <div class="eq">
+        x̄ &nbsp;±&nbsp; t<sub>α/2, n−1</sub> ×
+        <span class="frac"><span>s</span><span><span class="rad">√<span>n</span></span></span></span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">s/√n</span><span class="desc"><b>표준오차</b> — <code>stats.sem()</code> 이 계산해줍니다 (모듈 04)</span></li>
+        <li><span class="sym">t</span><span class="desc">σ를 모르므로 z 대신 t를 씁니다. n이 크면 1.96에 수렴</span></li>
+        <li><span class="sym">n=731</span><span class="desc">표본이 크니 구간이 <b>±3.5명</b>으로 좁습니다</span></li>
+      </ul>
+    </div>
+
+    <div class="myth">
+      <div class="bad">
+        <b>✗ 오해</b>
+        "진짜 평균이 173.0~180.1 사이에 있을 확률이 95%다"
+      </div>
+      <div class="good">
+        <b>✓ 사실</b>
+        "이 <b>절차</b>를 반복하면 만들어지는 구간의 95%가 진짜 평균을 포함한다"<br>
+        <span style="font-size:13px;opacity:.85">
+        → <a href="../modules/05-confidence-interval.html">모듈 05</a>에서 구간 200개를 그려보면
+        이 차이가 무슨 뜻인지 눈으로 보입니다.</span>
+      </div>
+    </div>
+
+    <h2 id="s2">2. 두 그룹 비교 — t검정</h2>
+
+    <div class="pycell" data-packages="pandas,scipy" data-data="cafe_sales.csv" data-title="13-2. 주말 vs 평일">
+    df["주말"] = df["date"].dt.dayofweek >= 5
+    주말 = df[df["주말"]]["visitors"]
+    평일 = df[~df["주말"]]["visitors"]
+
+    print(f"주말  n={len(주말):3d}  평균 {주말.mean():6.1f}  SD {주말.std():5.1f}")
+    print(f"평일  n={len(평일):3d}  평균 {평일.mean():6.1f}  SD {평일.std():5.1f}")
+    print(f"차이  {주말.mean() - 평일.mean():+.1f}명")
+    print()
+
+    t, p = stats.ttest_ind(주말, 평일, equal_var=False)   # Welch t검정
+    print(f"t = {t:.3f}")
+    print(f"p = {p:.4g}")
+    </div>
+
+    <div class="practice">
+      <b><code>equal_var=False</code> 를 기본으로 쓰세요</b>
+      <p style="margin:6px 0">
+        기본값 <code>True</code> 는 <b>두 그룹의 분산이 같다</b>고 가정합니다.
+        우리 데이터에서 주말 SD는 58.4, 평일은 39.6으로 <b>꽤 다릅니다.</b>
+      </p>
+      <p style="margin:6px 0 0">
+        <code>equal_var=False</code>(Welch 검정)는 그 가정 없이 계산하며,
+        분산이 같아도 성능이 거의 떨어지지 않습니다.
+        <b>고민할 필요 없이 항상 False 를 쓰는 게 안전합니다.</b>
+      </p>
+    </div>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>상황</th><th>함수</th></tr></thead>
+        <tbody>
+          <tr><td><b>독립된 두 그룹</b> (주말 vs 평일)</td><td><code>ttest_ind(a, b, equal_var=False)</code></td></tr>
+          <tr><td><b>짝지은 비교</b> (같은 사람의 전/후)</td><td><code>ttest_rel(전, 후)</code></td></tr>
+          <tr><td><b>한 그룹과 기준값</b> (평균이 150인가?)</td><td><code>ttest_1samp(x, 150)</code></td></tr>
+          <tr><td><b>세 그룹 이상</b> (계절별)</td><td><code>f_oneway(a, b, c, d)</code> (ANOVA)</td></tr>
+          <tr><td><b>정규성이 의심스러울 때</b></td><td><code>mannwhitneyu(a, b)</code> (순위 기반)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 id="s3">3. p값보다 중요한 것 — 차이의 신뢰구간</h2>
+    <p>
+      <code>p = 1.1e-15</code> 는 "차이가 없다고 보기 어렵다"만 말합니다.
+      <b>차이가 얼마나 큰지</b>는 말해주지 않죠. 구간으로 구해봅시다.
+    </p>
+
+    <div class="pycell" data-packages="pandas,scipy,numpy" data-data="cafe_sales.csv" data-title="13-3. 차이의 95% 신뢰구간">
+    import numpy as np
+
+    n1, n2 = len(주말), len(평일)
+    var1, var2 = 주말.var(), 평일.var()
+
+    차이 = 주말.mean() - 평일.mean()
+    se = np.sqrt(var1/n1 + var2/n2)
+
+    # Welch-Satterthwaite 자유도
+    자유도 = (var1/n1 + var2/n2)**2 / ((var1/n1)**2/(n1-1) + (var2/n2)**2/(n2-1))
+    임계값 = stats.t.ppf(0.975, 자유도)
+
+    print(f"차이        {차이:.1f}명")
+    print(f"표준오차    {se:.2f}")
+    print(f"95% 신뢰구간 [{차이 - 임계값*se:.1f}, {차이 + 임계값*se:.1f}]")
+    </div>
+
+    <div class="takeaway">
+      <b>이렇게 읽으세요 ·</b>
+      "주말은 평일보다 <b>28.8명에서 46.1명 더 많다</b>(95% 신뢰).
+      구간이 <b>0을 포함하지 않으므로</b> 차이가 있다고 볼 수 있고,
+      최소 29명은 더 온다고 말할 수 있다."
+      <br><br>
+      p값 하나로는 "최소 29명"이라는 <b>실무에 쓸 수 있는 정보</b>를 얻을 수 없습니다.
+    </div>
+
+    <h2 id="s4">4. 효과크기 — 차이가 얼마나 큰가</h2>
+
+    <div class="pycell" data-packages="pandas,numpy" data-data="cafe_sales.csv" data-title="13-4. Cohen's d">
+    합동SD = np.sqrt(((n1-1)*var1 + (n2-1)*var2) / (n1 + n2 - 2))
+    d = (주말.mean() - 평일.mean()) / 합동SD
+
+    print(f"합동 표준편차 {합동SD:.1f}")
+    print(f"Cohen's d   {d:.3f}")
+    print()
+    크기 = "작음" if abs(d) < 0.5 else "중간" if abs(d) < 0.8 else "큼"
+    print(f"→ 효과크기 '{크기}'")
+    </div>
+
+    <div class="formula">
+      <div class="name">Cohen's d</div>
+      <div class="eq">
+        d &nbsp;=&nbsp;
+        <span class="frac"><span>x̄<sub>1</sub> − x̄<sub>2</sub></span><span>s<sub>합동</sub></span></span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">뜻</span><span class="desc">차이를 <b>표준편차 단위</b>로 환산.
+            d=0.82 는 "표준편차의 0.82배만큼 차이"</span></li>
+        <li><span class="sym">0.2 / 0.5 / 0.8</span><span class="desc">관례적으로 작음 / 중간 / 큼</span></li>
+        <li><span class="sym">n과 무관</span><span class="desc">p값과 달리 <b>표본을 늘려도 안 커집니다.</b>
+            그래서 "진짜 크기"를 나타냅니다</span></li>
+      </ul>
+    </div>
+
+    <div class="pitfall">
+      <b>왜 p값과 효과크기를 둘 다 봐야 하나</b>
+      <div class="tbl-wrap" style="margin:8px 0 0">
+        <table class="tbl">
+          <thead><tr><th></th><th>p값</th><th>효과크기 d</th></tr></thead>
+          <tbody>
+            <tr><td><b>답하는 질문</b></td><td>우연으로 설명되나?</td><td>얼마나 큰가?</td></tr>
+            <tr><td><b>n을 늘리면</b></td><td><b>작아짐</b> (유의해짐)</td><td>안 변함</td></tr>
+            <tr><td><b>단독으로 쓰면</b></td><td>하찮은 차이도 "유의"</td><td>우연인지 알 수 없음</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="margin-top:10px">
+        우리 결과는 <b>p가 매우 작고(1e-15) d도 0.82로 큽니다.</b>
+        둘 다 만족하니 "주말 효과는 실재하고 크다"고 자신 있게 말할 수 있습니다.
+        만약 n=10,000인데 d=0.05라면? p는 작겠지만 <b>실무적으로는 무의미</b>합니다.
+      </p>
+    </div>
+
+    <h2 id="s5">5. 순열검정 — 가정 없이 하기</h2>
+    <p>
+      t검정은 <b>정규성</b>을 가정합니다. 우리 데이터는 오른쪽으로 치우쳐 있죠(왜도 2.55).
+      가정이 걱정된다면 <b>모듈 06에서 손으로 했던 카드 섞기</b>를 코드로 하면 됩니다.
+    </p>
+
+    <div class="pycell" data-packages="pandas,numpy" data-data="cafe_sales.csv" data-title="13-5. 순열검정 직접 만들기">
+    rng = np.random.default_rng(42)
+
+    관측차이 = abs(주말.mean() - 평일.mean())
+    전체 = np.concatenate([주말.values, 평일.values])
+    n = len(주말)
+
+    N = 5000
+    극단 = 0
+    for _ in range(N):
+        rng.shuffle(전체)                       # 라벨을 떼고 섞는다
+        섞인차이 = abs(전체[:n].mean() - 전체[n:].mean())
+        if 섞인차이 >= 관측차이:
+            극단 += 1
+
+    p_순열 = (극단 + 1) / (N + 1)
+    print(f"관측된 차이        {관측차이:.1f}명")
+    print(f"섞어서 더 극단적    {극단}회 / {N}회")
+    print(f"순열검정 p          {p_순열:.5f}")
+    print(f"t검정 p             {p:.4g}")
+    </div>
+
+    <div class="callout">
+      <b>순열검정 p가 0.0002에서 멈춘 이유</b><br>
+      5,000번 섞었으니 표현할 수 있는 최솟값이 <span class="m">1/(5000+1) ≈ 0.0002</span> 입니다.
+      실제 p는 훨씬 작지만 <b>해상도의 한계</b>로 더 내려가지 않는 거죠.
+      더 정밀한 값이 필요하면 섞는 횟수를 늘려야 합니다.
+      <br><br>
+      <b>+1을 더하는 이유</b>는 "관측된 것 자체도 가능한 배치 중 하나"이기 때문입니다.
+      이걸 빼면 p가 0이 나올 수 있는데, <b>p=0은 있을 수 없는 값</b>입니다.
+    </div>
+
+    <div class="practice">
+      <b>t검정 vs 순열검정</b>
+      <ul>
+        <li><b>t검정</b> — 빠르고, 신뢰구간이 바로 나오고, 어디서나 통용됩니다. <b>기본 선택.</b></li>
+        <li><b>순열검정</b> — 가정이 거의 없고, <b>원리가 투명합니다.</b>
+            표본이 작거나 분포가 이상할 때, 또는 "왜 이 결론인지" 설명해야 할 때 좋습니다.</li>
+        <li>둘이 <b>비슷한 결론</b>을 주면 안심해도 됩니다. 크게 다르면 t검정의 가정을 의심하세요.</li>
+      </ul>
+    </div>
+
+    <h2 id="s6">6. 여러 번 검정할 때</h2>
+    <p>
+      요일이 7개니까 <b>모든 쌍을 비교</b>하면 21번의 검정입니다.
+      α=0.05로 21번 검정하면 <b>우연히 하나쯤은 유의하게 나옵니다.</b>
+    </p>
+
+    <div class="pycell" data-packages="pandas,scipy,numpy" data-data="cafe_sales.csv" data-title="13-6. 다중검정 보정">
+    from itertools import combinations
+
+    순서 = ["월", "화", "수", "목", "금", "토", "일"]
+    그룹 = {d: df[df["weekday"] == d]["visitors"] for d in 순서}
+
+    결과 = []
+    for a, b in combinations(순서, 2):
+        _, pv = stats.ttest_ind(그룹[a], 그룹[b], equal_var=False)
+        결과.append((f"{a}-{b}", pv))
+
+    유의 = sum(1 for _, pv in 결과 if pv < 0.05)
+    본페로니 = 0.05 / len(결과)
+    유의보정 = sum(1 for _, pv in 결과 if pv < 본페로니)
+
+    print(f"검정 횟수: {len(결과)}회")
+    print(f"보정 없이 p<0.05:        {유의}쌍")
+    print(f"본페로니 기준 p<{본페로니:.5f}: {유의보정}쌍")
+    print()
+    print("가장 작은 p값 3개:")
+    for 이름, pv in sorted(결과, key=lambda x: x[1])[:3]:
+        print(f"  {이름}  p={pv:.3g}")
+    </div>
+
+    <div class="pitfall">
+      <b>21번 중 1번은 그냥 나옵니다</b>
+      <p style="margin:6px 0">
+        효과가 전혀 없어도 α=0.05로 21번 검정하면
+        적어도 한 번 유의할 확률이 <span class="m">1 − 0.95²¹ ≈ 66%</span> 입니다.
+        <b>3분의 2 확률로 헛것을 봅니다.</b>
+      </p>
+      <p style="margin:6px 0 0">
+        <b>본페로니</b>는 기준을 <span class="m">α/k</span> 로 낮춥니다. 간단하지만 보수적이라
+        진짜 효과도 놓치기 쉽습니다. 검정이 많으면
+        <b>FDR(Benjamini–Hochberg)</b> 이 균형이 좋습니다 —
+        <code>statsmodels.stats.multitest.multipletests(pvals, method="fdr_bh")</code>
+      </p>
+    </div>
+
+    <h2 id="s7">7. 보고서에 쓰는 법</h2>
+
+    <div class="myth">
+      <div class="bad">
+        <b>✗ 정보가 거의 없는 보고</b>
+        "주말이 평일보다 유의하게 많았다 (p &lt; 0.001)"
+      </div>
+      <div class="good">
+        <b>✓ 판단할 수 있는 보고</b>
+        "주말 방문객이 평일보다 <b>평균 37.4명 많았다</b>
+        (95% CI: 28.8~46.1명, Cohen's d = 0.82, Welch t검정 p &lt; 0.001,
+        주말 n=208 / 평일 n=523)"
+      </div>
+    </div>
+
+    <div class="practice">
+      <b>반드시 함께 적을 것</b>
+      <ol style="margin:8px 0 0;padding-left:18px">
+        <li><b>효과크기</b> — 실무 단위로 (37.4명) <b>그리고</b> 표준화된 값(d=0.82)</li>
+        <li><b>신뢰구간</b> — 최소 얼마인지가 의사결정을 좌우합니다</li>
+        <li><b>표본 크기</b> — 각 그룹별로</li>
+        <li><b>검정 방법</b> — Welch t검정인지, 순열검정인지</li>
+        <li><b>검정을 몇 번 했는지</b> — 보정했다면 방법까지</li>
+      </ol>
+    </div>
+
+    <div class="pycell" data-packages="pandas,scipy,numpy" data-data="cafe_sales.csv" data-title="연습 · 직접 써보세요">
+    # 문제 1. 비 온 날과 안 온 날의 방문객을 t검정으로 비교하고,
+    #        차이의 신뢰구간과 Cohen's d 까지 구해보세요.
+
+
+    # 문제 2. 공휴일과 그 외의 방문객을 비교해보세요.
+    #        공휴일은 35일뿐인데, 신뢰구간의 폭이 어떻게 다른가요?
+
+
+    # 문제 3. 계절 4개 그룹의 매출을 ANOVA(f_oneway)로 비교해보세요.
+    </div>
+
+    <details style="margin:18px 0">
+      <summary style="cursor:pointer;font-weight:600;color:var(--accent)">모범 답안 보기</summary>
+      <div class="pycell" data-packages="pandas,scipy,numpy" data-data="cafe_sales.csv" data-title="모범 답안">
+      def 비교(이름, a, b):
+          t, pv = stats.ttest_ind(a, b, equal_var=False)
+          n1, n2 = len(a), len(b)
+          v1, v2 = a.var(), b.var()
+          차 = a.mean() - b.mean()
+          se = np.sqrt(v1/n1 + v2/n2)
+          fr = (v1/n1 + v2/n2)**2 / ((v1/n1)**2/(n1-1) + (v2/n2)**2/(n2-1))
+          tc = stats.t.ppf(0.975, fr)
+          sp = np.sqrt(((n1-1)*v1 + (n2-1)*v2) / (n1+n2-2))
+          print(f"[{이름}]  n={n1} vs {n2}")
+          print(f"  차이 {차:+.1f}  95% CI [{차-tc*se:.1f}, {차+tc*se:.1f}]")
+          print(f"  d={차/sp:.3f}  p={pv:.4g}\n")
+
+      # 문제 1
+      비교("비 vs 맑음", df[df["rain_mm"] > 0]["visitors"], df[df["rain_mm"] == 0]["visitors"])
+
+      # 문제 2
+      비교("공휴일 vs 그 외", df[df["is_holiday"]]["visitors"], df[~df["is_holiday"]]["visitors"])
+
+      # 문제 3
+      def 계절(m):
+          return "봄" if m in (3,4,5) else "여름" if m in (6,7,8) else "가을" if m in (9,10,11) else "겨울"
+      df["계절"] = df["date"].dt.month.map(계절)
+      그룹들 = [df[df["계절"] == s]["sales"].dropna() for s in ["봄", "여름", "가을", "겨울"]]
+      F, pv = stats.f_oneway(*그룹들)
+      print(f"[ANOVA] F={F:.2f}, p={pv:.3g}")
+      print("→ 적어도 한 계절은 다르다. 어느 쌍인지는 사후검정으로 확인해야 함")
+      </div>
+      <p style="font-size:13.5px;color:var(--text-dim)">
+        문제 2의 결과를 주목하세요. 공휴일은 35일뿐이라
+        <b>신뢰구간이 훨씬 넓게</b> 나옵니다. 같은 크기의 차이라도
+        표본이 작으면 <b>"최소 얼마"라고 말할 수 있는 하한이 낮아집니다.</b>
+        6강에서 "그룹 크기를 항상 함께 보라"고 한 이유가 여기서 숫자로 드러납니다.
+      </p>
+    </details>
+
+    <div class="colab-cta">
+      <div class="colab-text">
+        <b>더 자유롭게 해보고 싶다면</b>
+        Colab에서 순열검정 횟수를 늘려가며 실습할 수 있습니다.
+      </div>
+      <a class="btn" id="colab-link" href="#" target="_blank" rel="noopener">Colab에서 열기</a>
+    </div>
+
+    <div class="summary">
+      <h3>13강 요약</h3>
+      <ul>
+        <li>평균의 신뢰구간: <code>stats.t.interval(0.95, n-1, loc=평균, scale=stats.sem(x))</code></li>
+        <li>두 그룹 비교는 <code>ttest_ind(a, b, <b>equal_var=False</b>)</code> — Welch를 기본으로.</li>
+        <li><b>p값보다 차이의 신뢰구간</b>을 먼저 보라. "최소 29명"이 실무에 쓰는 정보다.</li>
+        <li><b>Cohen's d</b> 는 n에 흔들리지 않는 효과크기. p값과 함께 봐야 한다.</li>
+        <li><b>순열검정</b>은 가정이 거의 없고 원리가 투명하다. 해상도는 1/(N+1).</li>
+        <li>여러 번 검정하면 <b>보정</b>이 필수. 21회면 헛것을 볼 확률이 66%.</li>
+        <li>보고는 <b>효과크기 + 신뢰구간 + p값 + n + 검정방법</b> 세트로.</li>
+      </ul>
+    </div>
+
+    <p class="next-up">
+      다음 → <b>14강 · 시계열 다루기</b><br>
+      드디어 시간 축을 본격적으로 다룹니다. 이동평균과 변화율.
+    </p>
+  </section>
+
+</div>
+
+<script src="../assets/viz.js?v=312b9476b0"></script>
+<script src="../assets/pylab.js?v=869ae9b12b"></script>
+<script src="../assets/pycell.js?v=6dacc4c6ce"></script>
+<script>
+(function () {
+  var a = document.getElementById('colab-link');
+  if (a) a.href = 'https://colab.research.google.com/github/mioon1402/timeseriesdata/blob/main/notebooks/p13-inference.ipynb';
+})();
+</script>
+</body>
+</html>

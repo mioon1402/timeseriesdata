@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>시계열 다루기 · 파이썬 데이터 분석</title>
+<meta name="description" content="리샘플링, 이동평균, 변화율. 시간 축이 있는 데이터를 다루는 도구들.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%F0%9F%90%8D%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css?v=92187514af">
+<link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">파이썬 14강 · 시계열과 예측</p>
+    <h1>시계열 다루기</h1>
+    <p class="lede">
+      시간 축이 있는 데이터는 다르게 다뤄야 합니다.
+      <b>순서가 정보</b>이기 때문입니다.
+      리샘플링·이동평균·변화율 — 이 세 가지면 대부분의 시계열 작업이 됩니다.
+    </p>
+  </header>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 강의에서 배우는 것</b>
+      <ol>
+        <li><a href="#s1">시계열 인덱스 만들기 — asfreq</a></li>
+        <li><a href="#s2">resample — 시간 단위 바꾸기</a></li>
+        <li><a href="#s3">rolling — 이동평균으로 노이즈 걷어내기</a></li>
+        <li><a href="#s4">shift와 diff — 과거와 비교하기</a></li>
+        <li><a href="#s5">변화율 — 전월 대비, 전년 대비</a></li>
+        <li><a href="#s6">시계열에서 절대 하면 안 되는 것</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s1">1. 시계열 인덱스 만들기</h2>
+    <p>
+      4강에서 <code>set_index("date")</code> 를 배웠습니다.
+      한 걸음 더 나아가 <b>"이 데이터는 하루 간격"</b>이라고 명시하면
+      pandas가 빠진 날짜를 찾아줍니다.
+    </p>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="14-1. asfreq 로 빈틈 확인">
+    import pandas as pd
+
+    df = pd.read_csv("cafe_sales.csv", parse_dates=["date"])
+    ts = df.set_index("date").asfreq("D")     # D = 하루 간격
+
+    print("빈도:", ts.index.freq)
+    print("행 수:", len(ts))
+    print()
+    print("매출 결측:", ts["sales"].isna().sum(), "일")
+    print("빠진 날짜:", ts.index.difference(df["date"]).tolist())
+    </div>
+
+    <div class="practice">
+      <b><code>asfreq</code> 가 해주는 일</b>
+      <ul>
+        <li>날짜가 <b>빠져 있으면 빈 행을 채워 넣습니다.</b> 3월 5일 데이터가 없으면 결측으로 만들어주죠.</li>
+        <li>이게 중요한 이유: <b>이동평균이나 시차 계산이 날짜 간격을 가정</b>하기 때문입니다.
+            중간에 날이 빠져 있으면 "7일 전"이 실제로는 9일 전일 수 있습니다.</li>
+        <li>우리 데이터는 731일이 다 있어서 새로 생긴 행은 없습니다.
+            <code>sales</code> 의 결측 4건은 원래 있던 POS 오류입니다.</li>
+      </ul>
+    </div>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>빈도 코드</th><th>뜻</th></tr></thead>
+        <tbody>
+          <tr><td><code>D</code> / <code>h</code> / <code>min</code></td><td>일 / 시간 / 분</td></tr>
+          <tr><td><code>W</code></td><td>주 (일요일 기준)</td></tr>
+          <tr><td><code>ME</code> / <code>MS</code></td><td>월말 / 월초</td></tr>
+          <tr><td><code>QE</code> / <code>YE</code></td><td>분기말 / 연말</td></tr>
+          <tr><td><code>B</code></td><td>영업일 (주말 제외)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 id="s2">2. resample — 시간 단위 바꾸기</h2>
+    <p>
+      <code>resample</code> 은 <b>시계열 전용 groupby</b> 입니다.
+      "일별 → 월별"처럼 시간 단위를 바꿉니다.
+    </p>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="14-2. 여러 단위로 묶어보기">
+    s = ts["sales"]
+
+    for 코드, 이름 in [("W", "주"), ("ME", "월"), ("QE", "분기")]:
+        묶음 = s.resample(코드).mean()
+        print(f"{이름}별  {len(묶음):3d}개   첫 값 {묶음.iloc[0]:>10,.0f}원")
+    </div>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="14-3. 합계와 평균은 다릅니다">
+    월합계 = s.resample("ME").sum()
+    월평균 = s.resample("ME").mean()
+    일수   = s.resample("ME").size()
+
+    표 = pd.DataFrame({
+        "일수": 일수,
+        "월 총매출(만원)": 월합계 / 10000,
+        "일평균(만원)": 월평균 / 10000,
+    }).round(1)
+    print(표.head(6).to_string())
+    </div>
+
+    <div class="pitfall">
+      <b>월별 비교에서 가장 흔한 실수</b>
+      <p style="margin:6px 0">
+        <b>2월은 28일, 3월은 31일</b>입니다. 월 <b>총매출</b>을 비교하면
+        2월이 낮게 나오는데, 이건 장사가 안 된 게 아니라 <b>날이 적어서</b>입니다.
+      </p>
+      <p style="margin:6px 0 0">
+        <b>성과를 비교할 땐 일평균</b>(<code>.mean()</code>)을,
+        <b>실제 금액이 궁금할 땐 합계</b>(<code>.sum()</code>)를 쓰세요.
+        보고서에 "월 매출"이라고 쓸 땐 <b>어느 쪽인지 명시</b>해야 합니다.
+      </p>
+    </div>
+
+    <h2 id="s3">3. rolling — 이동평균</h2>
+    <p>
+      일별 데이터는 요일 효과 때문에 <b>톱니처럼 들쭉날쭉</b>합니다.
+      추세만 보고 싶을 때 <b>이동평균</b>으로 노이즈를 걷어냅니다.
+    </p>
+
+    <div class="pycell" data-packages="pandas,matplotlib" data-data="cafe_sales.csv" data-title="14-4. 이동평균 그려보기">
+    import matplotlib.pyplot as plt
+
+    fig, ax = plt.subplots(figsize=(10, 4))
+    ax.plot(s.index, s / 10000, linewidth=0.5, color="#cbd5e1", label="원본(일별)")
+    ax.plot(s.index, s.rolling(7).mean() / 10000, linewidth=1.5,
+            color="#2563eb", label="7일 이동평균")
+    ax.plot(s.index, s.rolling(30).mean() / 10000, linewidth=2,
+            color="#dc2626", label="30일 이동평균")
+
+    ax.set_ylabel("매출(만원)")
+    ax.set_title("이동평균으로 추세 보기", fontweight="bold", loc="left")
+    ax.legend(frameon=False)
+    ax.spines["top"].set_visible(False); ax.spines["right"].set_visible(False)
+    plt.tight_layout(); plt.show()
+    </div>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="14-5. 창 크기에 따른 매끄러움">
+    print(f"원본          표준편차 {s.std():>9,.0f}")
+    for w in [7, 14, 30, 90]:
+        print(f"{w:>3}일 이동평균  표준편차 {s.rolling(w).mean().std():>9,.0f}")
+    </div>
+
+    <div class="practice">
+      <b>창 크기 고르는 법</b>
+      <ul>
+        <li><b>주기와 맞추세요.</b> 요일 효과를 없애려면 <b>7의 배수</b>(7, 14, 28)를 씁니다.
+            5일이나 10일을 쓰면 요일 효과가 <b>덜 지워지고 오히려 이상한 물결</b>이 생깁니다.</li>
+        <li>창이 클수록 매끄럽지만 <b>반응이 느려집니다.</b> 30일 평균은 변화를 보름쯤 늦게 알려줍니다.</li>
+        <li><code>min_periods=1</code> 을 주면 데이터가 부족한 앞부분도 계산합니다.
+            안 주면 앞의 6일은 결측이 됩니다.</li>
+      </ul>
+    </div>
+
+    <div class="pycell" data-packages="pandas,matplotlib" data-data="cafe_sales.csv" data-title="14-6. center=True — 시차 없애기">
+    fig, ax = plt.subplots(figsize=(10, 3.6))
+    최근 = s.loc["2025-06":"2025-09"] / 10000
+
+    ax.plot(최근.index, 최근.values, lw=0.6, color="#cbd5e1", label="원본")
+    ax.plot(최근.index, 최근.rolling(14).mean(), lw=2,
+            color="#dc2626", label="14일 이동평균 (뒤로 밀림)")
+    ax.plot(최근.index, 최근.rolling(14, center=True).mean(), lw=2,
+            color="#0d9488", label="14일 중심이동평균")
+
+    ax.legend(frameon=False, fontsize=9)
+    ax.set_ylabel("매출(만원)")
+    ax.set_title("center=True 를 쓰면 시차가 사라진다", fontweight="bold", loc="left")
+    plt.tight_layout(); plt.show()
+    </div>
+
+    <div class="callout">
+      <b>왜 빨간 선이 오른쪽으로 밀려 있나</b><br>
+      기본 <code>rolling(14)</code> 은 <b>"지난 14일의 평균"</b>을 오늘 자리에 찍습니다.
+      그래서 실제 변화보다 <b>약 7일 늦게</b> 반응하죠.
+      <br><br>
+      <code>center=True</code> 는 <b>앞뒤 7일씩</b>의 평균을 오늘 자리에 찍어 시차가 없습니다.
+      <b>과거를 분석할 땐 center=True</b>가 정확하지만,
+      <b>실시간 모니터링에는 쓸 수 없습니다</b> — 미래 데이터가 필요하니까요.
+      이 구분이 16강의 예측에서 결정적으로 중요해집니다.
+    </div>
+
+    <h2 id="s4">4. shift와 diff</h2>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="14-7. 과거 값 가져오기">
+    표 = pd.DataFrame({
+        "오늘":     s,
+        "어제":     s.shift(1),
+        "일주일전": s.shift(7),
+        "전일대비": s.diff(1),
+        "전주대비": s.diff(7),
+    })
+    print((표.head(9) / 10000).round(1).to_string())
+    </div>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>도구</th><th>하는 일</th><th>쓰는 곳</th></tr></thead>
+        <tbody>
+          <tr><td><code>shift(n)</code></td><td>값을 n칸 <b>아래로</b> 민다 (과거 값을 오늘 줄에)</td><td>비교, 예측 변수 만들기</td></tr>
+          <tr><td><code>diff(n)</code></td><td>현재 − n칸 전</td><td>변화량, 추세 제거</td></tr>
+          <tr><td><code>pct_change(n)</code></td><td>변화 <b>비율</b></td><td>성장률</td></tr>
+          <tr><td><code>shift(-n)</code></td><td>미래 값을 오늘 줄에</td><td><b>예측 대상 만들기</b> (주의!)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="practice">
+      <b><code>diff(7)</code> 이 유용한 이유</b>
+      <p style="margin:6px 0">
+        <b>같은 요일끼리 비교</b>하는 것이라 요일 효과가 저절로 사라집니다.
+        "이번 주 토요일이 지난주 토요일보다 얼마나 늘었나"를 바로 알 수 있죠.
+      </p>
+      <p style="margin:6px 0 0">
+        같은 원리로 <b>월별 데이터는 <code>diff(12)</code></b>,
+        <b>분기 데이터는 <code>diff(4)</code></b> 로 계절 효과를 제거합니다.
+        이걸 <b>계절 차분</b>이라고 부르고, 16강의 SARIMA 가 내부에서 하는 일이기도 합니다.
+      </p>
+    </div>
+
+    <h2 id="s5">5. 변화율</h2>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="14-8. 전월 대비 / 전년 동월 대비">
+    월 = s.resample("ME").mean()
+
+    성장 = pd.DataFrame({
+        "일평균매출(만원)": 월 / 10000,
+        "전월대비(%)":      월.pct_change() * 100,
+        "전년동월대비(%)":  월.pct_change(12) * 100,
+    }).round(1)
+
+    print(성장.tail(8).to_string())
+    </div>
+
+    <div class="pitfall">
+      <b>전월 대비는 계절성에 속습니다</b>
+      <p style="margin:6px 0">
+        1월 → 2월 매출이 늘었다고 "성장 중"이라 말하면 안 됩니다.
+        원래 봄으로 갈수록 오르는 계절 패턴이니까요.
+      </p>
+      <p style="margin:6px 0 0">
+        <b>전년 동월 대비(YoY)</b>는 계절을 자동으로 통제합니다 —
+        작년 2월과 올해 2월은 같은 계절이니까요.
+        <b>성장을 말할 땐 YoY 를 쓰세요.</b>
+        다만 작년에 특별한 사건(방송 대박)이 있었다면 그것도 함께 봐야 합니다.
+      </p>
+    </div>
+
+    <div class="pycell" data-packages="pandas,matplotlib" data-data="cafe_sales.csv" data-title="14-9. 두 관점 비교해서 그리기">
+    fig, ax = plt.subplots(figsize=(10, 3.6))
+    yoy = (월.pct_change(12) * 100).dropna()
+    mom = (월.pct_change() * 100).dropna()
+
+    ax.bar(mom.index, mom.values, width=20, color="#cbd5e1", label="전월 대비")
+    ax.plot(yoy.index, yoy.values, color="#2563eb", marker="o",
+            linewidth=2, label="전년 동월 대비")
+    ax.axhline(0, color="black", linewidth=0.8)
+
+    ax.set_ylabel("증감률(%)")
+    ax.set_title("전월 대비는 출렁이지만, 전년 대비는 꾸준한 성장을 보여준다",
+                 fontweight="bold", loc="left", fontsize=12)
+    ax.legend(frameon=False)
+    ax.spines["top"].set_visible(False); ax.spines["right"].set_visible(False)
+    plt.tight_layout(); plt.show()
+    </div>
+
+    <h2 id="s6">6. 시계열에서 절대 하면 안 되는 것</h2>
+
+    <div class="pitfall">
+      <b>① 순서를 섞지 마세요</b>
+      <p style="margin:6px 0">
+        일반 데이터에서는 <code>sample()</code> 로 무작위 추출을 해도 됩니다.
+        <b>시계열에서는 안 됩니다.</b> 순서 자체가 정보이기 때문입니다.
+      </p>
+      <p style="margin:6px 0 0">
+        특히 <b>학습/검증을 무작위로 나누면 안 됩니다.</b>
+        미래 데이터로 과거를 예측하는 셈이 되어 성능이 <b>가짜로 좋게</b> 나옵니다(16강).
+      </p>
+    </div>
+
+    <div class="pitfall">
+      <b>② 미래 정보를 몰래 쓰지 마세요 (데이터 누수)</b>
+      <p style="margin:6px 0">
+        <code>rolling(7, center=True)</code> 나 <code>fillna(전체평균)</code> 은
+        <b>미래 데이터를 씁니다.</b> 과거를 분석할 땐 괜찮지만,
+        <b>예측 모델에 넣으면 반칙</b>입니다.
+      </p>
+      <p style="margin:6px 0 0">
+        실무에서 "검증 성능은 좋았는데 실제로는 형편없다"의 절반은 이 문제입니다.
+        <b>"이 시점에 내가 진짜 알 수 있었나?"</b>를 매번 물어보세요.
+      </p>
+    </div>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="14-10. 누수 없는 결측 처리">
+    구멍 = s.copy()
+
+    # ✗ 전체 평균으로 채우기 — 미래 정보가 들어간다
+    나쁨 = 구멍.fillna(구멍.mean())
+
+    # ○ 직전 값으로 채우기 — 그 시점에 알 수 있던 정보만
+    좋음 = 구멍.ffill()
+
+    # ○ 확장 평균 — '그때까지의' 평균만 사용
+    확장 = 구멍.fillna(구멍.expanding().mean())
+
+    print("결측:", 구멍.isna().sum(), "건")
+    print(f"전체평균 대체  {나쁨.mean():>10,.0f}   ← 미래 정보 사용 (예측엔 반칙)")
+    print(f"직전값 대체    {좋음.mean():>10,.0f}   ← 안전")
+    print(f"확장평균 대체  {확장.mean():>10,.0f}   ← 안전")
+    </div>
+
+    <div class="pycell" data-packages="pandas,matplotlib" data-data="cafe_sales.csv" data-title="연습 · 직접 써보세요">
+    # 문제 1. 방문객(visitors)의 28일 이동평균을 그려보세요.
+    #        7일 이동평균과 무엇이 다른가요?
+
+
+    # 문제 2. 주별(W) 매출 합계를 구하고, 전주 대비 변화율을 계산해보세요.
+
+
+    # 문제 3. 각 요일별로 '전주 같은 요일 대비' 변화율을 구해보세요.
+    #        힌트: pct_change(7)
+    </div>
+
+    <details style="margin:18px 0">
+      <summary style="cursor:pointer;font-weight:600;color:var(--accent)">모범 답안 보기</summary>
+      <div class="pycell" data-packages="pandas,matplotlib" data-data="cafe_sales.csv" data-title="모범 답안">
+      v = ts["visitors"]
+
+      # 문제 1
+      fig, ax = plt.subplots(figsize=(10, 3.5))
+      ax.plot(v.index, v, lw=0.4, color="#e2e8f0", label="원본")
+      ax.plot(v.index, v.rolling(7).mean(), lw=1.2, label="7일")
+      ax.plot(v.index, v.rolling(28).mean(), lw=2, label="28일")
+      ax.legend(frameon=False); ax.set_ylabel("방문객(명)")
+      ax.set_title("창이 클수록 매끄럽지만 반응이 느리다", fontweight="bold", loc="left")
+      plt.tight_layout(); plt.show()
+
+      # 문제 2
+      주 = s.resample("W").sum()
+      주표 = pd.DataFrame({"주매출(만원)": 주/10000, "전주대비(%)": 주.pct_change()*100})
+      print(주표.round(1).tail(6).to_string())
+
+      # 문제 3
+      전주대비 = s.pct_change(7) * 100
+      print()
+      print("요일별 '전주 같은 요일 대비' 평균 변화율(%)")
+      print(전주대비.groupby(전주대비.index.dayofweek).mean().round(2).to_string())
+      </div>
+      <p style="font-size:13.5px;color:var(--text-dim)">
+        문제 3의 결과가 모두 <b>0보다 조금 큰 비슷한 값</b>으로 나옵니다.
+        이게 바로 <b>주간 성장률</b>입니다 — 요일 효과가 제거되고
+        순수한 성장만 남은 거죠. 요일마다 값이 비슷하다는 건
+        <b>모든 요일이 고르게 성장하고 있다</b>는 뜻이기도 합니다.
+      </p>
+    </details>
+
+    <div class="colab-cta">
+      <div class="colab-text">
+        <b>더 자유롭게 해보고 싶다면</b>
+        Colab에서 창 크기를 바꿔가며 실습할 수 있습니다.
+      </div>
+      <a class="btn" id="colab-link" href="#" target="_blank" rel="noopener">Colab에서 열기</a>
+    </div>
+
+    <div class="summary">
+      <h3>14강 요약</h3>
+      <ul>
+        <li><code>asfreq("D")</code> 로 <b>빠진 날짜를 드러낸다.</b> 시차 계산 전에 필수.</li>
+        <li><code>resample</code> 은 시계열 groupby. <b>합계와 평균을 구분</b>할 것 (2월은 28일!).</li>
+        <li><code>rolling(7)</code> — 창 크기는 <b>주기의 배수</b>로. 크면 매끄럽지만 느리다.</li>
+        <li><code>center=True</code> 는 시차가 없지만 <b>미래를 쓴다.</b> 예측엔 금지.</li>
+        <li><code>diff(7)</code> = 계절 차분. 같은 요일끼리 비교해 요일 효과 제거.</li>
+        <li>성장은 <b>전월 대비가 아니라 전년 동월 대비(YoY)</b>로 말한다.</li>
+        <li><b>순서를 섞지 말고, 미래 정보를 쓰지 말 것.</b> "그때 알 수 있었나"를 매번 물어라.</li>
+      </ul>
+    </div>
+
+    <p class="next-up">
+      다음 → <b>15강 · 추세와 계절성 분해</b><br>
+      매출을 추세 + 주기 + 나머지 세 조각으로 쪼갭니다.
+    </p>
+  </section>
+
+</div>
+
+<script src="../assets/viz.js?v=312b9476b0"></script>
+<script src="../assets/pylab.js?v=869ae9b12b"></script>
+<script src="../assets/pycell.js?v=6dacc4c6ce"></script>
+<script>
+(function () {
+  var a = document.getElementById('colab-link');
+  if (a) a.href = 'https://colab.research.google.com/github/mioon1402/timeseriesdata/blob/main/notebooks/p14-timeseries.ipynb';
+})();
+</script>
+</body>
+</html>

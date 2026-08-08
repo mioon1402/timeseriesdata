@@ -54,6 +54,10 @@ def wanted_codepoints():
         0x03B1, 0x03B2, 0x03BC, 0x03C0, 0x03C3,   # α β μ π σ
         0x0304,                                    # 결합 매크론 (x̄)
     ]
+    # 그래프 축 라벨에 자주 쓰는 단위 기호.
+    # ℃ 가 빠져 있으면 "기온(℃)" 라벨이 통째로 □ 로 나온다.
+    cps += range(0x2100, 0x2150)      # ℃ ℉ ™ № ℓ 등 (Letterlike Symbols)
+    cps += range(0x3380, 0x33E0)      # ㎏ ㎝ ㎞ ㎡ ㎥ ㎖ 등 (CJK 단위 기호)
     return list(cps)
 
 

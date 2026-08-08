@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>seaborn으로 빠르게 · 파이썬 데이터 분석</title>
+<meta name="description" content="한 줄로 분포·관계·범주 그래프를 그립니다. 그리고 언제 matplotlib으로 돌아가야 하는지.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%F0%9F%90%8D%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css?v=92187514af">
+<link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">파이썬 11강 · 시각화</p>
+    <h1>seaborn으로 빠르게</h1>
+    <p class="lede">
+      10강에서 여러 줄로 하던 걸 <b>한 줄</b>로 끝냅니다.
+      seaborn은 matplotlib 위에 얹힌 도구라, <b>탐색은 seaborn으로 빠르게 →
+      발표용은 matplotlib으로 다듬기</b>가 실무 흐름입니다.
+    </p>
+  </header>
+
+  <div class="pyintro">
+    <b>seaborn 은 브라우저에서 추가 설치가 필요합니다</b>
+    <ul>
+      <li>이 강의의 첫 셀은 seaborn 을 내려받느라 <b>30초 이상</b> 걸릴 수 있습니다.</li>
+      <li>한 번 받으면 이후 셀은 빠릅니다.</li>
+    </ul>
+  </div>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 강의에서 배우는 것</b>
+      <ol>
+        <li><a href="#s1">한 줄의 차이</a></li>
+        <li><a href="#s2">분포 보기 — histplot, kdeplot</a></li>
+        <li><a href="#s3">범주 비교 — boxplot, violinplot, barplot</a></li>
+        <li><a href="#s4">관계 보기 — scatterplot, regplot</a></li>
+        <li><a href="#s5">상관 히트맵</a></li>
+        <li><a href="#s6">hue — 세 번째 변수를 색으로</a></li>
+        <li><a href="#s7">언제 matplotlib으로 돌아가나</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s1">1. 한 줄의 차이</h2>
+
+    <div class="pycell" data-packages="pandas,seaborn" data-data="cafe_sales.csv" data-title="11-1. matplotlib vs seaborn">
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+
+    df = pd.read_csv("cafe_sales.csv", parse_dates=["date"])
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11, 3.4))
+
+    # matplotlib — 데이터를 직접 넘긴다
+    ax1.hist(df["visitors"], bins=30, edgecolor="white")
+    ax1.set_title("matplotlib")
+
+    # seaborn — 데이터프레임과 '열 이름'을 넘긴다
+    sns.histplot(data=df, x="visitors", bins=30, ax=ax2)
+    ax2.set_title("seaborn")
+
+    plt.tight_layout()
+    plt.show()
+    </div>
+
+    <div class="formula">
+      <div class="name">seaborn 의 문법 규칙</div>
+      <div class="eq" style="font-size:14.5px;line-height:2">
+        sns.그래프종류( <b>data</b>=df, <b>x</b>="열이름", <b>y</b>="열이름", <b>hue</b>="열이름", ax=ax )
+      </div>
+      <ul class="where">
+        <li><span class="sym">data</span><span class="desc">데이터프레임 통째로. seaborn 은 <b>열 이름으로</b> 말이 통합니다</span></li>
+        <li><span class="sym">x, y</span><span class="desc">가로·세로에 놓을 <b>열 이름</b> (값이 아니라 이름!)</span></li>
+        <li><span class="sym">hue</span><span class="desc"><b>색으로 구분할</b> 세 번째 변수. seaborn 의 최대 강점 (§6)</span></li>
+        <li><span class="sym">ax</span><span class="desc">그릴 그림틀. 생략하면 알아서 새로 만듭니다</span></li>
+      </ul>
+    </div>
+
+    <div class="practice">
+      <b>seaborn 이 대신 해주는 것들</b>
+      <ul>
+        <li><b>축 라벨을 자동으로</b> 붙입니다 (열 이름으로)</li>
+        <li>범례를 자동으로 만듭니다</li>
+        <li>색을 알아서 고릅니다 (기본 팔레트가 무난합니다)</li>
+        <li>그룹별 계산(평균, 신뢰구간)을 <b>내부에서 해줍니다</b></li>
+      </ul>
+      <p style="margin-top:8px">
+        덕분에 <b>탐색 속도가 몇 배 빨라집니다.</b>
+        다만 자동으로 해주는 만큼 <b>세밀한 제어는 어렵습니다</b> — §7 참고.
+      </p>
+    </div>
+
+    <h2 id="s2">2. 분포 보기</h2>
+
+    <div class="pycell" data-packages="pandas,seaborn" data-data="cafe_sales.csv" data-title="11-2. 히스토그램과 밀도곡선">
+    fig, axes = plt.subplots(1, 3, figsize=(13, 3.4))
+
+    sns.histplot(data=df, x="visitors", bins=30, ax=axes[0])
+    axes[0].set_title("histplot — 도수")
+
+    sns.histplot(data=df, x="visitors", bins=30, kde=True, ax=axes[1])
+    axes[1].set_title("kde=True — 매끄러운 곡선 겹치기")
+
+    sns.kdeplot(data=df, x="visitors", fill=True, ax=axes[2])
+    axes[2].set_title("kdeplot — 곡선만")
+
+    plt.tight_layout()
+    plt.show()
+    </div>
+
+    <div class="pitfall">
+      <b>KDE 곡선을 조심하세요</b>
+      <p style="margin:6px 0">
+        밀도곡선은 보기 좋지만 <b>없는 데이터를 만들어냅니다.</b>
+        방문객 수는 0 이하가 될 수 없는데, 곡선은 <b>0보다 왼쪽까지 부드럽게 이어집니다.</b>
+        위 그림의 왼쪽 꼬리를 보세요.
+      </p>
+      <p style="margin:6px 0 0">
+        곡선의 매끄러움은 <b>대역폭(bandwidth)</b>이라는 임의의 설정에 달려 있습니다 —
+        히스토그램의 구간 폭과 똑같은 문제죠(<a href="../modules/02-distribution-shape.html">모듈 02</a>).
+        <b>탐색용으로는 좋지만, 보고서에는 히스토그램이 더 정직합니다.</b>
+      </p>
+    </div>
+
+    <h2 id="s3">3. 범주 비교</h2>
+
+    <div class="pycell" data-packages="pandas,seaborn" data-data="cafe_sales.csv" data-title="11-3. 상자그림 · 바이올린 · 막대">
+    순서 = ["월", "화", "수", "목", "금", "토", "일"]
+
+    fig, axes = plt.subplots(1, 3, figsize=(14, 3.6))
+
+    sns.boxplot(data=df, x="weekday", y="visitors", order=순서, ax=axes[0])
+    axes[0].set_title("boxplot — 다섯 숫자 요약")
+
+    sns.violinplot(data=df, x="weekday", y="visitors", order=순서, ax=axes[1])
+    axes[1].set_title("violinplot — 분포 모양까지")
+
+    sns.barplot(data=df, x="weekday", y="visitors", order=순서, ax=axes[2])
+    axes[2].set_title("barplot — 평균 + 신뢰구간")
+
+    plt.tight_layout()
+    plt.show()
+    </div>
+
+    <div class="callout">
+      <b><code>barplot</code> 의 검은 세로선이 무엇인지 아세요?</b><br>
+      그건 <b>95% 신뢰구간</b>입니다. seaborn 이 부트스트랩으로 자동 계산해줍니다.
+      "이 평균을 얼마나 믿을 수 있나"를 그림이 알아서 말해주는 거죠
+      (<a href="../modules/05-confidence-interval.html">모듈 05</a>).
+      <br><br>
+      상자그림의 다섯 숫자(최소·Q1·중앙값·Q3·최대)와 동그란 이상치 점은
+      7강에서 배운 <b>1.5 IQR 울타리</b> 그대로입니다.
+    </div>
+
+    <div class="practice">
+      <b>셋 중 무엇을 쓸까</b>
+      <div class="tbl-wrap" style="margin:8px 0 0">
+        <table class="tbl">
+          <thead><tr><th>그래프</th><th>보여주는 것</th><th>언제</th></tr></thead>
+          <tbody>
+            <tr><td><b>boxplot</b></td><td>중앙값·사분위수·이상치</td><td><b>기본 선택.</b> 그룹이 많아도 읽힘</td></tr>
+            <tr><td><b>violinplot</b></td><td>분포의 <b>모양</b>(봉우리가 둘인지 등)</td><td>모양이 중요할 때. 데이터가 많을 때</td></tr>
+            <tr><td><b>barplot</b></td><td>평균과 신뢰구간</td><td>평균 비교가 목적일 때. <b>퍼짐은 안 보임</b></td></tr>
+            <tr><td><b>stripplot</b><br><b>swarmplot</b></td><td>점 하나하나</td><td>표본이 <b>적을 때</b>(30개 이하). 다 보여주는 게 정직</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="margin-top:10px">
+        <b>막대그래프만 쓰면 위험합니다.</b> 평균은 같은데 퍼짐이 전혀 다른 두 그룹이
+        똑같은 막대로 그려지니까요(모듈 01의 "촘촘 vs 넓게 퍼짐").
+        상자그림이나 점을 <b>겹쳐 그리는</b> 게 좋습니다.
+      </p>
+    </div>
+
+    <div class="pycell" data-packages="pandas,seaborn" data-data="cafe_sales.csv" data-title="11-4. 상자그림 위에 점 겹치기">
+    fig, ax = plt.subplots(figsize=(8.5, 4))
+
+    sns.boxplot(data=df, x="weekday", y="visitors", order=순서,
+                showfliers=False, ax=ax, color="#e2e8f0")
+    sns.stripplot(data=df, x="weekday", y="visitors", order=순서,
+                  size=2.5, alpha=0.4, color="#2563eb", ax=ax)
+
+    ax.set_title("요일별 방문객 — 요약과 원본을 함께")
+    ax.set_xlabel(""); ax.set_ylabel("방문객(명)")
+    plt.show()
+    </div>
+
+    <h2 id="s4">4. 관계 보기</h2>
+
+    <div class="pycell" data-packages="pandas,seaborn" data-data="cafe_sales.csv" data-title="11-5. 산점도와 회귀선">
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11, 3.8))
+
+    sns.scatterplot(data=df, x="avg_temp", y="sales", alpha=0.4, s=18, ax=ax1)
+    ax1.set_title("scatterplot")
+
+    # regplot — 산점도 + 회귀선 + 신뢰밴드를 한 번에
+    sns.regplot(data=df, x="avg_temp", y="sales",
+                scatter_kws={"alpha": 0.25, "s": 12},
+                line_kws={"color": "#dc2626"}, ax=ax2)
+    ax2.set_title("regplot — 회귀선까지")
+
+    plt.tight_layout()
+    plt.show()
+    </div>
+
+    <p>
+      <code>regplot</code> 이 그려준 <b>붉은 선</b>이 최소제곱 회귀선이고,
+      그 주변의 <b>옅은 띠</b>가 회귀선의 95% 신뢰구간입니다.
+      선이 어떻게 정해지는지는
+      <a href="../modules/07-regression.html">모듈 07</a>에서 직접 그어볼 수 있고,
+      숫자로 구하는 법은 <b>12강</b>에서 배웁니다.
+    </p>
+
+    <h2 id="s5">5. 상관 히트맵</h2>
+
+    <div class="pycell" data-packages="pandas,seaborn" data-data="cafe_sales.csv" data-title="11-6. 한눈에 보는 상관관계">
+    수치열 = df[["visitors", "sales", "avg_temp", "rain_mm"]]
+    상관 = 수치열.corr()
+
+    fig, ax = plt.subplots(figsize=(5.5, 4.5))
+    sns.heatmap(상관, annot=True, fmt=".2f", cmap="RdBu_r",
+                center=0, vmin=-1, vmax=1, square=True, ax=ax)
+    ax.set_title("변수 간 상관계수")
+    plt.tight_layout()
+    plt.show()
+    </div>
+
+    <div class="practice">
+      <b>히트맵 설정 3가지가 중요합니다</b>
+      <ul>
+        <li><code>cmap="RdBu_r"</code> — <b>발산형</b> 색상. 음수는 파랑, 0은 흰색, 양수는 빨강</li>
+        <li><code>center=0</code> — <b>0을 흰색</b>으로 고정. 이게 없으면 약한 양의 상관이 진한 빨강으로 보입니다</li>
+        <li><code>vmin=-1, vmax=1</code> — 눈금을 <b>−1~1로 고정.</b>
+            안 하면 데이터에 따라 색 기준이 달라져 <b>서로 다른 히트맵을 비교할 수 없습니다</b></li>
+      </ul>
+    </div>
+
+    <div class="pitfall">
+      <b>visitors ↔ sales 의 0.99 를 보고 놀라지 마세요</b>
+      매출 = 방문객 × 객단가인데 객단가가 거의 일정하니(6강),
+      두 변수는 <b>사실상 같은 것을 재고 있습니다.</b>
+      이런 관계는 발견이 아니라 <b>정의상 당연한 것</b>입니다.
+      히트맵에서 1에 가까운 값이 보이면 <b>"둘이 사실 같은 변수 아닌가?"</b>를 먼저 의심하세요.
+      (회귀 모델에 둘 다 넣으면 <b>다중공선성</b> 문제가 생깁니다.)
+    </div>
+
+    <h2 id="s6">6. hue — 세 번째 변수를 색으로</h2>
+    <p>
+      seaborn 의 진짜 강점입니다. <code>hue</code> 한 줄로 <b>그룹별 비교</b>가 됩니다.
+    </p>
+
+    <div class="pycell" data-packages="pandas,seaborn" data-data="cafe_sales.csv" data-title="11-7. hue 로 그룹 나누기">
+    df["비"] = df["rain_mm"] > 0
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 3.8))
+
+    sns.scatterplot(data=df, x="avg_temp", y="sales", hue="비",
+                    alpha=0.45, s=18, ax=ax1)
+    ax1.set_title("비 여부로 색 나누기")
+
+    sns.boxplot(data=df, x="weekday", y="visitors", order=순서,
+                hue="비", ax=ax2)
+    ax2.set_title("요일 × 비 여부")
+
+    plt.tight_layout()
+    plt.show()
+    </div>
+
+    <p>
+      오른쪽 그림 하나로 <b>"모든 요일에서 비 오는 날이 낮다"</b>가 보입니다.
+      6강에서 표로 확인했던 걸 그림 한 장이 대신하죠.
+      <b>교란변수를 통제한 비교</b>를 시각화하는 가장 빠른 방법입니다.
+    </p>
+
+    <div class="pycell" data-packages="pandas,seaborn" data-data="cafe_sales.csv" data-title="11-8. pairplot — 전체를 한 번에">
+    # 변수가 몇 개 안 될 때, 모든 조합을 한 번에 훑는다
+    작은표본 = df[["visitors", "avg_temp", "rain_mm", "비"]].sample(300, random_state=42)
+
+    g = sns.pairplot(작은표본, hue="비", height=1.9,
+                     plot_kws={"alpha": 0.5, "s": 12})
+    plt.show()
+    </div>
+
+    <div class="callout">
+      <b><code>pairplot</code> 은 탐색 초반에 딱 한 번</b> 돌려보기 좋습니다.
+      대각선은 각 변수의 분포, 나머지는 두 변수의 산점도입니다.
+      다만 변수가 많으면 <b>매우 느리고 읽기도 어렵습니다.</b>
+      5~6개 이하일 때만 쓰세요. 표본도 줄여서(<code>sample</code>) 돌리는 게 좋습니다.
+    </div>
+
+    <h2 id="s7">7. 언제 matplotlib으로 돌아가나</h2>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>상황</th><th>도구</th><th>이유</th></tr></thead>
+        <tbody>
+          <tr><td><b>데이터를 처음 훑어볼 때</b></td><td>seaborn</td><td>한 줄로 끝. 속도가 생명</td></tr>
+          <tr><td><b>그룹별 비교</b></td><td>seaborn</td><td><code>hue</code> 한 줄이면 됨</td></tr>
+          <tr><td><b>통계 그래프</b>(회귀선, 신뢰구간)</td><td>seaborn</td><td>계산까지 자동</td></tr>
+          <tr><td><b>시계열</b></td><td><b>matplotlib</b></td><td>날짜 축 제어가 seaborn 에선 불편</td></tr>
+          <tr><td><b>발표·보고서용 완성본</b></td><td><b>matplotlib</b></td><td>주석·강조·세밀한 배치</td></tr>
+          <tr><td><b>특이한 그림</b></td><td><b>matplotlib</b></td><td>seaborn 에 없는 건 직접 그려야 함</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="practice">
+      <b>둘을 섞어 쓰는 게 정답입니다</b>
+      <p style="margin:6px 0">
+        seaborn 은 결국 matplotlib 위에서 돕니다. 그래서
+        <b>seaborn 으로 그린 뒤 matplotlib 문법으로 다듬을 수 있습니다.</b>
+      </p>
+      <pre style="background:var(--surface-2);padding:10px;border-radius:8px;overflow-x:auto;font-size:12.5px;margin:8px 0 0"><code>fig, ax = plt.subplots(figsize=(9, 4))
+sns.boxplot(data=df, x="weekday", y="visitors", ax=ax)   # seaborn 으로 그리고
+ax.set_title("...", fontweight="bold", loc="left")        # matplotlib 으로 다듬기
+ax.spines["top"].set_visible(False)</code></pre>
+    </div>
+
+    <div class="pycell" data-packages="pandas,seaborn" data-data="cafe_sales.csv" data-title="11-9. 섞어서 완성본 만들기">
+    sns.set_theme(style="whitegrid")     # seaborn 의 기본 스타일
+
+    fig, ax = plt.subplots(figsize=(9, 4))
+    sns.boxplot(data=df, x="weekday", y="visitors", order=순서,
+                ax=ax, color="#93c5fd", showfliers=False)
+
+    # 여기서부터는 matplotlib 문법
+    ax.set_title("주말로 갈수록 손님이 늘고, 편차도 커진다",
+                 fontsize=13, fontweight="bold", loc="left", pad=12)
+    ax.set_xlabel(""); ax.set_ylabel("방문객(명)")
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+    plt.tight_layout()
+    plt.show()
+    </div>
+
+    <div class="pycell" data-packages="pandas,seaborn" data-data="cafe_sales.csv" data-title="연습 · 직접 써보세요">
+    # 문제 1. 계절별 매출 분포를 boxplot 으로 그려보세요.
+    #        힌트: 월을 계절로 바꾸는 함수는 4강에서 만들었습니다
+
+
+    # 문제 2. 기온과 방문객의 regplot 을 그리되,
+    #        주말/평일을 hue 로 구분해보세요.
+    #        힌트: regplot 에는 hue 가 없습니다. lmplot 을 쓰세요
+
+
+    # 문제 3. 상관 히트맵에 '주말' 열을 추가해서 다시 그려보세요.
+    </div>
+
+    <details style="margin:18px 0">
+      <summary style="cursor:pointer;font-weight:600;color:var(--accent)">모범 답안 보기</summary>
+      <div class="pycell" data-packages="pandas,seaborn" data-data="cafe_sales.csv" data-title="모범 답안">
+      def 계절(m):
+          if m in (3, 4, 5):   return "봄"
+          if m in (6, 7, 8):   return "여름"
+          if m in (9, 10, 11): return "가을"
+          return "겨울"
+
+      df["계절"] = df["date"].dt.month.map(계절)
+      df["주말"] = df["date"].dt.dayofweek >= 5
+
+      # 문제 1
+      fig, ax = plt.subplots(figsize=(7, 3.6))
+      sns.boxplot(data=df, x="계절", y="sales",
+                  order=["봄", "여름", "가을", "겨울"], ax=ax)
+      ax.set_title("계절별 매출 분포", fontweight="bold", loc="left")
+      plt.show()
+
+      # 문제 2 — hue 가 필요하면 lmplot (figure 를 직접 만든다)
+      sns.lmplot(data=df, x="avg_temp", y="visitors", hue="주말",
+                 height=4, aspect=1.5, scatter_kws={"alpha": 0.3, "s": 12})
+      plt.show()
+
+      # 문제 3
+      상관2 = df[["visitors", "sales", "avg_temp", "rain_mm", "주말"]].corr()
+      fig, ax = plt.subplots(figsize=(6, 4.8))
+      sns.heatmap(상관2, annot=True, fmt=".2f", cmap="RdBu_r",
+                  center=0, vmin=-1, vmax=1, square=True, ax=ax)
+      plt.tight_layout()
+      plt.show()
+      </div>
+      <p style="font-size:13.5px;color:var(--text-dim)">
+        문제 2에서 <b>주말 선이 평일 선보다 위에 있고, 기울기는 비슷</b>하게 나옵니다.
+        "주말이라서 손님이 많은 것"과 "기온이 높아서 손님이 많은 것"이
+        <b>따로 작동한다</b>는 뜻이죠. 이렇게 선이 평행하면 두 효과가 <b>독립적</b>이고,
+        선이 교차하면 <b>상호작용</b>이 있는 것입니다.
+      </p>
+    </details>
+
+    <div class="colab-cta">
+      <div class="colab-text">
+        <b>더 자유롭게 해보고 싶다면</b>
+        Colab에는 seaborn 이 기본 설치돼 있어 더 빠릅니다.
+      </div>
+      <a class="btn" id="colab-link" href="#" target="_blank" rel="noopener">Colab에서 열기</a>
+    </div>
+
+    <div class="summary">
+      <h3>11강 요약</h3>
+      <ul>
+        <li><code>sns.그래프(data=df, x="열", y="열", hue="열")</code> — <b>열 이름으로</b> 말이 통한다.</li>
+        <li>분포: <code>histplot</code> · <code>kdeplot</code>. <b>KDE는 없는 데이터를 만든다</b>(0 이하 꼬리).</li>
+        <li>범주: <code>boxplot</code>(기본) · <code>violinplot</code>(모양) · <code>barplot</code>(평균+신뢰구간).
+            <b>막대만 쓰면 퍼짐이 안 보인다.</b></li>
+        <li>관계: <code>regplot</code> 이 회귀선과 신뢰밴드까지 그려준다.</li>
+        <li>히트맵은 <code>center=0, vmin=-1, vmax=1</code> 을 반드시 설정.</li>
+        <li><b><code>hue</code> 한 줄로 그룹별 비교</b> — 교란변수를 통제한 시각화의 지름길.</li>
+        <li><b>탐색은 seaborn, 완성본은 matplotlib.</b> 둘은 섞어 쓸 수 있다.</li>
+      </ul>
+    </div>
+
+    <p class="next-up">
+      다음 → <b>12강 · 관계를 숫자로: 상관과 회귀</b><br>
+      눈으로 본 관계를 숫자로 확정하고, 그 숫자를 어디까지 믿어도 되는지 배웁니다.
+    </p>
+  </section>
+
+</div>
+
+<script src="../assets/viz.js?v=312b9476b0"></script>
+<script src="../assets/pylab.js?v=869ae9b12b"></script>
+<script src="../assets/pycell.js?v=6dacc4c6ce"></script>
+<script>
+(function () {
+  var a = document.getElementById('colab-link');
+  if (a) a.href = 'https://colab.research.google.com/github/mioon1402/timeseriesdata/blob/main/notebooks/p11-seaborn.ipynb';
+})();
+</script>
+</body>
+</html>

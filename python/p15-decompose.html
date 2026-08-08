@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>추세와 계절성 분해 · 파이썬 데이터 분석</title>
+<meta name="description" content="매출을 추세 + 계절성 + 나머지로 쪼개 봅니다. 무엇이 진짜 성장이고 무엇이 계절인가.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%F0%9F%90%8D%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css?v=92187514af">
+<link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">파이썬 15강 · 시계열과 예측</p>
+    <h1>추세와 계절성 분해</h1>
+    <p class="lede">
+      "이번 달 매출이 늘었다"는 말은 애매합니다.
+      <b>진짜 성장인가, 원래 잘 되는 달인가, 그냥 운인가?</b>
+      시계열을 <b>추세 + 계절성 + 나머지</b> 세 조각으로 쪼개면 답이 나옵니다.
+    </p>
+  </header>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 강의에서 배우는 것</b>
+      <ol>
+        <li><a href="#s1">시계열을 이루는 세 조각</a></li>
+        <li><a href="#s2">주간 계절성 분해하기</a></li>
+        <li><a href="#s3">계절성분 읽는 법</a></li>
+        <li><a href="#s4">가법이냐 승법이냐</a></li>
+        <li><a href="#s5">연간 계절성 분해</a></li>
+        <li><a href="#s6">계절조정 — 진짜 성장 보기</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s1">1. 시계열을 이루는 세 조각</h2>
+
+    <div class="formula">
+      <div class="name">시계열 분해 (가법 모형)</div>
+      <div class="eq" style="font-size:16px">
+        y<sub>t</sub> &nbsp;=&nbsp; 추세<sub>t</sub> &nbsp;+&nbsp; 계절성<sub>t</sub> &nbsp;+&nbsp; 나머지<sub>t</sub>
+      </div>
+      <ul class="where">
+        <li><span class="sym">추세</span><span class="desc">장기적으로 오르내리는 큰 흐름. <b>이게 진짜 성장</b></span></li>
+        <li><span class="sym">계절성</span><span class="desc">일정한 주기로 <b>반복</b>되는 패턴 (요일, 월, 분기)</span></li>
+        <li><span class="sym">나머지</span><span class="desc">설명되지 않은 부분. <b>잔차</b>라고도 합니다.
+            여기가 크면 예측이 어렵다는 뜻</span></li>
+      </ul>
+    </div>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="15-1. 데이터 준비">
+    import pandas as pd
+
+    df = pd.read_csv("cafe_sales.csv", parse_dates=["date"])
+    s = df.set_index("date").asfreq("D")["sales"].interpolate()
+
+    print("기간:", s.index[0].date(), "~", s.index[-1].date())
+    print("일수:", len(s), "  결측:", s.isna().sum())
+    </div>
+
+    <div class="callout">
+      <b><code>interpolate()</code> 를 쓴 이유</b><br>
+      분해 함수는 <b>결측을 허용하지 않습니다.</b>
+      <code>interpolate()</code> 는 앞뒤 값을 이어 <b>직선으로 사이를 메웁니다.</b>
+      결측이 4건뿐이라 영향은 미미합니다.
+      <br><br>
+      단 14강에서 배웠듯 이건 <b>미래 정보를 씁니다.</b>
+      과거를 분석하는 지금은 괜찮지만, 예측 모델에서는 <code>ffill()</code> 을 쓰세요.
+    </div>
+
+    <h2 id="s2">2. 주간 계절성 분해하기</h2>
+    <p>
+      카페 데이터의 가장 뚜렷한 주기는 <b>요일</b>입니다. 주기 7로 분해해봅시다.
+    </p>
+
+    <div class="pycell" data-packages="pandas,statsmodels,matplotlib" data-data="cafe_sales.csv" data-title="15-2. seasonal_decompose">
+    from statsmodels.tsa.seasonal import seasonal_decompose
+    import matplotlib.pyplot as plt
+
+    분해 = seasonal_decompose(s, model="additive", period=7)
+
+    fig, axes = plt.subplots(4, 1, figsize=(10, 8), sharex=True)
+    최근 = slice("2025-06", "2025-09")     # 4개월만 확대해서 보자
+
+    axes[0].plot(s.loc[최근] / 10000, lw=0.8); axes[0].set_ylabel("원본")
+    axes[1].plot(분해.trend.loc[최근] / 10000, lw=2, color="#dc2626"); axes[1].set_ylabel("추세")
+    axes[2].plot(분해.seasonal.loc[최근] / 10000, lw=1, color="#0d9488"); axes[2].set_ylabel("계절성")
+    axes[3].plot(분해.resid.loc[최근] / 10000, lw=0.6, color="#94a3b8"); axes[3].set_ylabel("나머지")
+    axes[3].axhline(0, color="black", lw=0.6)
+
+    fig.suptitle("매출 = 추세 + 계절성 + 나머지 (단위: 만원)", fontweight="bold")
+    plt.tight_layout()
+    plt.show()
+    </div>
+
+    <div class="pycell" data-packages="pandas,statsmodels" data-data="cafe_sales.csv" data-title="15-3. 각 조각의 크기 비교">
+    추세폭 = 분해.trend.dropna()
+    print(f"추세      {추세폭.iloc[0]:>10,.0f}원 → {추세폭.iloc[-1]:>10,.0f}원 "
+          f"(2년간 +{추세폭.iloc[-1]/추세폭.iloc[0]*100-100:.0f}%)")
+    print(f"계절성 진폭 {분해.seasonal.max() - 분해.seasonal.min():>10,.0f}원")
+    print(f"나머지 SD   {분해.resid.dropna().std():>10,.0f}원")
+    print()
+    print(f"원본 SD     {s.std():>10,.0f}원")
+    </div>
+
+    <p>
+      숫자가 말해주는 것:
+    </p>
+    <ul>
+      <li><b>추세</b> — 2년간 66만원 → 89만원으로 <b>35% 성장</b>했습니다. 이게 진짜 성장입니다.</li>
+      <li><b>계절성 진폭 40.7만원</b> — 요일에 따라 이만큼 오르내립니다.
+          <b>추세 변화폭(23만원)보다 큽니다.</b> 요일 효과가 성장보다 강하다는 뜻이죠.</li>
+      <li><b>나머지 SD 13.5만원</b> — 추세와 요일로 설명되지 않는 부분.
+          원본 SD 25만원의 절반 정도까지 줄었습니다.</li>
+    </ul>
+
+    <h2 id="s3">3. 계절성분 읽는 법</h2>
+
+    <div class="pycell" data-packages="pandas,statsmodels" data-data="cafe_sales.csv" data-title="15-4. 요일별 계절성분">
+    요일이름 = ["월", "화", "수", "목", "금", "토", "일"]
+    계절 = pd.Series(분해.seasonal.values, index=분해.seasonal.index.dayofweek)
+    요일별 = 계절.groupby(level=0).mean()
+    요일별.index = 요일이름
+
+    print("요일별 계절성분 (평균 대비 만원)")
+    for 요일, 값 in (요일별 / 10000).round(1).items():
+        막대 = "█" * int(abs(값) / 2)
+        부호 = "+" if 값 > 0 else " "
+        print(f"  {요일}  {부호}{값:>6.1f}  {막대}")
+    </div>
+
+    <div class="takeaway">
+      <b>이렇게 해석합니다 ·</b>
+      "토요일은 <b>추세선보다 평균 24.8만원 높고</b>, 월요일은 <b>16.0만원 낮다."</b>
+      <br><br>
+      이 값들은 <b>합이 0</b>이 되도록 만들어집니다.
+      계절성은 "평균에서 얼마나 벗어나는가"이지 절대 수준이 아니니까요.
+    </div>
+
+    <div class="practice">
+      <b>실무에서 쓰는 곳</b>
+      <ul>
+        <li><b>인력 배치</b> — 토요일에 24.8만원(≈50명)어치 더 온다는 걸 알면 스케줄을 짤 수 있습니다.</li>
+        <li><b>목표 설정</b> — "이번 주 월요일 목표"는 전체 평균이 아니라
+            <b>추세 − 16만원</b>으로 잡아야 공정합니다.</li>
+        <li><b>이상 감지</b> — 나머지(resid)가 평소보다 크게 튀면
+            "요일이나 추세로 설명 안 되는 일"이 일어난 것입니다.</li>
+      </ul>
+    </div>
+
+    <div class="pycell" data-packages="pandas,statsmodels" data-data="cafe_sales.csv" data-title="15-5. 나머지로 이상한 날 찾기">
+    나머지 = 분해.resid.dropna()
+    한계 = 3 * 나머지.std()
+
+    이상한날 = 나머지[abs(나머지) > 한계].sort_values()
+    print(f"나머지가 3σ({한계:,.0f}원)를 넘은 날: {len(이상한날)}일\n")
+
+    for 날짜, 값 in 이상한날.items():
+        요일 = 요일이름[날짜.dayofweek]
+        print(f"  {날짜.date()} ({요일})  {값/10000:+8.1f}만원")
+    </div>
+
+    <p>
+      <b>추세와 요일을 걷어내고 나니</b> 진짜 특별했던 날들이 드러납니다.
+      휴점일, 방송 대박, 기계 고장 — 7강에서 IQR로 찾았던 날들과 같습니다.
+      다만 이번에는 <b>"요일과 추세를 감안해도 이상하다"</b>는 더 강한 근거가 붙습니다.
+    </p>
+
+    <h2 id="s4">4. 가법이냐 승법이냐</h2>
+
+    <div class="formula">
+      <div class="name">두 가지 모형</div>
+      <div class="eq" style="font-size:15px;line-height:2.2">
+        <b>가법</b> &nbsp;y = 추세 <b>+</b> 계절성 + 나머지<br>
+        <b>승법</b> &nbsp;y = 추세 <b>×</b> 계절성 × 나머지
+      </div>
+      <ul class="where">
+        <li><span class="sym">가법</span><span class="desc">계절 변동 폭이 <b>일정</b>할 때. "토요일은 항상 +25만원"</span></li>
+        <li><span class="sym">승법</span><span class="desc">계절 변동이 <b>규모에 비례</b>할 때. "토요일은 항상 27% 더"</span></li>
+      </ul>
+    </div>
+
+    <div class="pycell" data-packages="pandas,statsmodels" data-data="cafe_sales.csv" data-title="15-6. 승법 분해로 비교">
+    import numpy as np
+
+    양수 = s.replace(0, np.nan).interpolate()     # 승법은 0을 허용하지 않는다
+    승법 = seasonal_decompose(양수, model="multiplicative", period=7)
+
+    지수 = pd.Series(승법.seasonal.values, index=승법.seasonal.index.dayofweek)
+    요일지수 = 지수.groupby(level=0).mean()
+    요일지수.index = 요일이름
+
+    print("요일별 계절지수 (1.0 = 평균)")
+    for 요일, 값 in 요일지수.round(3).items():
+        print(f"  {요일}  {값:.3f}   ({(값-1)*100:+5.1f}%)")
+    </div>
+
+    <div class="practice">
+      <b>어느 쪽을 고를까 — 눈으로 판단하세요</b>
+      <ul>
+        <li>원본 그래프에서 <b>진폭(위아래 폭)이 갈수록 커지면</b> → 승법</li>
+        <li><b>진폭이 일정하면</b> → 가법</li>
+        <li>모르겠으면 둘 다 해보고 <b>나머지(resid)에 패턴이 덜 남는 쪽</b>을 고르세요.</li>
+        <li>승법은 <b>0이나 음수를 다룰 수 없습니다.</b> 휴점일(0원)이 있으면 처리가 필요합니다.</li>
+      </ul>
+      <p style="margin-top:8px">
+        우리 데이터는 매출이 성장하면서 요일 변동 폭도 함께 커지므로
+        <b>승법이 조금 더 자연스럽습니다.</b> 토요일 지수 1.272는
+        "토요일은 그 시점 평균의 <b>1.27배</b>"라는 뜻이라 해석도 편합니다.
+      </p>
+    </div>
+
+    <h2 id="s5">5. 연간 계절성 분해</h2>
+    <p>
+      주기가 하나만 있는 건 아닙니다. 요일 말고 <b>계절(연간)</b> 패턴도 있죠.
+      월별로 묶어서 주기 12로 분해합니다.
+    </p>
+
+    <div class="pycell" data-packages="pandas,statsmodels" data-data="cafe_sales.csv" data-title="15-7. 월 단위 연간 분해">
+    월평균 = s.resample("ME").mean()
+    연간 = seasonal_decompose(월평균, model="additive", period=12)
+
+    월별계절 = pd.Series(연간.seasonal.values, index=월평균.index.month)
+    월별계절 = 월별계절.groupby(level=0).mean() / 10000
+
+    print("월별 계절성분 (평균 대비 만원)")
+    for 월, 값 in 월별계절.round(1).items():
+        막대 = "█" * int(abs(값))
+        print(f"  {월:>2}월  {값:>+6.1f}  {막대}")
+    </div>
+
+    <p>
+      <b>6~8월이 높고 1~2월이 낮습니다.</b> 여름 성수기·겨울 비수기가 숫자로 확인됩니다.
+      1월(−15.6만원)과 6월(+16.8만원)의 차이는 <b>32만원</b> —
+      요일 효과(40.7만원)보다는 작지만 무시할 수 없는 크기입니다.
+    </p>
+
+    <div class="pitfall">
+      <b>2년치로 연간 계절성을 보는 건 아슬아슬합니다</b>
+      주기 12로 분해하려면 <b>최소 2주기(24개월)</b>가 필요한데 우리는 딱 24개월입니다.
+      계산은 되지만 <b>계절성분이 특정 해의 우연에 크게 흔들립니다.</b>
+      2025년 4월의 방송 대박이 "4월은 원래 좋은 달"로 잘못 학습될 수 있죠.
+      <b>연간 패턴을 제대로 보려면 3~5년치</b>가 필요합니다.
+      <br><br>
+      반면 <b>주간 계절성은 104주 분량</b>이라 훨씬 믿을 만합니다.
+      <b>주기가 짧을수록 적은 데이터로도 안정적</b>입니다.
+    </div>
+
+    <h2 id="s6">6. 계절조정 — 진짜 성장 보기</h2>
+    <p>
+      뉴스에서 "계절조정 실업률"이라는 말을 들어보셨을 겁니다.
+      <b>계절성분을 빼서</b> 순수한 흐름만 보는 것입니다.
+    </p>
+
+    <div class="pycell" data-packages="pandas,statsmodels,matplotlib" data-data="cafe_sales.csv" data-title="15-8. 계절조정 시계열">
+    조정 = s - 분해.seasonal          # 가법이므로 빼면 된다
+
+    fig, ax = plt.subplots(figsize=(10, 4))
+    ax.plot(s.index, s / 10000, lw=0.4, color="#cbd5e1", label="원본")
+    ax.plot(조정.index, 조정 / 10000, lw=0.7, color="#2563eb", label="계절조정 (요일 효과 제거)")
+    ax.plot(분해.trend.index, 분해.trend / 10000, lw=2.5, color="#dc2626", label="추세")
+
+    ax.set_ylabel("매출(만원)")
+    ax.set_title("요일 효과를 걷어내면 성장 흐름이 선명해진다",
+                 fontweight="bold", loc="left")
+    ax.legend(frameon=False)
+    ax.spines["top"].set_visible(False); ax.spines["right"].set_visible(False)
+    plt.tight_layout(); plt.show()
+    </div>
+
+    <div class="pycell" data-packages="pandas,statsmodels" data-data="cafe_sales.csv" data-title="15-9. 조정 전후 비교">
+    print(f"원본       표준편차 {s.std():>10,.0f}원")
+    print(f"계절조정   표준편차 {조정.std():>10,.0f}원")
+    print(f"→ 요일 효과가 전체 변동의 {(1 - 조정.std()/s.std())*100:.0f}% 를 차지")
+    </div>
+
+    <div class="takeaway">
+      <b>실무 적용 ·</b> "이번 토요일 매출이 저번 수요일보다 높다"는 <b>의미 없는 비교</b>입니다.
+      계절조정을 하거나, 같은 요일끼리 비교하거나(14강의 <code>diff(7)</code>),
+      최소한 <b>요일을 밝히고 말해야</b> 합니다.
+    </div>
+
+    <div class="pycell" data-packages="pandas,statsmodels,matplotlib" data-data="cafe_sales.csv" data-title="연습 · 직접 써보세요">
+    # 문제 1. 방문객(visitors)을 주기 7로 분해하고, 요일별 계절성분을 구해보세요.
+
+
+    # 문제 2. 승법 모형의 나머지(resid)와 가법 모형의 나머지를 비교해보세요.
+    #        어느 쪽이 더 작은가요?  (승법의 resid 는 1 근처가 기준입니다)
+
+
+    # 문제 3. 계절조정한 매출로 '전월 대비' 변화율을 구해보세요.
+    #        원본으로 구한 것과 어떻게 다른가요?
+    </div>
+
+    <details style="margin:18px 0">
+      <summary style="cursor:pointer;font-weight:600;color:var(--accent)">모범 답안 보기</summary>
+      <div class="pycell" data-packages="pandas,statsmodels" data-data="cafe_sales.csv" data-title="모범 답안">
+      v = df.set_index("date").asfreq("D")["visitors"].interpolate()
+
+      # 문제 1
+      분해v = seasonal_decompose(v, model="additive", period=7)
+      계절v = pd.Series(분해v.seasonal.values, index=분해v.seasonal.index.dayofweek)
+      결과 = 계절v.groupby(level=0).mean().round(1)
+      결과.index = 요일이름
+      print("요일별 계절성분 (명)")
+      print(결과.to_string())
+
+      # 문제 2
+      가법잔차 = 분해.resid.dropna()
+      승법잔차 = 승법.resid.dropna()
+      print(f"\n가법 나머지 SD (원)      {가법잔차.std():,.0f}")
+      print(f"승법 나머지 SD (비율)    {승법잔차.std():.4f}  "
+            f"→ 평균 대비 약 {승법잔차.std()*100:.1f}%")
+      print(f"가법을 비율로 환산하면    {가법잔차.std()/s.mean()*100:.1f}%")
+
+      # 문제 3
+      조정월 = (s - 분해.seasonal).resample("ME").mean()
+      원본월 = s.resample("ME").mean()
+      비교 = pd.DataFrame({
+          "원본 전월대비(%)":   원본월.pct_change() * 100,
+          "조정 전월대비(%)":   조정월.pct_change() * 100,
+      }).round(2)
+      print()
+      print(비교.tail(6).to_string())
+      </div>
+      <p style="font-size:13.5px;color:var(--text-dim)">
+        문제 3에서 두 값이 <b>거의 같게</b> 나옵니다. 당연합니다 —
+        한 달에는 각 요일이 4번씩 고르게 들어 있어서
+        <b>월 단위로 묶는 순간 요일 효과가 저절로 상쇄</b>되니까요.
+        <b>계절조정이 필요한 건 일별·주별 비교</b>이지 월별 비교가 아닙니다.
+        도구를 쓰기 전에 <b>"이게 지금 필요한가"</b>를 묻는 습관이 중요합니다.
+      </p>
+    </details>
+
+    <div class="colab-cta">
+      <div class="colab-text">
+        <b>더 자유롭게 해보고 싶다면</b>
+        Colab에서 주기를 바꿔가며 분해해볼 수 있습니다.
+      </div>
+      <a class="btn" id="colab-link" href="#" target="_blank" rel="noopener">Colab에서 열기</a>
+    </div>
+
+    <div class="summary">
+      <h3>15강 요약</h3>
+      <ul>
+        <li><b>y = 추세 + 계절성 + 나머지</b> (또는 곱셈). <code>seasonal_decompose(s, period=7)</code></li>
+        <li>우리 데이터: 추세 2년간 <b>+35%</b>, 요일 계절성 진폭 <b>40.7만원</b>(추세 변화보다 큼).</li>
+        <li>계절성분은 <b>"추세선 대비 편차"</b>. 합이 0이 되도록 만들어진다.</li>
+        <li><b>가법</b>=변동 폭 일정 · <b>승법</b>=규모에 비례. 진폭이 커지면 승법.</li>
+        <li><b>나머지가 크게 튄 날 = 진짜 사건.</b> 추세·요일을 걷어낸 뒤라 근거가 강하다.</li>
+        <li>주기가 <b>짧을수록 적은 데이터로 안정적.</b> 연간 패턴엔 3~5년치가 필요.</li>
+        <li><b>계절조정</b>으로 순수한 흐름을 본다. 단, 월별 비교에는 대개 불필요.</li>
+      </ul>
+    </div>
+
+    <p class="next-up">
+      다음 → <b>16강 · 예측해보기</b> (마지막 강의)<br>
+      드디어 미래를 예측합니다. 그리고 그 예측이 <b>얼마나 맞는지</b> 정직하게 검증합니다.
+    </p>
+  </section>
+
+</div>
+
+<script src="../assets/viz.js?v=312b9476b0"></script>
+<script src="../assets/pylab.js?v=869ae9b12b"></script>
+<script src="../assets/pycell.js?v=6dacc4c6ce"></script>
+<script>
+(function () {
+  var a = document.getElementById('colab-link');
+  if (a) a.href = 'https://colab.research.google.com/github/mioon1402/timeseriesdata/blob/main/notebooks/p15-decompose.ipynb';
+})();
+</script>
+</body>
+</html>

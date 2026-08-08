@@ -39,24 +39,24 @@
 
 | 부 | 회차 | 내용 |
 | --- | --- | --- |
-| **데이터 다루기** | P01 [처음 만나는 데이터](python/p01-first-look.html) ✅ | `read_csv` · `shape` · `info` · `describe` |
-| | P02 필요한 것만 꺼내기 | `loc`/`iloc` · 조건 필터 · 정렬 |
-| | P03 지저분한 데이터 청소하기 | 결측치 · 중복 · 자료형 변환 |
-| | P04 날짜를 날짜답게 | `to_datetime` · `dt` 접근자 |
-| **요약과 통계** | P05 숫자로 요약하기 | 기술통계 · 분산 · 변동계수 |
-| | P06 그룹별로 나눠 보기 | `groupby` · `agg` · `pivot_table` |
-| | P07 분포 확인하기 | 히스토그램 · 사분위수 · IQR |
-| | P08 두 데이터 합치기 | `merge` · `concat` |
-| **시각화** | P09 첫 그래프 그리기 | matplotlib 기초 · 한글 폰트 |
-| | P10 보기 좋은 그래프로 | 색 · 범례 · 서브플롯 |
-| | P11 seaborn으로 빠르게 | `histplot` · `boxplot` · `heatmap` |
-| **통계적 추론** | P12 상관과 회귀 | `corr` · 회귀선 · r² |
-| | P13 신뢰구간과 가설검정 | `scipy.stats` · t검정 · p값 |
-| **시계열과 예측** | P14 시계열 다루기 | `DatetimeIndex` · `resample` · `rolling` |
-| | P15 추세와 계절성 분해 | `seasonal_decompose` |
-| | P16 예측해보기 | 학습/검증 분리 · 지수평활 · ARIMA · MAE/MAPE |
+| **데이터 다루기** | P01 [처음 만나는 데이터](python/p01-first-look.html) | `read_csv` · `shape` · `info` · `describe` |
+| | P02 [필요한 것만 꺼내기](python/p02-select-filter.html) | 불리언 마스크 · `&`/`|`/`~` · `loc`/`iloc` |
+| | P03 [지저분한 데이터 청소하기](python/p03-cleaning.html) | 결측·중복·자료형 · **평균 대체가 분산을 16% 줄이는 실험** |
+| | P04 [날짜를 날짜답게](python/p04-datetime.html) | `to_datetime` · `dt` 접근자 · 기간 슬라이싱 |
+| **요약과 통계** | P05 [숫자로 요약하기](python/p05-summary-stats.html) | 기술통계 · **ddof 함정** · 분위수 · 변동계수 · 왜도 |
+| | P06 [그룹별로 나눠 보기](python/p06-groupby.html) | `groupby` · `agg` · `pivot_table` · 통제의 기본 |
+| | P07 [분포 확인하기](python/p07-distribution.html) | `cut`/`qcut` · IQR 울타리 · **3σ의 가면 효과** |
+| | P08 [두 데이터 합치기](python/p08-merge.html) | `merge` 4종 · **중복 키로 합계가 부풀려지는 사고** · `validate` |
+| **시각화** | P09 [첫 그래프 그리기](python/p09-first-plot.html) | 선·막대·히스토그램·산점도 · 한글 폰트 · **y축 0부터** |
+| | P10 [보기 좋은 그래프로](python/p10-plot-polish.html) | 날짜축 · 색은 정보일 때만 · 주석 · 저장 |
+| | P11 [seaborn으로 빠르게](python/p11-seaborn.html) | `hue` 한 줄 그룹 비교 · 히트맵 · KDE의 함정 |
+| **통계적 추론** | P12 [관계를 숫자로](python/p12-regression.html) | 피어슨/스피어만 · OLS 결과표 · 잔차 진단 · 다중회귀 |
+| | P13 [신뢰구간과 가설검정](python/p13-inference.html) | Welch t검정 · 차이의 CI · Cohen's d · 순열검정 · 다중검정 |
+| **시계열과 예측** | P14 [시계열 다루기](python/p14-timeseries.html) | `resample` · `rolling` · `diff(7)` · **데이터 누수 방지** |
+| | P15 [추세와 계절성 분해](python/p15-decompose.html) | `seasonal_decompose` · 가법/승법 · 계절조정 |
+| | P16 [예측해보기](python/p16-forecast.html) | 기준선 · MAE/RMSE/MAPE · SARIMA · **롤링 검증** |
 
-각 강의는 **웹에서 바로 실습**하거나 **Colab에서 열어** 자유롭게 파고들 수 있습니다.
+**16강 전부 완성**되어 있습니다. 각 강의는 **웹에서 바로 실습**하거나 **Colab에서 열어** 자유롭게 파고들 수 있습니다.
 1부의 통계 이론과 짝을 이룹니다 (예: P05 ↔ 모듈 01, P12 ↔ 모듈 07, P13 ↔ 모듈 05·06).
 
 ### 예시 데이터

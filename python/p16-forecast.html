@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>예측해보기 · 파이썬 데이터 분석</title>
+<meta name="description" content="다음 4주 매출을 예측하고, 그 예측이 얼마나 맞는지 정직하게 검증합니다.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%F0%9F%90%8D%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css?v=92187514af">
+<link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">파이썬 16강 · 시계열과 예측 · 마지막 강의</p>
+    <h1>예측해보기</h1>
+    <p class="lede">
+      드디어 미래를 예측합니다. 그런데 이 강의의 진짜 주제는 <b>예측이 아니라 검증</b>입니다.
+      "잘 맞는 것처럼 보이게" 만드는 건 쉽고, <b>정직하게 재는 것</b>이 어렵거든요.
+      그리고 놀랍게도 — <b>가장 단순한 방법이 이깁니다.</b>
+    </p>
+  </header>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 강의에서 배우는 것</b>
+      <ol>
+        <li><a href="#s1">학습/검증 분리 — 시간 순서를 지켜서</a></li>
+        <li><a href="#s2">평가 지표 — MAE, RMSE, MAPE</a></li>
+        <li><a href="#s3">기준선부터 만들기 (가장 중요)</a></li>
+        <li><a href="#s4">지수평활과 SARIMA</a></li>
+        <li><a href="#s5">결과 — 단순한 게 이겼습니다</a></li>
+        <li><a href="#s6">예측구간 — 점이 아니라 범위로</a></li>
+        <li><a href="#s7">실무 체크리스트</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s1">1. 학습/검증 분리</h2>
+    <p>
+      예측 모델을 평가하려면 <b>모델이 본 적 없는 데이터</b>가 필요합니다.
+      그런데 시계열에서는 <b>반드시 시간 순서대로</b> 잘라야 합니다.
+    </p>
+
+    <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="16-1. 시간 순서대로 자르기">
+    import pandas as pd
+
+    df = pd.read_csv("cafe_sales.csv", parse_dates=["date"])
+    s = df.set_index("date").asfreq("D")["sales"].interpolate()
+
+    H = 28                       # 예측 기간: 4주
+    학습, 검증 = s[:-H], s[-H:]
+
+    print(f"학습  {len(학습):3d}일  {학습.index[0].date()} ~ {학습.index[-1].date()}")
+    print(f"검증  {len(검증):3d}일  {검증.index[0].date()} ~ {검증.index[-1].date()}")
+    </div>
+
+    <div class="pitfall">
+      <b>무작위 분리는 시계열에서 반칙입니다</b>
+      <p style="margin:6px 0">
+        일반 머신러닝에서 쓰는 <code>train_test_split(shuffle=True)</code> 를 시계열에 쓰면
+        <b>미래로 과거를 예측</b>하게 됩니다.
+      </p>
+      <p style="margin:6px 0 0">
+        12월 15일 데이터로 학습해서 12월 3일을 맞히는 셈이죠.
+        성능이 <b>가짜로 아주 좋게</b> 나오고, 실전에 배포하면 무너집니다.
+        14강에서 말한 <b>데이터 누수</b>의 가장 전형적인 형태입니다.
+      </p>
+    </div>
+
+    <h2 id="s2">2. 평가 지표</h2>
+
+    <div class="pycell" data-packages="pandas,numpy" data-data="cafe_sales.csv" data-title="16-2. 평가 함수 만들기">
+    import numpy as np
+
+    def 평가(이름, 예측):
+        실제 = 검증.values
+        예측 = np.asarray(예측, dtype=float)
+        mae  = np.mean(np.abs(실제 - 예측))
+        rmse = np.sqrt(np.mean((실제 - 예측) ** 2))
+        mape = np.mean(np.abs((실제 - 예측) / 실제)) * 100
+        print(f"{이름:26s} MAE {mae:>9,.0f}   RMSE {rmse:>9,.0f}   MAPE {mape:>5.1f}%")
+        return mape
+
+    print("평가 함수 준비 완료")
+    </div>
+
+    <div class="formula">
+      <div class="name">세 가지 오차 지표</div>
+      <div class="eq" style="font-size:14.5px;line-height:2.1">
+        MAE &nbsp;=&nbsp; 평균( |실제 − 예측| )<br>
+        RMSE &nbsp;=&nbsp; <span class="rad">√<span>평균( (실제 − 예측)<sup>2</sup> )</span></span><br>
+        MAPE &nbsp;=&nbsp; 평균( |실제 − 예측| / 실제 ) × 100%
+      </div>
+      <ul class="where">
+        <li><span class="sym">MAE</span><span class="desc"><b>평균 절대 오차.</b> "평균 8만원쯤 틀린다" — 가장 해석하기 쉽습니다</span></li>
+        <li><span class="sym">RMSE</span><span class="desc">제곱하므로 <b>큰 실수에 더 큰 벌점.</b>
+            크게 틀리면 안 되는 상황(재고, 인력)에서 씁니다</span></li>
+        <li><span class="sym">MAPE</span><span class="desc"><b>비율</b>이라 단위가 없어 서로 다른 데이터를 비교할 수 있습니다.
+            단 <b>실제값이 0에 가까우면 폭발</b>합니다</span></li>
+      </ul>
+    </div>
+
+    <div class="practice">
+      <b>어느 지표를 볼까</b>
+      <ul>
+        <li><b>보고할 땐 MAE</b> — "평균 8만원 틀립니다"가 가장 잘 통합니다.</li>
+        <li><b>모델을 고를 땐 RMSE 또는 MAPE</b> — 큰 실수를 피하고 싶으면 RMSE.</li>
+        <li><b>여러 지표가 다른 모델을 가리키면</b> 그 자체가 정보입니다 —
+            "A는 평소에 정확한데 가끔 크게 틀리고, B는 고르게 조금씩 틀린다"는 뜻이죠.</li>
+      </ul>
+    </div>
+
+    <h2 id="s3">3. 기준선부터 만들기</h2>
+    <p>
+      <b>이 강의에서 가장 중요한 부분입니다.</b>
+      복잡한 모델을 만들기 전에 <b>바보 같은 방법</b>들을 먼저 돌려보세요.
+      이걸 못 이기면 복잡한 모델은 아무 의미가 없습니다.
+    </p>
+
+    <div class="pycell" data-packages="pandas,numpy" data-data="cafe_sales.csv" data-title="16-3. 세 가지 기준선">
+    결과 = {}
+
+    # ① 마지막 값을 그대로 (나이브)
+    결과["① 마지막값"] = 평가("① 마지막값 그대로", np.repeat(학습.iloc[-1], H))
+
+    # ② 최근 28일 평균
+    결과["② 최근28일 평균"] = 평가("② 최근 28일 평균", np.repeat(학습.iloc[-28:].mean(), H))
+
+    # ③ 지난주 같은 요일 (계절성 나이브)
+    결과["③ 지난주 같은요일"] = 평가("③ 지난주 같은 요일", 학습.iloc[-7:].values.tolist() * 4)
+    </div>
+
+    <div class="takeaway">
+      <b>왜 기준선이 필수인가 ·</b>
+      "우리 모델의 MAPE가 10%입니다"라는 말은 <b>그 자체로는 아무 의미가 없습니다.</b>
+      <b>"단순 평균이 9.8%인데 우리 모델은 10.7%입니다"</b>라고 해야
+      비로소 판단할 수 있죠. 기준선 없는 성능 보고는 보고가 아닙니다.
+    </div>
+
+    <h2 id="s4">4. 지수평활과 SARIMA</h2>
+
+    <div class="pycell" data-packages="pandas,numpy,statsmodels" data-data="cafe_sales.csv" data-title="16-4. 홀트윈터스 지수평활">
+    from statsmodels.tsa.holtwinters import ExponentialSmoothing
+
+    모델 = ExponentialSmoothing(
+        학습,
+        trend="add",              # 추세 있음
+        damped_trend=True,        # 추세를 무한정 연장하지 않음
+        seasonal="add",           # 계절성 있음
+        seasonal_periods=7,       # 주기 7일
+    ).fit()
+
+    결과["④ 홀트윈터스"] = 평가("④ 홀트윈터스(주간)", 모델.forecast(H).values)
+    </div>
+
+    <div class="practice">
+      <b><code>damped_trend=True</code> 를 거의 항상 켜세요</b>
+      끄면 학습 구간의 추세를 <b>그대로 무한정 연장</b>합니다.
+      2년간 우상향한 데이터라면 10년 뒤 매출이 천문학적으로 나오죠.
+      감쇠(damped)를 켜면 추세가 <b>점점 완만해져</b> 현실적인 예측이 됩니다.
+      실제로 이 옵션 없이 돌리면 MAPE가 42%까지 치솟습니다.
+    </div>
+
+    <div class="pycell" data-packages="pandas,numpy,statsmodels" data-data="cafe_sales.csv" data-title="16-5. SARIMA">
+    from statsmodels.tsa.arima.model import ARIMA
+
+    사리마 = ARIMA(
+        학습,
+        order=(1, 1, 1),                  # (p, d, q) — 비계절 부분
+        seasonal_order=(1, 1, 1, 7),      # (P, D, Q, s) — 계절 부분, 주기 7
+    ).fit()
+
+    결과["⑤ SARIMA"] = 평가("⑤ SARIMA(1,1,1)(1,1,1,7)", 사리마.forecast(H).values)
+    </div>
+
+    <div class="formula">
+      <div class="name">SARIMA 파라미터 읽는 법</div>
+      <div class="eq" style="font-size:14.5px;line-height:2">
+        ARIMA( <b>p</b>, <b>d</b>, <b>q</b> ) × ( <b>P</b>, <b>D</b>, <b>Q</b> )<sub>s</sub>
+      </div>
+      <ul class="where">
+        <li><span class="sym">p</span><span class="desc"><b>자기회귀</b> — 과거 몇 개 값을 볼 것인가</span></li>
+        <li><span class="sym">d</span><span class="desc"><b>차분</b> — 몇 번 빼서 추세를 없앨 것인가 (14강의 <code>diff</code>)</span></li>
+        <li><span class="sym">q</span><span class="desc"><b>이동평균</b> — 과거 오차 몇 개를 반영할 것인가</span></li>
+        <li><span class="sym">대문자</span><span class="desc">같은 것을 <b>계절 주기</b>로. <code>D=1</code> 은 <code>diff(7)</code></span></li>
+        <li><span class="sym">s</span><span class="desc">주기. 일별-주간이면 7, 월별-연간이면 12</span></li>
+      </ul>
+    </div>
+
+    <div class="callout">
+      <b>파라미터를 어떻게 고르나</b><br>
+      정석은 ACF/PACF 그림을 보는 것이지만, 실무에서는
+      <b>여러 조합을 돌려보고 검증 성능이 가장 좋은 걸 고릅니다.</b>
+      <code>(1,1,1)(1,1,1,7)</code> 은 무난한 출발점입니다.
+      자동으로 찾아주는 <code>pmdarima.auto_arima</code> 도 있습니다.
+    </div>
+
+    <h2 id="s5">5. 결과 — 단순한 게 이겼습니다</h2>
+
+    <div class="pycell" data-packages="pandas,numpy" data-data="cafe_sales.csv" data-title="16-6. 순위표">
+    print("MAPE 낮은 순\n")
+    for 이름, 값 in sorted(결과.items(), key=lambda x: x[1]):
+        막대 = "█" * int(값 * 2)
+        print(f"  {값:5.1f}%  {막대}  {이름}")
+    </div>
+
+    <div class="pitfall">
+      <b>최근 28일 평균(9.8%)이 SARIMA(10.7%)와 홀트윈터스(11.7%)를 이겼습니다</b>
+      <p style="margin:6px 0">
+        이건 실수가 아니라 <b>흔히 일어나는 일</b>입니다. 이유는 이렇습니다.
+      </p>
+      <ul style="margin:8px 0 0;padding-left:18px">
+        <li><b>28일 평균에는 요일 효과가 이미 녹아 있습니다.</b>
+            4주치를 평균 내면 각 요일이 4번씩 들어가니까요.</li>
+        <li>복잡한 모델은 <b>추정할 파라미터가 많아</b> 학습 데이터의 노이즈까지 배웁니다(과적합).</li>
+        <li>28일이라는 <b>짧은 예측 구간</b>에서는 정교한 모델의 이점이 크지 않습니다.</li>
+      </ul>
+      <p style="margin:10px 0 0">
+        <b>교훈:</b> 복잡한 모델을 쓰기로 결정하려면 <b>기준선을 실제로 이겨야</b> 합니다.
+        "SARIMA를 썼습니다"가 아니라 <b>"SARIMA가 단순 평균보다 나았습니다"</b>를 보여주세요.
+        못 이겼다면 <b>단순한 걸 쓰는 게 맞습니다</b> — 빠르고, 설명하기 쉽고, 덜 망가집니다.
+      </p>
+    </div>
+
+    <div class="pycell" data-packages="pandas,numpy,statsmodels,matplotlib" data-data="cafe_sales.csv" data-title="16-7. 예측을 그림으로">
+    import matplotlib.pyplot as plt
+
+    fig, ax = plt.subplots(figsize=(10.5, 4))
+
+    최근학습 = 학습.iloc[-60:]
+    ax.plot(최근학습.index, 최근학습 / 10000, color="#94a3b8", lw=1, label="학습 데이터")
+    ax.plot(검증.index, 검증 / 10000, color="black", lw=1.8, label="실제")
+    ax.plot(검증.index, 사리마.forecast(H).values / 10000,
+            color="#2563eb", lw=1.8, ls="--", label="SARIMA 예측")
+    ax.plot(검증.index, np.repeat(학습.iloc[-28:].mean(), H) / 10000,
+            color="#dc2626", lw=1.8, ls=":", label="최근 28일 평균")
+
+    ax.axvline(검증.index[0], color="gray", ls="--", lw=1)
+    ax.set_ylabel("매출(만원)")
+    ax.set_title("예측 vs 실제 — 단순 평균이 요일 변동을 못 따라가지만 평균적으론 더 정확",
+                 fontweight="bold", loc="left", fontsize=11)
+    ax.legend(frameon=False, fontsize=9)
+    ax.spines["top"].set_visible(False); ax.spines["right"].set_visible(False)
+    plt.tight_layout(); plt.show()
+    </div>
+
+    <h2 id="s6">6. 예측구간 — 점이 아니라 범위로</h2>
+    <p>
+      "다음 주 토요일 매출 115만원"이라는 <b>점 예측</b>은 반드시 틀립니다.
+      정직한 예측은 <b>범위</b>로 말합니다.
+    </p>
+
+    <div class="pycell" data-packages="pandas,numpy,statsmodels" data-data="cafe_sales.csv" data-title="16-8. 95% 예측구간">
+    예보 = 사리마.get_forecast(H)
+    구간 = 예보.conf_int()
+
+    표 = pd.DataFrame({
+        "예측": 예보.predicted_mean.values / 10000,
+        "하한": 구간.iloc[:, 0].values / 10000,
+        "상한": 구간.iloc[:, 1].values / 10000,
+        "실제": 검증.values / 10000,
+    }, index=검증.index).round(1)
+
+    print(표.head(7).to_string())
+
+    포함 = ((표["실제"] >= 표["하한"]) & (표["실제"] <= 표["상한"])).sum()
+    print(f"\n95% 구간이 실제를 포함: {포함}/{H}일 ({포함/H*100:.0f}%)")
+    </div>
+
+    <div class="pycell" data-packages="pandas,numpy,statsmodels,matplotlib" data-data="cafe_sales.csv" data-title="16-9. 예측구간 그리기">
+    fig, ax = plt.subplots(figsize=(10.5, 4))
+
+    ax.plot(학습.iloc[-45:].index, 학습.iloc[-45:] / 10000, color="#94a3b8", lw=1)
+    ax.plot(검증.index, 검증 / 10000, color="black", lw=1.8, label="실제")
+    ax.plot(검증.index, 표["예측"], color="#2563eb", lw=1.8, label="예측")
+    ax.fill_between(검증.index, 표["하한"], 표["상한"],
+                    alpha=0.2, color="#2563eb", label="95% 예측구간")
+
+    ax.set_ylabel("매출(만원)")
+    ax.set_title("정직한 예측은 폭이 넓다", fontweight="bold", loc="left")
+    ax.legend(frameon=False, fontsize=9)
+    ax.spines["top"].set_visible(False); ax.spines["right"].set_visible(False)
+    plt.tight_layout(); plt.show()
+    </div>
+
+    <div class="takeaway">
+      <b>구간의 폭을 보세요 ·</b>
+      예측이 87만원인데 구간이 <b>40만~133만원</b>입니다. 3배 넘게 벌어지죠.
+      "이게 무슨 예측이냐" 싶겠지만, <b>이게 정직한 예측입니다.</b>
+      <br><br>
+      실제로 28일 전부가 구간 안에 들어왔습니다(28/28).
+      <b>좁은 구간을 자랑하는 예측보다, 넓지만 실제로 맞는 구간이 쓸모 있습니다.</b>
+      (모듈 05에서 신뢰수준과 폭의 맞바꿈을 슬라이더로 볼 수 있습니다.)
+    </div>
+
+    <h2 id="s7">7. 실무 체크리스트</h2>
+
+    <div class="practice">
+      <b>예측 프로젝트를 시작할 때</b>
+      <ol style="margin:8px 0 0;padding-left:18px">
+        <li><b>예측 기간을 먼저 정하세요.</b> 1주 뒤와 1년 뒤는 완전히 다른 문제입니다.</li>
+        <li><b>기준선을 먼저 만드세요.</b> 마지막값·평균·작년같은날. 이걸 못 이기면 끝입니다.</li>
+        <li><b>시간 순서대로 자르세요.</b> 무작위 분리는 반칙.</li>
+        <li><b>여러 시점에서 검증하세요.</b> 한 번의 28일로 판단하면 운일 수 있습니다
+            (아래 참고).</li>
+        <li><b>예측구간을 함께 내세요.</b> 점 예측만 주면 받는 사람이 오해합니다.</li>
+        <li><b>주기적으로 다시 학습하세요.</b> 세상은 변합니다.</li>
+      </ol>
+    </div>
+
+    <div class="pycell" data-packages="pandas,numpy" data-data="cafe_sales.csv" data-title="16-10. 여러 시점에서 검증하기 (롤링 검증)">
+    # 한 번의 검증은 운일 수 있다. 시점을 옮겨가며 여러 번 평가한다.
+    점수 = []
+    for 끝 in [28, 56, 84, 112, 140]:
+        tr = s[:-끝]
+        te = s[-끝:-끝+H] if 끝 > H else s[-끝:]
+        if len(te) < H:
+            continue
+        예측 = np.repeat(tr.iloc[-28:].mean(), len(te))
+        mape = np.mean(np.abs((te.values - 예측) / te.values)) * 100
+        점수.append(mape)
+        print(f"  {te.index[0].date()} 부터 {len(te)}일   MAPE {mape:5.1f}%")
+
+    print(f"\n평균 MAPE {np.mean(점수):.1f}%   표준편차 {np.std(점수):.1f}%p")
+    </div>
+
+    <div class="pitfall">
+      <b>충격적인 결과 — 우리가 본 9.8%는 운이 좋았던 겁니다</b>
+      <p style="margin:6px 0">
+        <b>똑같은 방법</b>(최근 28일 평균)인데 시점만 옮기니 MAPE가 이렇게 나옵니다.
+      </p>
+      <div class="tbl-wrap" style="margin:8px 0">
+        <table class="tbl">
+          <thead><tr><th>검증 시작</th><th>MAPE</th></tr></thead>
+          <tbody>
+            <tr><td>2025-12-04</td><td><b>9.8%</b> ← 우리가 §5에서 본 값</td></tr>
+            <tr><td>2025-11-06</td><td>17.9%</td></tr>
+            <tr><td>2025-10-09</td><td>21.9%</td></tr>
+            <tr><td>2025-09-11</td><td>14.7%</td></tr>
+            <tr><td>2025-08-14</td><td><b>23.3%</b></td></tr>
+            <tr><td><b>평균</b></td><td><b>17.5%</b> (표준편차 4.9%p)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="margin:6px 0 0">
+        <b>9.8%가 아니라 17.5% ± 4.9%p 라고 보고해야 정직합니다.</b>
+        운 좋은 구간 하나를 골라 "우리 모델은 오차 10%"라고 말하는 것은
+        6강에서 배운 <b>p-해킹과 같은 종류의 자기기만</b>입니다.
+        의도가 없어도 결과적으로 그렇게 됩니다 — 그래서 <b>검증 시점을 미리 정해두는</b> 게 중요합니다.
+      </p>
+    </div>
+
+    <div class="callout">
+      <b>그럼 §5의 순위표는 무의미한가요?</b><br>
+      아닙니다. <b>같은 조건에서 여러 방법을 비교한 것</b>이라 상대적 순위는 여전히 정보입니다.
+      다만 <b>절대적인 성능 수치("우리는 9.8%")로 쓰면 안 됩니다.</b>
+      제대로 하려면 <b>모든 방법을 모든 시점에서</b> 돌려 평균 순위를 봐야 합니다.
+      연습 문제로 직접 해보세요.
+    </div>
+
+    <div class="pycell" data-packages="pandas,numpy,statsmodels" data-data="cafe_sales.csv" data-title="연습 · 직접 써보세요">
+    # 문제 1. 예측 기간 H 를 7일로 바꿔서 다시 비교해보세요.
+    #        짧은 예측에서는 어떤 방법이 이기나요?
+
+
+    # 문제 2. 방문객(visitors)을 예측해보세요. 매출보다 쉬운가요, 어려운가요?
+
+
+    # 문제 3. SARIMA 의 order 를 (2,1,2) 로 바꿔보세요. 나아지나요?
+    </div>
+
+    <details style="margin:18px 0">
+      <summary style="cursor:pointer;font-weight:600;color:var(--accent)">모범 답안 보기</summary>
+      <div class="pycell" data-packages="pandas,numpy,statsmodels" data-data="cafe_sales.csv" data-title="모범 답안">
+      def 실험(시리즈, H):
+          tr, te = 시리즈[:-H], 시리즈[-H:]
+          def m(p):
+              p = np.asarray(p, dtype=float)
+              return np.mean(np.abs((te.values - p) / te.values)) * 100
+          out = {
+              "마지막값":      m(np.repeat(tr.iloc[-1], H)),
+              "최근28일 평균": m(np.repeat(tr.iloc[-28:].mean(), H)),
+              "지난주 요일":   m((tr.iloc[-7:].values.tolist() * (H // 7 + 1))[:H]),
+          }
+          try:
+              a = ARIMA(tr, order=(1,1,1), seasonal_order=(1,1,1,7)).fit()
+              out["SARIMA"] = m(a.forecast(H).values)
+          except Exception as e:
+              out["SARIMA"] = float("nan")
+          return out
+
+      # 문제 1
+      print("[매출 · 7일 예측]")
+      for k, v in sorted(실험(s, 7).items(), key=lambda x: x[1]):
+          print(f"  {v:5.1f}%  {k}")
+
+      # 문제 2
+      v_series = df.set_index("date").asfreq("D")["visitors"].interpolate()
+      print("\n[방문객 · 28일 예측]")
+      for k, val in sorted(실험(v_series, 28).items(), key=lambda x: x[1]):
+          print(f"  {val:5.1f}%  {k}")
+
+      # 문제 3
+      print("\n[SARIMA order 비교 · 28일]")
+      for order in [(1,1,1), (2,1,2), (0,1,1)]:
+          try:
+              a = ARIMA(학습, order=order, seasonal_order=(1,1,1,7)).fit()
+              p = a.forecast(H).values
+              mape = np.mean(np.abs((검증.values - p) / 검증.values)) * 100
+              print(f"  order={order}  MAPE {mape:.1f}%")
+          except Exception as e:
+              print(f"  order={order}  실패: {type(e).__name__}")
+      </div>
+      <p style="font-size:13.5px;color:var(--text-dim)">
+        <b>문제 1의 결과가 순위를 완전히 뒤집습니다.</b>
+        7일 예측에서는 <b>SARIMA가 7.6%로 1등</b>이고 최근 28일 평균은 14.2%로 3등이 됩니다.
+        28일 예측에서와 정반대죠.
+      </p>
+      <p style="font-size:13.5px;color:var(--text-dim)">
+        이유는 명확합니다. <b>7일 안에서는 요일 패턴이 결정적</b>인데,
+        평균값 하나로는 요일 변동을 전혀 따라갈 수 없습니다.
+        반면 28일이면 요일이 네 번씩 돌아 평균이 유리해집니다.
+      </p>
+      <p style="font-size:13.5px;color:var(--text-dim)">
+        <b>"어떤 모델이 좋은가"에 절대적인 답은 없습니다.</b>
+        예측 기간이 바뀌면 답도 바뀝니다. 그래서 §7의 1번이
+        <b>"예측 기간을 먼저 정하라"</b>인 것입니다.
+        문제 3에서 order 를 바꿔도 10.7~10.8%로 거의 차이가 없는 것과 대조적이죠 —
+        <b>파라미터 미세조정보다 문제 설정이 훨씬 중요합니다.</b>
+      </p>
+    </details>
+
+    <div class="colab-cta">
+      <div class="colab-text">
+        <b>더 깊이 파고들고 싶다면</b>
+        Colab에서는 <code>pmdarima</code>, <code>prophet</code> 같은 도구도 설치해 쓸 수 있습니다.
+      </div>
+      <a class="btn" id="colab-link" href="#" target="_blank" rel="noopener">Colab에서 열기</a>
+    </div>
+
+    <div class="summary">
+      <h3>16강 요약</h3>
+      <ul>
+        <li><b>시간 순서대로</b> 학습/검증을 나눈다. 무작위 분리는 반칙.</li>
+        <li>MAE(해석 쉬움) · RMSE(큰 실수에 벌점) · MAPE(비교 가능, 0 근처에서 폭발).</li>
+        <li><b>기준선을 먼저 만든다.</b> 마지막값 · 최근 평균 · 작년 같은 날.</li>
+        <li><b>이 데이터에서는 "최근 28일 평균"(9.8%)이 SARIMA(10.7%)를 이겼다.</b>
+            복잡한 모델은 기준선을 <b>실제로 이겨야</b> 쓸 이유가 생긴다.</li>
+        <li>지수평활에는 <code>damped_trend=True</code> 를 켤 것 (없으면 MAPE 42%).</li>
+        <li><b>예측구간을 함께 낸다.</b> 넓어도 실제로 맞는 구간이 쓸모 있다(28/28 포함).</li>
+        <li><b>여러 시점에서 검증</b>하고 평균과 편차를 함께 보고한다.</li>
+      </ul>
+    </div>
+
+    <div class="summary" style="border-color:var(--pos);margin-top:26px">
+      <h3 style="color:var(--pos)">🎉 16강 전체 완주 — 여기까지 오셨다면</h3>
+      <ul>
+        <li>CSV를 열어 <b>진단하고 청소</b>할 수 있습니다 (1~4강)</li>
+        <li>숫자로 <b>요약하고 그룹별로 쪼개</b> 패턴을 찾을 수 있습니다 (5~8강)</li>
+        <li>남에게 보여줄 수 있는 <b>그래프</b>를 그릴 수 있습니다 (9~11강)</li>
+        <li>관계를 <b>회귀로 정량화</b>하고 차이를 <b>검정</b>할 수 있습니다 (12~13강)</li>
+        <li>시계열을 <b>분해하고 예측하고 정직하게 검증</b>할 수 있습니다 (14~16강)</li>
+      </ul>
+      <p style="margin:14px 0 0;font-size:14px">
+        무엇보다, 숫자를 볼 때마다 <b>"이게 우연일 수는 없나?"</b>와
+        <b>"내가 안 본 게 뭐지?"</b>를 먼저 묻게 되셨다면 —
+        그게 이 강의 전체의 목표였습니다.
+      </p>
+    </div>
+
+    <p class="next-up">
+      ← <a href="../index.html">전체 목록으로</a><br>
+      개념이 흐릿한 부분이 있다면 <b>1부 통계 모듈</b>로 돌아가 그림으로 다시 확인해보세요.
+      직접 만져보면 다르게 보입니다.
+    </p>
+  </section>
+
+</div>
+
+<script src="../assets/viz.js?v=312b9476b0"></script>
+<script src="../assets/pylab.js?v=869ae9b12b"></script>
+<script src="../assets/pycell.js?v=6dacc4c6ce"></script>
+<script>
+(function () {
+  var a = document.getElementById('colab-link');
+  if (a) a.href = 'https://colab.research.google.com/github/mioon1402/timeseriesdata/blob/main/notebooks/p16-forecast.ipynb';
+})();
+</script>
+</body>
+</html>

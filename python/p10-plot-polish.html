@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>보기 좋은 그래프로 · 파이썬 데이터 분석</title>
+<meta name="description" content="축·색·범례·주석을 정리해 남에게 보여줄 수 있는 그림으로 만듭니다.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%F0%9F%90%8D%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css?v=92187514af">
+<link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">파이썬 10강 · 시각화</p>
+    <h1>보기 좋은 그래프로</h1>
+    <p class="lede">
+      혼자 보는 그림과 남에게 보여주는 그림은 다릅니다.
+      <b>축이 겹치고, 색이 아무 의미 없고, 무엇을 봐야 할지 모르겠는</b> 그래프를
+      단계별로 고쳐봅시다.
+    </p>
+  </header>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 강의에서 배우는 것</b>
+      <ol>
+        <li><a href="#s1">날짜 축이 겹칠 때</a></li>
+        <li><a href="#s2">숫자 축 읽기 쉽게</a></li>
+        <li><a href="#s3">색은 의미가 있을 때만</a></li>
+        <li><a href="#s4">범례와 주석 — 무엇을 봐야 하는지 알려주기</a></li>
+        <li><a href="#s5">군더더기 걷어내기</a></li>
+        <li><a href="#s6">완성본 만들기</a></li>
+        <li><a href="#s7">저장하기</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s1">1. 날짜 축이 겹칠 때</h2>
+    <p>
+      9강에서 그린 시계열 그래프의 x축을 자세히 보세요.
+      날짜 라벨이 <b>서로 붙어서 읽을 수 없습니다.</b> 가장 흔한 문제입니다.
+    </p>
+
+    <div class="pycell" data-packages="pandas,matplotlib" data-data="cafe_sales.csv" data-title="10-1. 문제와 해결">
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    import matplotlib.dates as mdates
+
+    df = pd.read_csv("cafe_sales.csv", parse_dates=["date"])
+
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(9, 5.5))
+
+    # 문제 — 그냥 그리면 라벨이 겹친다
+    ax1.plot(df["date"], df["visitors"], linewidth=0.6)
+    ax1.set_title("✗ 날짜 라벨이 겹친다")
+
+    # 해결 — 간격과 형식을 지정한다
+    ax2.plot(df["date"], df["visitors"], linewidth=0.6, color="#2563eb")
+    ax2.xaxis.set_major_locator(mdates.MonthLocator(interval=3))   # 3개월마다
+    ax2.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m"))   # 표시 형식
+    ax2.set_title("○ 3개월 간격 + 형식 지정")
+
+    fig.autofmt_xdate()      # 라벨을 살짝 기울여준다
+    plt.tight_layout()
+    plt.show()
+    </div>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>도구</th><th>하는 일</th></tr></thead>
+        <tbody>
+          <tr><td><code>MonthLocator(interval=3)</code></td><td>3개월마다 눈금. <code>YearLocator</code>, <code>WeekdayLocator</code> 도 있음</td></tr>
+          <tr><td><code>DateFormatter("%Y-%m")</code></td><td>표시 형식. <code>%m월</code>, <code>%y/%m</code> 등 자유롭게</td></tr>
+          <tr><td><code>fig.autofmt_xdate()</code></td><td>라벨을 기울이고 겹침을 자동 조정</td></tr>
+          <tr><td><code>ax.tick_params(rotation=45)</code></td><td>단순히 각도만 돌리고 싶을 때</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 id="s2">2. 숫자 축 읽기 쉽게</h2>
+    <p>
+      <code>875490.4</code> 같은 숫자가 축에 그대로 나오면 읽기 힘듭니다.
+      <b>단위를 바꾸거나 천 단위 쉼표</b>를 넣으세요.
+    </p>
+
+    <div class="pycell" data-packages="pandas,matplotlib" data-data="cafe_sales.csv" data-title="10-2. 축 숫자 다듬기">
+    from matplotlib.ticker import FuncFormatter
+
+    월별 = df.set_index("date")["sales"].resample("ME").mean()
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11, 3.4))
+
+    # 문제 — 자릿수가 많아 읽기 어렵다
+    ax1.plot(월별.index, 월별.values)
+    ax1.set_title("✗ 원 단위 그대로")
+
+    # 해결 1 — 단위를 바꾼다 (가장 좋은 방법)
+    ax2.plot(월별.index, 월별.values / 10000, color="#0d9488")
+    ax2.set_ylabel("매출(만원)")
+    ax2.set_title("○ 만원 단위로")
+
+    plt.tight_layout()
+    plt.show()
+    </div>
+
+    <div class="pycell" data-packages="pandas,matplotlib" data-data="cafe_sales.csv" data-title="10-3. 천 단위 쉼표 넣기">
+    from matplotlib.ticker import FuncFormatter
+
+    fig, ax = plt.subplots(figsize=(8, 3.2))
+    ax.plot(월별.index, 월별.values, color="#2563eb")
+    ax.yaxis.set_major_formatter(FuncFormatter(lambda x, p: f"{x:,.0f}"))
+    ax.set_title("천 단위 쉼표로 읽기 쉽게")
+    ax.set_ylabel("매출(원)")
+    plt.show()
+    </div>
+
+    <div class="practice">
+      <b>단위는 축 라벨에, 숫자는 짧게</b>
+      <p style="margin:6px 0">
+        <code>875,490원</code> 을 열 개 찍는 것보다
+        축 라벨에 <b>"매출(만원)"</b> 이라 쓰고 <code>87.5</code> 를 찍는 게 훨씬 읽힙니다.
+        <b>축 라벨에 단위를 반드시 적으세요.</b> 단위 없는 축은 아무 의미가 없습니다.
+      </p>
+    </div>
+
+    <h2 id="s3">3. 색은 의미가 있을 때만</h2>
+    <p>
+      초보자가 가장 많이 하는 실수가 <b>알록달록하게 만드는 것</b>입니다.
+      색은 장식이 아니라 <b>정보</b>여야 합니다.
+    </p>
+
+    <div class="pycell" data-packages="pandas,matplotlib" data-data="cafe_sales.csv" data-title="10-4. 강조하고 싶은 것만 색으로">
+    순서 = ["월", "화", "수", "목", "금", "토", "일"]
+    요일평균 = df.groupby("weekday")["visitors"].mean().reindex(순서)
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11, 3.4))
+
+    # 문제 — 무지개색. 색이 아무 정보도 주지 않는다
+    ax1.bar(요일평균.index, 요일평균.values,
+            color=["red", "orange", "yellow", "green", "blue", "navy", "purple"])
+    ax1.set_ylim(0, 240)
+    ax1.set_title("✗ 색이 의미 없음")
+
+    # 해결 — 기본은 회색, 강조할 것만 색
+    색 = ["#cbd5e1"] * 7
+    색[5] = "#2563eb"     # 토요일만 강조
+    ax2.bar(요일평균.index, 요일평균.values, color=색)
+    ax2.set_ylim(0, 240)
+    ax2.set_title("○ 토요일이 가장 높다는 메시지")
+
+    plt.tight_layout()
+    plt.show()
+    </div>
+
+    <div class="practice">
+      <b>색 고르는 규칙</b>
+      <ul>
+        <li><b>강조색은 하나면 충분합니다.</b> 나머지는 회색으로 두세요.</li>
+        <li><b>범주형</b>(요일, 메뉴) — 서로 구분되는 색. 최대 5~6개까지만.</li>
+        <li><b>순서형</b>(낮음→높음) — 같은 색의 <b>진하기</b> 변화 (<code>cmap="Blues"</code>)</li>
+        <li><b>양쪽으로 갈리는 값</b>(−, 0, +) — 가운데가 흰색인 발산형 (<code>cmap="RdBu_r"</code>)</li>
+        <li><b>빨강-초록 조합은 피하세요.</b> 남성 20명 중 1명은 이 둘을 구분하기 어렵습니다.
+            파랑-주황이 안전합니다.</li>
+      </ul>
+    </div>
+
+    <h2 id="s4">4. 범례와 주석</h2>
+
+    <div class="pycell" data-packages="pandas,matplotlib" data-data="cafe_sales.csv" data-title="10-5. 여러 선에는 범례를">
+    df["연"] = df["date"].dt.year
+    df["월"] = df["date"].dt.month
+    표 = df.pivot_table(values="visitors", index="월", columns="연", aggfunc="mean")
+
+    fig, ax = plt.subplots(figsize=(8, 3.5))
+    ax.plot(표.index, 표[2024], marker="o", label="2024년", color="#94a3b8")
+    ax.plot(표.index, 표[2025], marker="o", label="2025년", color="#2563eb")
+
+    ax.set_xlabel("월")
+    ax.set_ylabel("평균 방문객(명)")
+    ax.set_title("월별 방문객 — 2년 비교")
+    ax.legend()
+    ax.set_xticks(range(1, 13))
+    plt.show()
+    </div>
+
+    <div class="pycell" data-packages="pandas,matplotlib" data-data="cafe_sales.csv" data-title="10-6. 주석으로 사건 표시하기">
+    fig, ax = plt.subplots(figsize=(9.5, 3.6))
+    ax.plot(df["date"], df["visitors"], linewidth=0.6, color="#94a3b8")
+
+    # 방송 대박 날을 찾아서 화살표로 표시
+    대박 = df.loc[df["visitors"].idxmax()]
+    ax.annotate(
+        f"방송 노출\n{대박['visitors']}명",
+        xy=(대박["date"], 대박["visitors"]),           # 가리킬 지점
+        xytext=(대박["date"], 대박["visitors"] + 60),  # 글자 위치
+        ha="center", fontsize=10, color="#dc2626",
+        arrowprops=dict(arrowstyle="->", color="#dc2626"),
+    )
+
+    ax.set_title("이상치에 설명을 붙이면 그래프가 스스로 말한다")
+    ax.set_ylabel("방문객(명)")
+    plt.show()
+    </div>
+
+    <div class="takeaway">
+      <b>가장 중요한 규칙 ·</b> 그래프에는 <b>하고 싶은 말이 하나</b> 있어야 합니다.
+      제목에 그 말을 쓰세요. "요일별 방문객"보다
+      <b>"토요일이 월요일의 1.6배"</b> 가 훨씬 좋은 제목입니다.
+      보는 사람이 <b>무엇을 봐야 할지 스스로 찾게 만들지 마세요.</b>
+    </div>
+
+    <h2 id="s5">5. 군더더기 걷어내기</h2>
+
+    <div class="pycell" data-packages="pandas,matplotlib" data-data="cafe_sales.csv" data-title="10-7. 테두리와 격자 정리">
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11, 3.4))
+
+    ax1.bar(요일평균.index, 요일평균.values, color="#2563eb")
+    ax1.set_ylim(0, 240)
+    ax1.grid(True)
+    ax1.set_title("✗ 격자가 데이터를 가린다")
+
+    ax2.bar(요일평균.index, 요일평균.values, color="#2563eb")
+    ax2.set_ylim(0, 240)
+    ax2.spines["top"].set_visible(False)      # 위 테두리 제거
+    ax2.spines["right"].set_visible(False)    # 오른쪽 테두리 제거
+    ax2.grid(axis="y", alpha=0.3)             # 가로 격자만, 연하게
+    ax2.set_axisbelow(True)                   # 격자를 막대 뒤로
+    ax2.set_title("○ 필요한 것만 남김")
+
+    plt.tight_layout()
+    plt.show()
+    </div>
+
+    <div class="practice">
+      <b>정리 체크리스트</b>
+      <ul>
+        <li><code>spines["top"/"right"].set_visible(False)</code> — 위·오른쪽 테두리는 대개 불필요</li>
+        <li><code>grid(axis="y", alpha=0.3)</code> — 격자는 <b>한 방향만, 연하게</b></li>
+        <li><code>set_axisbelow(True)</code> — 격자를 데이터 <b>뒤로</b> 보내기</li>
+        <li>범례가 데이터를 가리면 <code>legend(loc="upper left")</code> 로 옮기거나
+            <code>bbox_to_anchor</code> 로 바깥에 배치</li>
+      </ul>
+    </div>
+
+    <h2 id="s6">6. 완성본 만들기</h2>
+    <p>배운 걸 모두 적용해 <b>보고서에 바로 넣을 수 있는</b> 그래프를 만들어봅시다.</p>
+
+    <div class="pycell" data-packages="pandas,matplotlib" data-data="cafe_sales.csv" data-title="10-8. 완성본">
+    import matplotlib.dates as mdates
+
+    월매출 = df.set_index("date")["sales"].resample("ME").mean() / 10000
+
+    fig, ax = plt.subplots(figsize=(9.5, 4))
+
+    ax.plot(월매출.index, 월매출.values, color="#2563eb", linewidth=2, marker="o", markersize=4)
+    ax.fill_between(월매출.index, 월매출.values, alpha=0.12, color="#2563eb")
+
+    # 축 정리
+    ax.xaxis.set_major_locator(mdates.MonthLocator(interval=3))
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%y년 %m월"))
+    ax.set_ylabel("월평균 일매출 (만원)")
+    ax.set_ylim(0, 130)
+
+    # 군더더기 제거
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.grid(axis="y", alpha=0.3)
+    ax.set_axisbelow(True)
+
+    # 메시지가 담긴 제목
+    성장 = (월매출.iloc[-6:].mean() / 월매출.iloc[:6].mean() - 1) * 100
+    ax.set_title(f"매출이 2년간 꾸준히 성장 (최근 6개월이 초기 대비 +{성장:.0f}%)",
+                 fontsize=13, fontweight="bold", loc="left", pad=14)
+
+    fig.autofmt_xdate()
+    plt.tight_layout()
+    plt.show()
+    </div>
+
+    <h2 id="s7">7. 저장하기</h2>
+
+    <div class="pycell" data-packages="pandas,matplotlib" data-data="cafe_sales.csv" data-title="10-9. 파일로 저장">
+    fig, ax = plt.subplots(figsize=(8, 3))
+    ax.bar(요일평균.index, 요일평균.values, color="#2563eb")
+    ax.set_ylim(0, 240)
+    ax.set_title("요일별 평균 방문객")
+
+    # 브라우저 안에서는 가상 파일시스템에 저장된다
+    fig.savefig("요일별.png", dpi=150, bbox_inches="tight")
+    print("저장했습니다")
+
+    import os
+    print("파일 크기:", os.path.getsize("요일별.png"), "바이트")
+    plt.show()
+    </div>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>옵션</th><th>뜻</th><th>권장</th></tr></thead>
+        <tbody>
+          <tr><td><code>dpi</code></td><td>해상도</td><td>화면 100, <b>인쇄·발표 150~300</b></td></tr>
+          <tr><td><code>bbox_inches="tight"</code></td><td>여백 자동 정리</td><td><b>거의 항상 필요</b>. 없으면 라벨이 잘림</td></tr>
+          <tr><td><code>format</code></td><td>파일 형식</td><td>웹은 <b>png</b>, 인쇄·논문은 <b>svg/pdf</b>(벡터)</td></tr>
+          <tr><td><code>transparent=True</code></td><td>배경 투명</td><td>슬라이드에 얹을 때</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pycell" data-packages="pandas,matplotlib" data-data="cafe_sales.csv" data-title="연습 · 직접 써보세요">
+    # 문제 1. 10-5 의 2년 비교 그래프를 다듬어보세요.
+    #        - 위/오른쪽 테두리 제거
+    #        - 가로 격자만 연하게
+    #        - 제목에 '메시지'를 담기
+
+
+    # 문제 2. 기온과 매출의 산점도를 그리되,
+    #        비 온 날은 다른 색으로 표시하고 범례를 붙여보세요.
+    #        힌트: 두 번 scatter 를 호출하고 label 을 주기
+    </div>
+
+    <details style="margin:18px 0">
+      <summary style="cursor:pointer;font-weight:600;color:var(--accent)">모범 답안 보기</summary>
+      <div class="pycell" data-packages="pandas,matplotlib" data-data="cafe_sales.csv" data-title="모범 답안">
+      # 문제 1
+      fig, ax = plt.subplots(figsize=(8.5, 3.6))
+      ax.plot(표.index, 표[2024], marker="o", label="2024년", color="#cbd5e1")
+      ax.plot(표.index, 표[2025], marker="o", label="2025년", color="#2563eb")
+      ax.set_xticks(range(1, 13)); ax.set_xlabel("월"); ax.set_ylabel("평균 방문객(명)")
+      ax.spines["top"].set_visible(False); ax.spines["right"].set_visible(False)
+      ax.grid(axis="y", alpha=0.3); ax.set_axisbelow(True)
+      증가 = (표[2025].mean() / 표[2024].mean() - 1) * 100
+      ax.set_title(f"모든 달에서 성장 (연평균 +{증가:.0f}%)",
+                   fontweight="bold", loc="left")
+      ax.legend(frameon=False)
+      plt.show()
+
+      # 문제 2
+      비 = df["rain_mm"] > 0
+      fig, ax = plt.subplots(figsize=(7, 4))
+      ax.scatter(df.loc[~비, "avg_temp"], df.loc[~비, "sales"] / 10000,
+                 s=10, alpha=0.35, color="#94a3b8", label="비 안 온 날")
+      ax.scatter(df.loc[비, "avg_temp"], df.loc[비, "sales"] / 10000,
+                 s=14, alpha=0.7, color="#2563eb", label="비 온 날")
+      ax.set_xlabel("평균기온(℃)"); ax.set_ylabel("매출(만원)")
+      ax.set_title("비 오는 날은 같은 기온에서도 매출이 낮다", fontweight="bold", loc="left")
+      ax.legend(frameon=False)
+      ax.spines["top"].set_visible(False); ax.spines["right"].set_visible(False)
+      plt.show()
+      </div>
+      <p style="font-size:13.5px;color:var(--text-dim)">
+        문제 2가 좋은 예입니다. 색을 <b>하나의 정보</b>(비 여부)에 배정했더니
+        그래프가 "기온이 같아도 비가 오면 매출이 낮다"는 <b>메시지를 스스로 말합니다.</b>
+        이게 8강에서 표로 봤던 내용인데, 그림이 훨씬 설득력 있죠.
+      </p>
+    </details>
+
+    <div class="colab-cta">
+      <div class="colab-text">
+        <b>더 자유롭게 해보고 싶다면</b>
+        Colab에서는 파일로 저장해 내려받을 수도 있습니다.
+      </div>
+      <a class="btn" id="colab-link" href="#" target="_blank" rel="noopener">Colab에서 열기</a>
+    </div>
+
+    <div class="summary">
+      <h3>10강 요약</h3>
+      <ul>
+        <li>날짜 축은 <code>MonthLocator</code> + <code>DateFormatter</code> + <code>autofmt_xdate()</code>.</li>
+        <li>큰 숫자는 <b>단위를 바꾸고</b>(만원), <b>축 라벨에 단위를 적는다.</b></li>
+        <li><b>색은 정보일 때만.</b> 기본 회색 + 강조 하나. 빨강-초록 조합은 피할 것.</li>
+        <li>제목에 <b>메시지</b>를 담는다. "요일별 방문객" → "토요일이 월요일의 1.6배".</li>
+        <li>위·오른쪽 테두리 제거, 격자는 한 방향만 연하게, <code>set_axisbelow(True)</code>.</li>
+        <li>저장은 <code>savefig(dpi=150, bbox_inches="tight")</code>.</li>
+      </ul>
+    </div>
+
+    <p class="next-up">
+      다음 → <b>11강 · seaborn으로 빠르게</b><br>
+      지금까지 여러 줄로 하던 걸 한 줄로 끝내는 도구를 배웁니다.
+    </p>
+  </section>
+
+</div>
+
+<script src="../assets/viz.js?v=312b9476b0"></script>
+<script src="../assets/pylab.js?v=869ae9b12b"></script>
+<script src="../assets/pycell.js?v=6dacc4c6ce"></script>
+<script>
+(function () {
+  var a = document.getElementById('colab-link');
+  if (a) a.href = 'https://colab.research.google.com/github/mioon1402/timeseriesdata/blob/main/notebooks/p10-plot-polish.ipynb';
+})();
+</script>
+</body>
+</html>
