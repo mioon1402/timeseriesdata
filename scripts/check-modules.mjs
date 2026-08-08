@@ -56,6 +56,7 @@ const PAGES = [
   'python/p15-decompose.html',
   'python/p16-forecast.html',
   'linalg/L01-vectors.html',
+  'linalg/L02-two-pictures.html',
 ];
 
 /** 캔버스가 없어도 정상인 페이지 (파이썬 실습 강의 등) */

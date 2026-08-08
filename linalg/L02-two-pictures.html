@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>연립방정식을 보는 두 가지 눈 · 선형대수</title>
+<meta name="description" content="같은 연립방정식을 '두 직선의 교점'과 '두 벡터를 섞어 목표 만들기'로 각각 봅니다. 후자가 훨씬 강력합니다.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%E2%9E%97%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css?v=b7dfb076b2">
+<link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">선형대수 2강 · 선형방정식계와 행렬대수</p>
+    <h1>연립방정식을 보는 두 가지 눈</h1>
+    <p class="lede">
+      중고등학교에서 배운 연립방정식은 <b>"두 직선이 만나는 점"</b>이었습니다.
+      틀린 건 아니지만, 차원이 조금만 올라가도 머릿속에서 그림이 무너집니다.
+      선형대수는 <b>같은 문제를 완전히 다르게</b> 봅니다 —
+      그리고 그 새 관점은 1000차원에서도 그대로 살아남습니다.
+    </p>
+  </header>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 강의에서 배우는 것</b>
+      <ol>
+        <li><a href="#s0">기초 다지기 — 연립방정식이란 무엇인가</a></li>
+        <li><a href="#s1">Row picture — 직선들의 교점</a></li>
+        <li><a href="#s2">Column picture — 벡터를 섞어 목표 만들기</a></li>
+        <li><a href="#s3">두 그림을 나란히 놓고 보기</a></li>
+        <li><a href="#s4">해가 없거나 무한히 많을 때</a></li>
+        <li><a href="#s5">Ax = b 라는 최종 형태</a></li>
+        <li><a href="#s6">numpy 로 풀어보기</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s0">0. 기초 다지기 — 연립방정식이란 무엇인가</h2>
+    <p>
+      먼저 용어부터 확실히 하고 갑시다. 이 절은 <b>이미 아는 분은 건너뛰어도</b> 됩니다.
+    </p>
+
+    <div class="callout">
+      <b>카페에서 시작하는 이야기</b><br>
+      아메리카노(2,000원)와 라떼(3,000원)를 <b>합쳐서 5잔</b> 샀고, <b>13,000원</b>을 냈습니다.
+      각각 몇 잔씩 샀을까요?
+      <br><br>
+      아메리카노를 <span class="m">x</span>잔, 라떼를 <span class="m">y</span>잔이라 하면:
+      <div style="margin:10px 0 0;font-family:var(--mono);font-size:13.5px;line-height:2">
+        x + y = 5 &nbsp;&nbsp;&nbsp;<span style="color:var(--text-dim)">← 잔 수</span><br>
+        2x + 3y = 13 &nbsp;<span style="color:var(--text-dim)">← 금액(천원)</span>
+      </div>
+    </div>
+
+    <p>
+      이렇게 <b>미지수가 여러 개인 방정식 여러 개를 한 묶음</b>으로 놓고
+      "전부 동시에 성립하는 값"을 찾는 것이 <b>연립방정식</b>(정확히는 <b>선형방정식계</b>)입니다.
+      "선형(Linear)"이라는 말은 <b>미지수가 1차로만 등장한다</b>는 뜻입니다.
+    </p>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>용어</th><th>위 예에서</th><th>뜻</th></tr></thead>
+        <tbody>
+          <tr><td><b>미지수</b> (변수)</td><td><span class="m">x</span>, <span class="m">y</span></td>
+              <td>우리가 찾으려는 값</td></tr>
+          <tr><td><b>계수</b> (coefficient)</td><td>1, 1, 2, 3</td>
+              <td>미지수 앞에 곱해진 숫자</td></tr>
+          <tr><td><b>상수항</b> (우변)</td><td>5, 13</td>
+              <td>등호 오른쪽의 목표값</td></tr>
+          <tr><td><b>해</b></td><td><span class="m">x=2, y=3</span></td>
+              <td>모든 식을 동시에 만족시키는 값</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pitfall">
+      <b>이런 건 "선형"이 아닙니다</b>
+      <span class="m">x²</span>, <span class="m">xy</span>, <span class="m">√x</span>,
+      <span class="m">sin x</span>, <span class="m">1/x</span> 처럼 미지수가 1차를 벗어나면
+      선형방정식이 아닙니다. 이 과목이 다루는 건 <b>오직 1차짜리</b>입니다.
+      대신 그 대가로 <b>차원을 마음껏 올릴 수 있습니다</b> — 미지수가 100만 개여도 방법이 똑같습니다.
+    </div>
+
+    <h2 id="s1">1. Row picture — 직선들의 교점</h2>
+    <p>
+      첫 번째 관점은 익숙한 방식입니다. 방정식계를 <b>가로줄(행, Row) 단위</b>로 읽는 겁니다.
+    </p>
+    <p>
+      <span class="m">x + y = 5</span> 를 만족하는 <span class="m">(x, y)</span> 를 전부 찍어보면
+      <b>직선 하나</b>가 됩니다. <span class="m">2x + 3y = 13</span> 도 마찬가지로 또 다른 직선이죠.
+      <b>두 식을 동시에 만족하는 점</b>은 두 직선이 <b>겹치는 지점</b>, 즉 교점입니다.
+    </p>
+
+    <div class="takeaway">
+      <b>행 하나 = 도형 하나 ·</b> 미지수 2개면 <b>직선</b>, 3개면 <b>평면</b>,
+      그 이상이면 <b>초평면(hyperplane)</b>. 해는 그 도형들이 전부 겹치는 자리입니다.
+      직관적이지만 <b>4차원부터는 상상이 불가능</b>합니다 — 이게 이 관점의 한계입니다.
+    </div>
+
+    <h2 id="s2">2. Column picture — 벡터를 섞어 목표 만들기</h2>
+    <p>
+      두 번째 관점이 선형대수의 진짜 무기입니다.
+      이번엔 <b>세로줄(열, Column) 단위</b>로 묶습니다.
+      <span class="m">x</span>에 곱해진 계수들끼리, <span class="m">y</span>에 곱해진 계수들끼리 모아
+      각각 <b>벡터</b>로 만드는 거죠.
+    </p>
+
+    <div class="formula">
+      <div class="name">같은 식, 다른 묶음</div>
+      <div class="eq" style="font-size:17px">
+        <span class="small">행으로 읽으면</span><br>
+        2x − y = 1 &nbsp;,&nbsp; x + y = 5
+        <br><br>
+        <span class="small">열로 묶으면</span><br>
+        x <span class="mat"><span>2</span><span>1</span></span>
+        + y <span class="mat"><span>−1</span><span>1</span></span>
+        &nbsp;=&nbsp; <span class="mat"><span>1</span><span>5</span></span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">왼쪽 열</span><span class="desc"><span class="m">x</span>의 계수 2와 1을 위아래로 모은 벡터</span></li>
+        <li><span class="sym">오른쪽 열</span><span class="desc"><span class="m">y</span>의 계수 −1과 1을 모은 벡터</span></li>
+        <li><span class="sym">우변</span><span class="desc">두 상수항 1과 5를 모은 <b>목표 벡터</b></span></li>
+      </ul>
+    </div>
+
+    <p>
+      두 표현은 <b>글자 하나 다르지 않은 같은 식</b>입니다. 단지 묶는 방향이 다를 뿐이죠.
+      그런데 질문의 성격이 완전히 바뀝니다.
+    </p>
+
+    <div class="callout">
+      <b>질문이 이렇게 바뀝니다</b><br>
+      <span style="color:var(--text-dim)">Row picture:</span> "두 직선은 어디서 만나는가?"<br>
+      <span style="color:var(--accent)"><b>Column picture:</b></span>
+      "첫 번째 벡터를 <b>x배</b>, 두 번째 벡터를 <b>y배</b>해서 더하면
+      <b>목표 벡터에 도달할 수 있는가?</b>"
+      <br><br>
+      뒤쪽은 <b>1강에서 배운 선형결합</b> 그 자체입니다.
+      그리고 이 질문은 <b>차원이 아무리 올라가도 문장이 안 변합니다.</b>
+    </div>
+
+    <h2 id="s3">3. 두 그림을 나란히 놓고 보기</h2>
+    <p>
+      이제 직접 보시죠. 아래 <b>두 그림은 같은 방정식계</b>입니다.
+      슬라이더로 우변(목표값)을 바꾸면 <b>양쪽이 동시에</b> 반응합니다.
+    </p>
+
+    <div class="panel">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px">
+        <div>
+          <p class="panel-title" style="text-align:center">Row picture — 두 직선의 교점</p>
+          <div class="board"><canvas id="cv-row"></canvas></div>
+        </div>
+        <div>
+          <p class="panel-title" style="text-align:center">Column picture — 벡터를 섞어 도달</p>
+          <div class="board"><canvas id="cv-col"></canvas></div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">우변 첫째 값 b₁</span><span class="val" id="b1-val">1</span></span>
+          <input type="range" id="b1" min="-6" max="6" step="0.5" value="1">
+        </label>
+        <label class="ctrl">
+          <span class="label-row"><span class="name">우변 둘째 값 b₂</span><span class="val" id="b2-val">5</span></span>
+          <input type="range" id="b2" min="-6" max="6" step="0.5" value="5">
+        </label>
+      </div>
+
+      <div class="seg" role="group" aria-label="계수 프리셋" style="margin-top:12px">
+        <label><input type="radio" name="pre" value="ok" checked><span>보통 (해 1개)</span></label>
+        <label><input type="radio" name="pre" value="par"><span>평행 (해 없음)</span></label>
+        <label><input type="radio" name="pre" value="same"><span>겹침 (해 무한)</span></label>
+      </div>
+
+      <div class="readout">
+        <div class="stat"><span class="k">방정식계</span><span class="v" id="r-sys">–</span></div>
+        <div class="stat accent"><span class="k">해 x</span><span class="v" id="r-x">–</span></div>
+        <div class="stat accent"><span class="k">해 y</span><span class="v" id="r-y">–</span></div>
+        <div class="stat warn"><span class="k">행렬식 det</span><span class="v" id="r-det">–</span></div>
+        <div class="stat"><span class="k">상태</span><span class="v" id="r-state">–</span></div>
+      </div>
+    </div>
+
+    <p>
+      슬라이더를 움직이며 두 그림을 번갈아 보세요. 같은 사건이 두 언어로 서술됩니다.
+    </p>
+    <ul>
+      <li><b>왼쪽</b>에서는 두 직선이 <b>평행 이동</b>하고, 교점이 따라 움직입니다.</li>
+      <li><b>오른쪽</b>에서는 <b>목표 벡터(빨강)</b>가 움직이고,
+          거기 도달하기 위한 <b>섞는 비율 x, y가 달라집니다.</b>
+          파란·초록 화살표의 <b>방향은 그대로</b>고 <b>길이만</b> 변하죠.</li>
+    </ul>
+
+    <h2 id="s4">4. 해가 없거나 무한히 많을 때</h2>
+    <p>
+      위에서 <b>[평행]</b>과 <b>[겹침]</b>을 눌러보세요. 여기서 두 관점의 차이가 확 드러납니다.
+    </p>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th></th><th>Row picture</th><th>Column picture</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><b>해 1개</b></td>
+            <td>두 직선이 한 점에서 교차</td>
+            <td>두 열벡터가 <b>서로 다른 방향</b> → 평면 어디든 도달 가능</td>
+          </tr>
+          <tr>
+            <td><b>해 없음</b></td>
+            <td>두 직선이 <b>평행</b>해서 안 만남</td>
+            <td>두 열벡터가 <b>같은 직선 위</b>인데, 목표는 그 직선 <b>밖</b>에 있음</td>
+          </tr>
+          <tr>
+            <td><b>해 무한</b></td>
+            <td>두 직선이 <b>완전히 포개짐</b></td>
+            <td>열벡터가 같은 직선 위이고, 목표도 <b>그 직선 위</b>에 있음 → 섞는 방법이 여러 가지</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="takeaway">
+      <b>Column picture 가 이긴 지점 ·</b> "해가 없다"는 말이
+      <b>"목표가 열벡터들의 Span 밖에 있다"</b>로 번역됩니다.
+      이 문장은 100차원에서도 똑같이 성립하고, 그림도 (머릿속에서) 그대로 유지됩니다.
+      6강에서 배울 <b>열공간</b>이 바로 이 이야기입니다.
+    </div>
+
+    <h2 id="s5">5. Ax = b 라는 최종 형태</h2>
+    <p>
+      열벡터들을 <b>나란히 붙여 하나의 상자</b>로 묶으면 <b>행렬(Matrix)</b>이 됩니다.
+      가중치 <span class="m">x, y</span> 도 벡터로 모으면, 식 전체가 한 줄로 줄어듭니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">선형방정식계의 최종 형태</div>
+      <div class="eq">
+        <span class="mat" style="--cols:2"><span>2</span><span>−1</span><span>1</span><span>1</span></span>
+        <span class="mat"><span>x</span><span>y</span></span>
+        &nbsp;=&nbsp;
+        <span class="mat"><span>1</span><span>5</span></span>
+        &nbsp;&nbsp;&nbsp;즉&nbsp;&nbsp;&nbsp;
+        <b>A x = b</b>
+      </div>
+      <ul class="where">
+        <li><span class="sym">A</span><span class="desc"><b>계수행렬.</b> 열벡터들을 나란히 세운 것</span></li>
+        <li><span class="sym">x</span><span class="desc"><b>미지수 벡터.</b> 각 열을 얼마나 섞을지의 가중치</span></li>
+        <li><span class="sym">b</span><span class="desc"><b>목표 벡터.</b> 우변의 상수항들</span></li>
+      </ul>
+    </div>
+
+    <div class="takeaway">
+      <b>이 강의에서 가장 중요한 문장 ·</b>
+      <span class="m">Ax</span> 는 <b>A의 열벡터들을 x의 성분만큼 가중치를 두어 섞은 것</b>입니다.
+      행렬은 <b>숫자표가 아니라 연산자</b>입니다 — 벡터를 받아서 자기 열들을 섞어 내놓는 기계죠.
+      앞으로 나올 부분공간·투영·고윳값·SVD가 전부 이 한 문장 위에 세워집니다.
+    </div>
+
+    <div class="pitfall">
+      <b>"행렬 곱은 행과 열의 내적"이라고만 외우면 막힙니다</b>
+      계산할 때는 그 방법이 맞습니다. 하지만 <b>의미</b>를 이해할 때는
+      <b>열의 선형결합</b>으로 보는 게 압도적으로 유리합니다.
+      4강에서 행렬 곱을 보는 네 가지 관점을 전부 다루겠습니다.
+    </div>
+
+    <h2 id="s6">6. numpy 로 풀어보기</h2>
+
+    <div class="pycell" data-packages="numpy" data-title="2-1. 연립방정식 풀기">
+    import numpy as np
+
+    # 2x - y = 1
+    #  x + y = 5
+    A = np.array([[2, -1],
+                  [1,  1]])
+    b = np.array([1, 5])
+
+    x = np.linalg.solve(A, b)
+    print("해 (x, y) =", x)
+    </div>
+
+    <p>
+      <code>np.linalg.solve</code> 는 우리가 3강에서 배울 <b>가우스 소거법</b>을 내부에서 돌립니다.
+      역행렬을 구해서 곱하는 게 <b>아닙니다</b> — 그게 더 느리고 부정확하거든요(4강에서 다룹니다).
+    </p>
+
+    <div class="pycell" data-packages="numpy" data-title="2-2. 두 관점이 같은지 확인">
+    # 행 관점 — 각 식이 성립하는가
+    print("2x - y =", 2*x[0] - x[1], "  (목표 1)")
+    print(" x + y =",   x[0] + x[1], "  (목표 5)")
+    print()
+
+    # 열 관점 — 열벡터를 x배, y배 해서 더하면 b 가 되는가
+    열1 = A[:, 0]      # 첫 번째 열 = [2, 1]
+    열2 = A[:, 1]      # 두 번째 열 = [-1, 1]
+    print("열1 =", 열1, "  열2 =", 열2)
+    print("x·열1 + y·열2 =", x[0]*열1 + x[1]*열2)
+    print("b            =", b)
+    print()
+    print("A @ x =", A @ x, "  ← 같은 계산이다")
+    </div>
+
+    <div class="takeaway">
+      <b>세 줄이 전부 같은 계산입니다 ·</b>
+      <span class="m">A @ x</span> 와 <span class="m">x·열1 + y·열2</span> 가 같은 값을 냅니다.
+      numpy 가 내부에서 하는 일이 바로 <b>열의 선형결합</b>이라는 증거입니다.
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="2-3. 해가 없으면 어떻게 되나">
+    # 두 열이 평행한 행렬 — 열2 는 열1 의 정확히 2배
+    S = np.array([[1, 2],
+                  [2, 4]])
+
+    print("행렬식 det =", np.linalg.det(S), " ← 0 이면 특이행렬")
+    print()
+
+    try:
+        np.linalg.solve(S, np.array([3, 7]))
+    except np.linalg.LinAlgError as e:
+        print("풀 수 없음:", e)
+        print("→ 목표 [3, 7] 이 두 열의 Span(직선) 밖에 있다")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="2-4. 목표가 Span 안에 있으면">
+    # [3, 6] 은 열1=[1,2] 의 3배 → 직선 위에 있다
+    b2 = np.array([3, 6])
+
+    print("A 의 랭크        :", np.linalg.matrix_rank(S))
+    print("A|b 를 붙인 랭크 :", np.linalg.matrix_rank(np.column_stack([S, b2])))
+    print("→ 두 랭크가 같으면 해가 존재한다 (지금은 무한히 많다)")
+    print()
+
+    # solve 는 여전히 못 쓴다. lstsq 가 해 하나를 골라준다
+    해, *_ = np.linalg.lstsq(S, b2, rcond=None)
+    print("해 하나:", 해, " → 확인:", S @ 해)
+    print()
+    print("다른 해도 있다:", np.array([3.0, 0.0]), "→ 확인:", S @ np.array([3.0, 0.0]))
+    </div>
+
+    <p>
+      <b>랭크(rank)</b>는 7강에서 제대로 다룹니다. 지금은
+      "<b>서로 다른 방향의 개수</b>" 정도로 알아두면 충분합니다.
+      <span class="m">S</span>의 두 열은 평행하니 방향이 하나뿐이라 랭크가 1이죠.
+    </p>
+
+    <div class="pycell" data-packages="numpy" data-title="2-5. 연습문제">
+    # 문제 1. 아래 카페 문제를 A, b 로 만들어 풀어보세요.
+    #         아메리카노 x잔(2천원) + 라떼 y잔(3천원), 합쳐 5잔, 총 13천원
+    #           x +  y =  5
+    #          2x + 3y = 13
+
+    # 문제 2. 그 해가 '열의 선형결합' 으로도 맞는지 확인해보세요.
+
+    # 문제 3. 우변을 [5, 20] 으로 바꾸면 해가 어떻게 되나요?
+    #         (음수가 나와도 수학적으로는 해입니다 — 현실적 의미는 없지만)
+
+    # 아래에 직접 써보세요
+    </div>
+
+    <details style="margin:18px 0">
+      <summary style="cursor:pointer;font-weight:600;color:var(--accent)">모범 답안 보기</summary>
+      <div class="pycell" data-packages="numpy" data-title="모범 답안">
+      # 문제 1
+      A1 = np.array([[1, 1],
+                     [2, 3]])
+      b1 = np.array([5, 13])
+      해1 = np.linalg.solve(A1, b1)
+      print("문제 1 → 아메리카노", 해1[0], "잔, 라떼", 해1[1], "잔")
+
+      # 문제 2 — 열의 선형결합으로 확인
+      print("문제 2 →", 해1[0]*A1[:, 0] + 해1[1]*A1[:, 1], "= b1 ?", b1)
+
+      # 문제 3
+      해3 = np.linalg.solve(A1, np.array([5, 20]))
+      print("문제 3 →", 해3, "  (라떼 5잔, 아메리카노 0잔이면 15천원이라 20천원은 불가능)")
+      print("        수학적 해는 있지만 '잔 수가 음수' 라 현실에는 없는 답이다")
+      </div>
+    </details>
+
+    <div class="practice">
+      <b>실무에서 이 두 관점</b>
+      <ul>
+        <li><b>Row picture</b> — 제약조건을 하나씩 검토할 때. "이 조건 때문에 해가 좁아졌다"를 설명하기 좋습니다.</li>
+        <li><b>Column picture</b> — <b>기본 관점으로 삼으세요.</b>
+            "이 신호를 우리가 가진 기저 함수들로 만들 수 있나?"(푸리에),
+            "이 데이터를 주성분 몇 개로 재구성할 수 있나?"(PCA),
+            "이 색을 RGB로 표현할 수 있나?" — 전부 같은 질문입니다.</li>
+        <li><b>해가 없을 때 포기하지 않는 법</b> — 현실 데이터는 거의 항상 해가 없습니다(식이 데이터 수만큼 많으니까).
+            그때 "가장 가까운 곳까지라도 가자"가 <b>최소제곱법</b>이고, 10강의 주제입니다.</li>
+      </ul>
+    </div>
+
+    <div class="summary">
+      <h3>2강 요약</h3>
+      <ul>
+        <li><b>Row picture</b> — 행 하나 = 도형 하나. 해 = 도형들의 교점. 익숙하지만 4차원부터 무너집니다.</li>
+        <li><b>Column picture</b> — 열 하나 = 벡터 하나.
+            해 = <b>"열들을 얼마나 섞어야 목표에 닿는가"</b>. 차원과 무관하게 유지됩니다.</li>
+        <li>둘은 <b>완전히 같은 식</b>을 다른 방향으로 묶은 것일 뿐입니다.</li>
+        <li>해가 없다 = <b>목표가 열들의 Span 밖</b>. 해가 무한 = <b>열이 서로 평행한데 목표는 그 위</b>.</li>
+        <li><b><span class="m">Ax = b</span></b> 에서 <span class="m">Ax</span> 는 <b>A의 열들의 선형결합</b>입니다.
+            이 문장 하나만 가져가도 이 강의는 성공입니다.</li>
+      </ul>
+    </div>
+
+    <div class="colab-cta">
+      <div class="colab-text">
+        <b>더 자유롭게 실험하고 싶다면</b><br>
+        이 강의의 실습만 모은 노트북을 Colab에서 열 수 있습니다.
+      </div>
+      <a class="btn" id="colab-link" href="#" target="_blank" rel="noopener">Colab에서 열기</a>
+    </div>
+
+    <p class="next-up">
+      다음 → <b>3강 · 가우스 소거법과 LU 분해</b><br>
+      해를 <b>손으로 구하는 알고리즘</b>을 한 단계씩 따라갑니다.
+      그리고 그 과정 자체를 저장해두면 <span class="m">A = LU</span> 라는 첫 번째 행렬 분해가 나옵니다.
+    </p>
+
+  </section>
+
+</div>
+
+<script src="../assets/viz.js?v=312b9476b0"></script>
+<script src="../assets/linalg.js?v=270d914364"></script>
+<script src="../assets/pylab.js?v=cb27f20364"></script>
+<script src="../assets/pycell.js?v=6dacc4c6ce"></script>
+<script>
+(function () {
+  'use strict';
+  var M = LA.M, num = LA.num;
+
+  /* 계수행렬 프리셋 — 열이 독립 / 평행 / 완전히 같은 방향 */
+  var PRESETS = {
+    ok:   [[2, -1], [1, 1]],
+    par:  [[1, -2], [-2, 4]],     // 열2 = 열1 × (−2) → 두 직선 평행
+    same: [[1, -2], [-2, 4]]      // 같은 행렬, 우변만 Span 위로 맞춘다
+  };
+
+  var mode = 'ok';
+  var b1 = 1, b2 = 5;
+
+  var bRow = new LA.Board(document.getElementById('cv-row'), { range: 7 });
+  var bCol = new LA.Board(document.getElementById('cv-col'), { range: 7 });
+
+  function A() { return PRESETS[mode]; }
+
+  /** 겹침 모드에서는 우변을 열의 Span 위로 강제한다 */
+  function target() {
+    var a = A();
+    if (mode !== 'same') return [b1, b2];
+    var col1 = [a[0][0], a[1][0]];
+    var t = b1 * 0.6;                            // 화면을 벗어나지 않게 완만히
+    return [col1[0] * t, col1[1] * t];
+  }
+
+  function draw() {
+    var a = A(), t = target();
+    var det = M.det(a);
+    var singular = Math.abs(det) < 1e-9;
+    var sol = singular ? null : M.solve(a, t);
+
+    /* ---------- 왼쪽: 행 관점 ---------- */
+    bRow.fit([sol]).begin().grid({ step: 1 });
+    bRow.lineEq(a[0][0], a[0][1], t[0], {
+      color: V.css('--accent'), label: '식 1', labelAt: 0.28
+    });
+    bRow.lineEq(a[1][0], a[1][1], t[1], {
+      color: V.css('--pos'), label: '식 2', labelAt: 0.62
+    });
+    if (sol) {
+      bRow.point(sol, { color: V.css('--neg'), r: 6, ring: V.css('--surface'),
+                        label: '(' + num(sol[0]) + ', ' + num(sol[1]) + ')', dx: 10 });
+    }
+
+    /* ---------- 오른쪽: 열 관점 ---------- */
+    var col1 = [a[0][0], a[1][0]];
+    var col2 = [a[0][1], a[1][1]];
+
+    // 목표가 열의 Span 위에 있나 (평행일 때 '무한' 과 '없음' 을 가르는 기준)
+    var onSpan = Math.abs(col1[0] * t[1] - col1[1] * t[0]) < 1e-9;
+
+    // 해가 무한할 때는 서로 다른 두 가지 조합을 함께 그려 '방법이 여럿' 임을 보인다
+    var ways = [];
+    if (sol) {
+      ways.push({ c: sol, alpha: 0.95 });
+    } else if (onSpan && M.norm(col1) > 1e-9) {
+      // t = s·col1 이고 col2 = k·col1 이므로  x + k y = s  를 만족하면 전부 해
+      var sScale = Math.abs(col1[0]) > 1e-9 ? t[0] / col1[0] : t[1] / col1[1];
+      var k = Math.abs(col1[0]) > 1e-9 ? col2[0] / col1[0] : col2[1] / col1[1];
+      ways.push({ c: [sScale, 0], alpha: 0.95 });
+      // 두 번째 방법: 절반씩 나눠 가져와도 같은 곳에 도착한다 (k 배 관계를 이용)
+      if (Math.abs(k) > 1e-9) ways.push({ c: [sScale / 2, sScale / (2 * k)], alpha: 0.4 });
+    }
+
+    var tips = [col1, col2, t];
+    ways.forEach(function (w) {
+      tips.push(M.scale(col1, w.c[0]));
+      tips.push(t);
+    });
+    bCol.fit(tips).begin().grid({ step: 1 });
+
+    // 열들이 만드는 Span — 평행하면 직선 하나만 보인다
+    if (singular) {
+      bCol.span(col1, { color: V.css('--warn'), width: 2, alpha: 0.55, dash: [6, 5] });
+    }
+
+    ways.forEach(function (w, i) {
+      var s1 = M.scale(col1, w.c[0]);
+      var s2 = M.scale(col2, w.c[1]);
+      bCol.arrow(s1, { color: V.css('--accent'), width: 2.6, alpha: w.alpha,
+                       label: i === 0 ? 'x·열1' : '' });
+      bCol.arrow(s2, { from: s1, color: V.css('--pos'), width: 2.6, alpha: w.alpha,
+                       label: i === 0 ? 'y·열2' : '' });
+    });
+
+    bCol.arrow(col1, { color: V.css('--accent'), width: 1.5, alpha: 0.4 });
+    bCol.arrow(col2, { color: V.css('--pos'), width: 1.5, alpha: 0.4 });
+    bCol.arrow(t, { color: V.css('--neg'), width: 3, label: '목표 b', labelMid: true, labelSide: -16 });
+
+    /* ---------- 읽기 ---------- */
+    function coef(v, sym) {
+      var n = num(Math.abs(v));
+      return (n === '1' ? '' : n) + sym;         // 1x 대신 x 로 적는다
+    }
+    function eq(r) {
+      var s = (a[r][0] < 0 ? '−' : '') + coef(a[r][0], 'x') + ' ';
+      s += (a[r][1] < 0 ? '− ' : '+ ') + coef(a[r][1], 'y');
+      return s + ' = ' + num(t[r]);
+    }
+    V.setText('#r-sys', eq(0) + ' / ' + eq(1));
+    V.setText('#r-det', num(det));
+
+    if (sol) {
+      V.setText('#r-x', num(sol[0]));
+      V.setText('#r-y', num(sol[1]));
+      V.setText('#r-state', '해가 하나');
+    } else {
+      V.setText('#r-x', '–');
+      V.setText('#r-y', '–');
+      V.setText('#r-state', onSpan ? '해가 무한히 많음' : '해가 없음');
+    }
+  }
+
+  V.range('b1', function (v) { b1 = v; draw(); });
+  V.range('b2', function (v) { b2 = v; draw(); });
+  V.radios('pre', function (v) { mode = v; draw(); });
+
+  V.onRedraw(draw);
+  draw();
+
+  var a2 = document.getElementById('colab-link');
+  if (a2) a2.href = 'https://colab.research.google.com/github/mioon1402/timeseriesdata/blob/main/notebooks/L02-two-pictures.ipynb';
+})();
+</script>
+</body>
+</html>

@@ -302,8 +302,15 @@
       c.fillStyle = o.color || css('--accent');
       c.textAlign = 'center';
       c.textBaseline = 'middle';
-      var off = o.labelOff || 15;
-      c.fillText(o.label, x1 + ux * off, y1 + uy * off);
+      if (o.labelMid) {
+        // 끝점에 라벨이 몰리면 겹친다. 화살표 중간의 옆쪽에 놓는다.
+        var mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
+        var s2 = o.labelSide === undefined ? 14 : o.labelSide;
+        c.fillText(o.label, mx - uy * s2, my + ux * s2);
+      } else {
+        var off = o.labelOff || 15;
+        c.fillText(o.label, x1 + ux * off, y1 + uy * off);
+      }
     }
     c.restore();
     return this;
@@ -332,6 +339,50 @@
       c.stroke();
     }
     c.restore();
+    return this;
+  };
+
+  /**
+   * ax + by = c 를 화면 끝까지 그린다 (행 관점의 '직선 하나').
+   * a, b 가 둘 다 0 이면 직선이 아니므로 그리지 않는다.
+   */
+  Board.prototype.lineEq = function (a, b, c, o) {
+    o = o || {};
+    var p = this.plot, ct = this.ctx;
+    if (Math.abs(a) < 1e-12 && Math.abs(b) < 1e-12) return this;
+    var x0 = p.xDomain[0], x1 = p.xDomain[1], y0 = p.yDomain[0], y1 = p.yDomain[1];
+    var P, Q;
+    if (Math.abs(b) > Math.abs(a)) {            // y = (c − ax) / b — 기울기가 완만
+      P = [x0, (c - a * x0) / b];
+      Q = [x1, (c - a * x1) / b];
+    } else {                                    // x = (c − by) / a — 거의 수직
+      P = [(c - b * y0) / a, y0];
+      Q = [(c - b * y1) / a, y1];
+    }
+    ct.save();
+    ct.beginPath();
+    ct.rect(p.margin.left, p.margin.top, p.pw, p.ph);
+    ct.clip();
+    ct.strokeStyle = o.color || css('--accent');
+    ct.lineWidth = o.width || 2.2;
+    if (o.alpha !== undefined) ct.globalAlpha = o.alpha;
+    if (o.dash) ct.setLineDash(o.dash);
+    ct.beginPath();
+    ct.moveTo(p.x(P[0]), p.y(P[1]));
+    ct.lineTo(p.x(Q[0]), p.y(Q[1]));
+    ct.stroke();
+    if (o.label) {
+      ct.setLineDash([]);
+      ct.font = '700 12px ' + FONT;
+      ct.fillStyle = o.color || css('--accent');
+      ct.textAlign = 'left';
+      ct.textBaseline = 'bottom';
+      // 화면 안쪽 지점에 라벨을 놓는다
+      var t = o.labelAt === undefined ? 0.22 : o.labelAt;
+      var L = [P[0] + (Q[0] - P[0]) * t, P[1] + (Q[1] - P[1]) * t];
+      ct.fillText(o.label, p.x(L[0]) + 6, p.y(L[1]) - 5);
+    }
+    ct.restore();
     return this;
   };
 
