@@ -112,7 +112,53 @@ function checkLinks() {
 }
 
 /* ------------------------------------------------------------------ */
-/* 3. 크로미움 찾기                                                     */
+/* 3. Colab 링크 검사                                                   */
+/*                                                                     */
+/* Colab 은 blob/<ref>/... 에서 첫 세그먼트만 ref 로 읽는다. 그래서 ref 가  */
+/* 슬래시 없는 단일 이름이어야 하고, 그 ref 에 노트북이 실제로 올라가 있어야  */
+/* 한다. 링크는 강의마다 손으로 박혀 있어 조용히 어긋나기 쉬우므로 검사한다.  */
+/* ------------------------------------------------------------------ */
+const COLAB_REPO = 'mioon1402/timeseriesdata';
+const COLAB_REF = 'main';
+
+function checkColab() {
+  const problems = [];
+  const lessons = PAGES.filter((p) => p.startsWith('python/'));
+
+  for (const page of lessons) {
+    const raw = fs.readFileSync(path.join(ROOT, page), 'utf8');
+    const slug = path.basename(page, '.html');
+
+    // 두 가지 형태를 모두 받는다: URL 인라인, 그리고 REPO/BRANCH/NOTEBOOK 상수.
+    let repo, ref, notebook;
+    const inline = raw.match(
+      /colab\.research\.google\.com\/github\/([^/]+\/[^/]+)\/blob\/([^/'"]+)\/(\S+?\.ipynb)/
+    );
+    const consts = raw.match(
+      /var REPO = '([^']+)'[\s\S]*?var BRANCH = '([^']+)'[\s\S]*?var NOTEBOOK = '([^']+)'/
+    );
+    if (inline) [, repo, ref, notebook] = inline;
+    else if (consts) [, repo, ref, notebook] = consts;
+    else {
+      problems.push(`${page} → Colab 링크를 찾을 수 없음`);
+      continue;
+    }
+
+    if (repo !== COLAB_REPO) problems.push(`${page} → 저장소 ${repo} (기대 ${COLAB_REPO})`);
+    if (ref !== COLAB_REF) problems.push(`${page} → ref ${ref} (기대 ${COLAB_REF})`);
+    if (ref.includes('/')) problems.push(`${page} → ref 에 슬래시가 있어 Colab 이 읽지 못함: ${ref}`);
+    if (notebook !== `notebooks/${slug}.ipynb`) {
+      problems.push(`${page} → 노트북 경로 ${notebook} (기대 notebooks/${slug}.ipynb)`);
+    }
+    if (!fs.existsSync(path.join(ROOT, notebook))) {
+      problems.push(`${page} → 노트북 파일 없음: ${notebook}`);
+    }
+  }
+  return problems;
+}
+
+/* ------------------------------------------------------------------ */
+/* 4. 크로미움 찾기                                                     */
 /* ------------------------------------------------------------------ */
 function findChromium() {
   if (process.env.CHROME_PATH && fs.existsSync(process.env.CHROME_PATH)) {
@@ -133,7 +179,7 @@ function findChromium() {
 }
 
 /* ------------------------------------------------------------------ */
-/* 4. 메인                                                             */
+/* 5. 메인                                                             */
 /* ------------------------------------------------------------------ */
 const run = async () => {
   console.log('· 링크 검사');
@@ -145,11 +191,22 @@ const run = async () => {
     console.log('  ok   끊어진 링크 없음');
   }
 
+  console.log('· Colab 링크 검사');
+  const colabProblems = checkColab();
+  if (colabProblems.length) {
+    console.log('  FAIL Colab 링크 문제:');
+    colabProblems.forEach((p) => console.log('       ' + p));
+  } else {
+    console.log(`  ok   강의 ${PAGES.filter((p) => p.startsWith('python/')).length}개 모두 정상`);
+  }
+
+  const staticProblems = linkProblems.length + colabProblems.length;
+
   const exe = findChromium();
   if (!exe) {
     console.log('\n! 크로미움을 찾지 못해 렌더링 검사를 건너뜁니다.');
     console.log('  CHROME_PATH 환경변수를 지정하거나 npx playwright install chromium 을 실행하세요.');
-    process.exit(linkProblems.length ? 1 : 0);
+    process.exit(staticProblems ? 1 : 0);
   }
 
   const { chromium } = await import('playwright-core');
@@ -233,8 +290,9 @@ const run = async () => {
   await browser.close();
   server.close();
 
-  console.log(failed ? `\n실패 ${failed}건` : '\n전부 통과');
-  process.exit(failed ? 1 : 0);
+  const total = failed + staticProblems;
+  console.log(total ? `\n실패 ${total}건` : '\n전부 통과');
+  process.exit(total ? 1 : 0);
 };
 
 run().catch((e) => { console.error(e); process.exit(1); });

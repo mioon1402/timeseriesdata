@@ -135,9 +135,16 @@ python3 -m http.server 8080
 
 ## 블로그에 붙이기
 
-1. GitHub Pages로 배포합니다 (**Settings → Pages → Deploy from a branch → `/ (root)`**).
+1. GitHub Pages로 배포합니다 (**Settings → Pages → Deploy from a branch → `main` → `/ (root)`**).
 2. 배포된 첫 화면에서 모듈의 **[임베드 코드]** 를 누르고 옵션을 고른 뒤 복사합니다.
 3. 티스토리 글쓰기의 **HTML 모드**에 붙여넣습니다.
+
+> **브랜치는 반드시 `main` 이어야 합니다.** 강의의 Colab 버튼과 노트북의 데이터
+> 내려받기 주소가 `main` 에 고정돼 있기 때문입니다. Colab은 GitHub URL의
+> `blob/<ref>/…` 에서 **첫 세그먼트만** ref로 읽으므로, `feature/foo` 처럼
+> 슬래시가 든 브랜치명은 `feature` 를 ref로 착각해 "Notebook not found" 가 납니다.
+> 작업은 기능 브랜치에서 하고, 발행은 `main` 으로 머지해서 하세요.
+> `npm test` 가 이 링크들을 검사합니다.
 
 > ⚠️ 붙여넣은 뒤 **기본모드로 되돌리지 마세요.** 에디터가 태그를 재정리하면서 깨질 수 있습니다.
 
