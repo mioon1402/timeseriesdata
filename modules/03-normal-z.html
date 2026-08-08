@@ -6,7 +6,7 @@
 <title>정규분포와 z-점수 · 눈으로 보는 통계</title>
 <meta name="description" content="종 모양 곡선 아래 면적이 곧 확률입니다. 68-95-99.7 규칙과 z-점수를 직접 만져보며 이해합니다.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%F0%9F%93%8A%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="../assets/viz.css?v=92187514af">
+<link rel="stylesheet" href="../assets/viz.css?v=f932d49076">
 </head>
 <body>
 <div class="wrap">
@@ -90,10 +90,13 @@
       <div class="eq">
         f(x) &nbsp;=&nbsp;
         <span class="frac"><span>1</span><span>σ<span class="rad">√<span>2π</span></span></span></span>
-        &nbsp;e<sup> −<span class="frac" style="font-size:.8em"><span>1</span><span>2</span></span>
-        <span style="font-size:.9em">(</span><span class="frac" style="font-size:.78em"><span>x − μ</span><span>σ</span></span><span style="font-size:.9em">)</span><sup>2</sup></sup>
+        &nbsp;exp<span style="font-size:1.15em">(</span>&nbsp;−<span class="frac"><span>1</span><span>2</span></span>
+        <span style="font-size:1.1em">(</span><span class="frac"><span>x − μ</span><span>σ</span></span><span style="font-size:1.1em">)</span><sup>2</sup>
+        &nbsp;<span style="font-size:1.15em">)</span>
       </div>
       <ul class="where">
+        <li><span class="sym">exp(z)</span><span class="desc">e<sup>z</sup>와 같은 뜻입니다 (e ≈ 2.718).
+            지수가 길어서 <span class="m">exp( )</span> 로 적었습니다</span></li>
         <li><span class="sym">μ</span><span class="desc"><b>어디에</b> 있는지 — 곡선을 좌우로 옮기는 손잡이</span></li>
         <li><span class="sym">σ</span><span class="desc"><b>얼마나 퍼졌는지</b> — 곡선을 넓히고 눌러 펴는 손잡이</span></li>
         <li><span class="sym">1/(σ√2π)</span><span class="desc">전체 면적을 정확히 1로 맞추는 <b>정규화 상수</b>.

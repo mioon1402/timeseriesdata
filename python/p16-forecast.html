@@ -6,7 +6,7 @@
 <title>예측해보기 · 파이썬 데이터 분석</title>
 <meta name="description" content="다음 4주 매출을 예측하고, 그 예측이 얼마나 맞는지 정직하게 검증합니다.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%F0%9F%90%8D%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="../assets/viz.css?v=92187514af">
+<link rel="stylesheet" href="../assets/viz.css?v=f932d49076">
 <link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
 </head>
 <body>
@@ -76,16 +76,18 @@
     <div class="pycell" data-packages="pandas,numpy" data-data="cafe_sales.csv" data-title="16-2. 평가 함수 만들기">
     import numpy as np
 
+    기록 = {}   # 모델 이름 → 점수. 같은 이름을 다시 평가하면 덮어쓴다
+
     def 평가(이름, 예측):
         실제 = 검증.values
         예측 = np.asarray(예측, dtype=float)
         mae  = np.mean(np.abs(실제 - 예측))
         rmse = np.sqrt(np.mean((실제 - 예측) ** 2))
         mape = np.mean(np.abs((실제 - 예측) / 실제)) * 100
-        print(f"{이름:26s} MAE {mae:>9,.0f}   RMSE {rmse:>9,.0f}   MAPE {mape:>5.1f}%")
+        기록[이름] = {"MAE": round(mae), "RMSE": round(rmse), "MAPE(%)": round(mape, 1)}
         return mape
 
-    print("평가 함수 준비 완료")
+    print("평가 함수 준비 완료 — 점수는 기록에 쌓입니다")
     </div>
 
     <div class="formula">
@@ -132,6 +134,8 @@
 
     # ③ 지난주 같은 요일 (계절성 나이브)
     결과["③ 지난주 같은요일"] = 평가("③ 지난주 같은 요일", 학습.iloc[-7:].values.tolist() * 4)
+
+    pd.DataFrame(기록).T   # 마지막 줄에 값만 두면 표로 보여준다
     </div>
 
     <div class="takeaway">
@@ -155,6 +159,8 @@
     ).fit()
 
     결과["④ 홀트윈터스"] = 평가("④ 홀트윈터스(주간)", 모델.forecast(H).values)
+
+    pd.DataFrame(기록).T
     </div>
 
     <div class="practice">
@@ -175,6 +181,8 @@
     ).fit()
 
     결과["⑤ SARIMA"] = 평가("⑤ SARIMA(1,1,1)(1,1,1,7)", 사리마.forecast(H).values)
+
+    pd.DataFrame(기록).T
     </div>
 
     <div class="formula">
@@ -482,7 +490,7 @@
 </div>
 
 <script src="../assets/viz.js?v=312b9476b0"></script>
-<script src="../assets/pylab.js?v=869ae9b12b"></script>
+<script src="../assets/pylab.js?v=cb27f20364"></script>
 <script src="../assets/pycell.js?v=6dacc4c6ce"></script>
 <script>
 (function () {

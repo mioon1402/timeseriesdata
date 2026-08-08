@@ -6,7 +6,7 @@
 <title>처음 만나는 데이터 · 파이썬 데이터 분석</title>
 <meta name="description" content="설치 없이 브라우저에서 바로 pandas를 실행해봅니다. 데이터를 열고, 크기를 확인하고, 요약 통계를 읽는 법.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%F0%9F%90%8D%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="../assets/viz.css?v=92187514af">
+<link rel="stylesheet" href="../assets/viz.css?v=f932d49076">
 <link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
 </head>
 <body>
@@ -88,6 +88,18 @@
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <div class="callout">
+      <b><code>print()</code> 도 없는데 왜 표가 나왔을까</b><br>
+      셀의 <b>맨 마지막 줄이 값이면</b> 그 값을 자동으로 보여줍니다.
+      데이터프레임이면 <b>표로</b> 그려주죠. 주피터와 Colab도 똑같이 동작합니다.
+      <ul style="margin:8px 0 0;padding-left:18px">
+        <li><code>df.head()</code> — 마지막 줄이므로 <b>표</b>로 나옵니다.</li>
+        <li><code>print(df.head())</code> — <b>글자</b>로 찍습니다. 한글 열 이름이 섞이면 칸이 밀려 읽기 어렵습니다.</li>
+        <li>여러 값을 중간중간 보려면 <code>print()</code> 를 쓰고,
+            <b>표로 보고 싶은 하나는 맨 마지막 줄에</b> 두세요. 이 강의들이 그렇게 쓰고 있습니다.</li>
+      </ul>
     </div>
 
     <div class="practice">
@@ -276,7 +288,7 @@
     # 가장 적었던 날 3일
     print()
     print("=== 최저 ===")
-    print(df.nsmallest(3, "visitors")[["date", "weekday", "visitors", "sales"]])
+    df.nsmallest(3, "visitors")[["date", "weekday", "visitors", "sales"]]
     </div>
 
     <div class="pitfall">
@@ -364,7 +376,7 @@
 </div>
 
 <script src="../assets/viz.js?v=312b9476b0"></script>
-<script src="../assets/pylab.js?v=869ae9b12b"></script>
+<script src="../assets/pylab.js?v=cb27f20364"></script>
 <script src="../assets/pycell.js?v=6dacc4c6ce"></script>
 <script>
 /* Colab 링크는 배포 위치에 따라 달라지므로 실행 시점에 만든다. */

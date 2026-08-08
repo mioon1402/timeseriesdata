@@ -6,7 +6,7 @@
 <title>신뢰구간과 가설검정 · 파이썬 데이터 분석</title>
 <meta name="description" content="t검정, 신뢰구간, 효과크기, 순열검정. 차이가 우연인지 판정하는 법.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%F0%9F%90%8D%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="../assets/viz.css?v=92187514af">
+<link rel="stylesheet" href="../assets/viz.css?v=f932d49076">
 <link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
 </head>
 <body>
@@ -158,8 +158,8 @@
     자유도 = (var1/n1 + var2/n2)**2 / ((var1/n1)**2/(n1-1) + (var2/n2)**2/(n2-1))
     임계값 = stats.t.ppf(0.975, 자유도)
 
-    print(f"차이        {차이:.1f}명")
-    print(f"표준오차    {se:.2f}")
+    print(f"차이: {차이:.1f}명")
+    print(f"표준오차: {se:.2f}")
     print(f"95% 신뢰구간 [{차이 - 임계값*se:.1f}, {차이 + 임계값*se:.1f}]")
     </div>
 
@@ -241,10 +241,10 @@
             극단 += 1
 
     p_순열 = (극단 + 1) / (N + 1)
-    print(f"관측된 차이        {관측차이:.1f}명")
-    print(f"섞어서 더 극단적    {극단}회 / {N}회")
-    print(f"순열검정 p          {p_순열:.5f}")
-    print(f"t검정 p             {p:.4g}")
+    print(f"관측된 차이: {관측차이:.1f}명")
+    print(f"섞어서 더 극단적: {극단}회 / {N}회")
+    print(f"순열검정 p: {p_순열:.5f}")
+    print(f"t검정 p: {p:.4g}")
     </div>
 
     <div class="callout">
@@ -419,7 +419,7 @@
 </div>
 
 <script src="../assets/viz.js?v=312b9476b0"></script>
-<script src="../assets/pylab.js?v=869ae9b12b"></script>
+<script src="../assets/pylab.js?v=cb27f20364"></script>
 <script src="../assets/pycell.js?v=6dacc4c6ce"></script>
 <script>
 (function () {

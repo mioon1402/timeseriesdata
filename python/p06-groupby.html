@@ -6,7 +6,7 @@
 <title>그룹별로 나눠 보기 · 파이썬 데이터 분석</title>
 <meta name="description" content="groupby와 pivot_table. 전체 평균이 숨기고 있던 패턴을 드러냅니다.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%F0%9F%90%8D%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="../assets/viz.css?v=92187514af">
+<link rel="stylesheet" href="../assets/viz.css?v=f932d49076">
 <link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
 </head>
 <body>
@@ -119,7 +119,7 @@
         평균매출 = ("sales",    "mean"),
     ).round(1)
 
-    print(요약.to_string())
+    요약
     </div>
 
     <p>
@@ -254,7 +254,7 @@
     print("\n[계절별]")
     표 = df.pivot_table(values="visitors", index="계절", columns="비", aggfunc="mean")
     표["차이"] = 표[True] - 표[False]
-    print(표.round(1).reindex(["봄", "여름", "가을", "겨울"]).to_string())
+    표.round(1).reindex(["봄", "여름", "가을", "겨울"])
     </div>
 
     <p>
@@ -303,8 +303,8 @@
 
       # 문제 3
       print()
-      print((df.pivot_table(values="sales", index="계절", columns="연", aggfunc="mean")
-               .reindex(계절순) / 10000).round(1).to_string())
+      (df.pivot_table(values="sales", index="계절", columns="연", aggfunc="mean")
+         .reindex(계절순) / 10000).round(1)
       </div>
       <p style="font-size:13.5px;color:var(--text-dim)">
         <b>문제 2의 결과가 이 강의에서 가장 중요합니다.</b>
@@ -355,7 +355,7 @@
 </div>
 
 <script src="../assets/viz.js?v=312b9476b0"></script>
-<script src="../assets/pylab.js?v=869ae9b12b"></script>
+<script src="../assets/pylab.js?v=cb27f20364"></script>
 <script src="../assets/pycell.js?v=6dacc4c6ce"></script>
 <script>
 (function () {

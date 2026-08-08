@@ -29,7 +29,12 @@
 
   --font: "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
           "Malgun Gothic", system-ui, "Segoe UI", Roboto, sans-serif;
-  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  /* 앞쪽 라틴 고정폭 폰트에는 한글 글리프가 없어서 한글이 제멋대로 넓은
+     본문 폰트로 폴백된다. 한글 고정폭 후보를 뒤에 붙여, 가진 독자에게는
+     열이 맞게 보이도록 한다. */
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+          "D2Coding", "NanumGothicCoding", "Noto Sans Mono CJK KR",
+          "Sarasa Mono K", monospace;
 }
 
 /* 시스템이 다크일 때 (사용자가 light를 강제하지 않은 경우) */
@@ -489,18 +494,23 @@ kbd {
 .where .desc { color: var(--text-dim); }
 .where .desc b { color: var(--text); font-weight: 600; }
 
-/* 분수 — KaTeX 없이 순수 CSS */
+/* 분수 — KaTeX 없이 순수 CSS
+   vertical-align 을 고정 em 값으로 주면 분자·분모 내용에 따라 높이가 달라져
+   분수선이 등호 높이(수학 축)에서 어긋난다. middle 은 상자의 중앙을
+   '기준선 + x-높이/2' 에 맞추므로, 분수선이 내용 높이와 무관하게 등호와 나란해진다. */
 .frac {
   display: inline-flex;
   flex-direction: column;
-  vertical-align: -0.55em;
+  vertical-align: middle;
   text-align: center;
   margin: 0 0.2em;
   line-height: 1.25;
   font-size: 0.92em;
 }
-.frac > span { padding: 0 0.35em; }
-.frac > span:last-child { border-top: 1.4px solid currentColor; }
+/* 분수선에 위아래 여백을 준다. 없으면 분모의 제곱근 덮개선이 분수선에
+   달라붙어 선이 두 줄로 보인다. */
+.frac > span { padding: 0.1em 0.35em; }
+.frac > span:last-child { border-top: 1.4px solid currentColor; padding-top: 0.16em; }
 
 /* 제곱근 */
 .rad { white-space: nowrap; }
@@ -512,6 +522,24 @@ kbd {
 
 /* 큰 합 기호 */
 .sig { font-size: 1.35em; vertical-align: -0.15em; line-height: 0; }
+
+/* 범위가 붙는 합 기호 — Σ 위아래로 첨자를 쌓는다.
+   <sub>/<sup> 를 Σ 옆에 나란히 두면 'Σi=1ⁿ' 처럼 붙어 읽기 어렵다. */
+.sum {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  vertical-align: middle;
+  line-height: 1;
+  margin: 0 0.18em;
+}
+.sum .op { font-size: 1.35em; }
+.sum .lim {
+  font-size: 0.5em;
+  color: var(--text-dim);
+  white-space: nowrap;
+  padding: 0.15em 0;
+}
 
 /* ---------------- 실무 / 함정 / 점검 ---------------- */
 .practice {

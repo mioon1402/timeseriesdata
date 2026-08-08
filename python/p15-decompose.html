@@ -6,7 +6,7 @@
 <title>추세와 계절성 분해 · 파이썬 데이터 분석</title>
 <meta name="description" content="매출을 추세 + 계절성 + 나머지로 쪼개 봅니다. 무엇이 진짜 성장이고 무엇이 계절인가.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%F0%9F%90%8D%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="../assets/viz.css?v=92187514af">
+<link rel="stylesheet" href="../assets/viz.css?v=f932d49076">
 <link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
 </head>
 <body>
@@ -102,10 +102,9 @@
     추세폭 = 분해.trend.dropna()
     print(f"추세      {추세폭.iloc[0]:>10,.0f}원 → {추세폭.iloc[-1]:>10,.0f}원 "
           f"(2년간 +{추세폭.iloc[-1]/추세폭.iloc[0]*100-100:.0f}%)")
-    print(f"계절성 진폭 {분해.seasonal.max() - 분해.seasonal.min():>10,.0f}원")
-    print(f"나머지 SD   {분해.resid.dropna().std():>10,.0f}원")
-    print()
-    print(f"원본 SD     {s.std():>10,.0f}원")
+    print(f"계절성 진폭: {분해.seasonal.max() - 분해.seasonal.min():,.0f}원")
+    print(f"나머지 SD: {분해.resid.dropna().std():,.0f}원")
+    print(f"원본 SD: {s.std():,.0f}원")
     </div>
 
     <p>
@@ -326,7 +325,7 @@
           "조정 전월대비(%)":   조정월.pct_change() * 100,
       }).round(2)
       print()
-      print(비교.tail(6).to_string())
+      비교.tail(6)
       </div>
       <p style="font-size:13.5px;color:var(--text-dim)">
         문제 3에서 두 값이 <b>거의 같게</b> 나옵니다. 당연합니다 —
@@ -367,7 +366,7 @@
 </div>
 
 <script src="../assets/viz.js?v=312b9476b0"></script>
-<script src="../assets/pylab.js?v=869ae9b12b"></script>
+<script src="../assets/pylab.js?v=cb27f20364"></script>
 <script src="../assets/pycell.js?v=6dacc4c6ce"></script>
 <script>
 (function () {

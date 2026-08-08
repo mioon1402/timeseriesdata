@@ -6,7 +6,7 @@
 <title>두 데이터 합치기 · 파이썬 데이터 분석</title>
 <meta name="description" content="merge와 concat. 데이터를 붙이다 행이 조용히 사라지는 사고를 막는 법.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%F0%9F%90%8D%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="../assets/viz.css?v=92187514af">
+<link rel="stylesheet" href="../assets/viz.css?v=f932d49076">
 <link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
 </head>
 <body>
@@ -55,7 +55,7 @@
     print("매출 데이터:", sales.shape, list(sales.columns))
     print("날씨 데이터:", weather.shape, list(weather.columns))
     print()
-    print(weather.head(3).to_string(index=False))
+    weather.head(3)
     </div>
 
     <p>
@@ -67,7 +67,7 @@
     합침 = sales.merge(weather[["date", "weather"]], on="date", how="left")
 
     print("결과:", 합침.shape)
-    print(합침[["date", "visitors", "sales", "weather"]].head(3).to_string(index=False))
+    합침[["date", "visitors", "sales", "weather"]].head(3)
     </div>
 
     <div class="formula">
@@ -257,7 +257,7 @@
     합침 = sales.merge(일별, on="date", how="left", validate="one_to_one")
     print("병합 후:", 합침.shape)
     print()
-    print(합침[["date", "visitors", "총주문", "메뉴종류"]].head(3).to_string(index=False))
+    합침[["date", "visitors", "총주문", "메뉴종류"]].head(3)
     </div>
 
     <div class="callout">
@@ -303,7 +303,7 @@
                      평균매출=("sales", "mean"))
                 .round(1)
                 .sort_values("평균방문"))
-    print(결과.to_string())
+    결과
     </div>
 
     <p>
@@ -359,7 +359,7 @@
       표 = menu.pivot_table(values="amount", index=menu["date"].dt.month,
                            columns="category", aggfunc="sum")
       print()
-      print((표 / 10000).round(0).head(6).to_string())
+      (표 / 10000).round(0).head(6)
       </div>
       <p style="font-size:13.5px;color:var(--text-dim)">
         문제 1이 중요합니다. 누락이 <b>한 달에 몰려 있다면</b> 그 달 분석이 통째로 왜곡됩니다.
@@ -413,7 +413,7 @@
 </div>
 
 <script src="../assets/viz.js?v=312b9476b0"></script>
-<script src="../assets/pylab.js?v=869ae9b12b"></script>
+<script src="../assets/pylab.js?v=cb27f20364"></script>
 <script src="../assets/pycell.js?v=6dacc4c6ce"></script>
 <script>
 (function () {

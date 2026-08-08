@@ -6,7 +6,7 @@
 <title>관계를 숫자로 · 파이썬 데이터 분석</title>
 <meta name="description" content="상관계수와 회귀분석. 계수를 어떻게 읽고, 어디까지 믿어도 되는지.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%F0%9F%90%8D%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="../assets/viz.css?v=92187514af">
+<link rel="stylesheet" href="../assets/viz.css?v=f932d49076">
 <link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
 </head>
 <body>
@@ -310,9 +310,13 @@
 
     예측값 = 모델2.predict(새로운날)
 
-    for i, row in 새로운날.iterrows():
-        상황 = f"기온 {row['avg_temp']:.0f}℃, 비 {row['rain_mm']:.0f}mm, {'주말' if row['주말'] else '평일'}"
-        print(f"{상황:32s} → {예측값[i]:,.0f}원")
+    # 한글 라벨을 공백으로 줄맞춤하면 브라우저에서 열이 어긋난다. 표로 만들면 안전하다.
+    pd.DataFrame({
+        "기온(℃)":  새로운날["avg_temp"],
+        "비(mm)":   새로운날["rain_mm"],
+        "요일":      새로운날["주말"].map({0: "평일", 1: "주말"}),
+        "예측매출":   예측값.round(0),
+    })
     </div>
 
     <div class="pitfall">
@@ -402,7 +406,7 @@
 </div>
 
 <script src="../assets/viz.js?v=312b9476b0"></script>
-<script src="../assets/pylab.js?v=869ae9b12b"></script>
+<script src="../assets/pylab.js?v=cb27f20364"></script>
 <script src="../assets/pycell.js?v=6dacc4c6ce"></script>
 <script>
 (function () {

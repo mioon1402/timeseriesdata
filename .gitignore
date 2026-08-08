@@ -1,1 +1,7 @@
 node_modules/
+__pycache__/
+*.pyc
+
+# 강의 셀을 로컬에서 실행해 검증할 때 생기는 산출물
+# (10강이 savefig 를 가르치므로 data/ 안에 이미지가 떨어진다)
+data/*.png

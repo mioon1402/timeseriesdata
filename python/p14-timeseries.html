@@ -6,7 +6,7 @@
 <title>시계열 다루기 · 파이썬 데이터 분석</title>
 <meta name="description" content="리샘플링, 이동평균, 변화율. 시간 축이 있는 데이터를 다루는 도구들.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%F0%9F%90%8D%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="../assets/viz.css?v=92187514af">
+<link rel="stylesheet" href="../assets/viz.css?v=f932d49076">
 <link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
 </head>
 <body>
@@ -91,9 +91,12 @@
     <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="14-2. 여러 단위로 묶어보기">
     s = ts["sales"]
 
+    행 = []
     for 코드, 이름 in [("W", "주"), ("ME", "월"), ("QE", "분기")]:
         묶음 = s.resample(코드).mean()
-        print(f"{이름}별  {len(묶음):3d}개   첫 값 {묶음.iloc[0]:>10,.0f}원")
+        행.append({"단위": 이름, "구간 수": len(묶음), "첫 구간 평균": round(묶음.iloc[0])})
+
+    pd.DataFrame(행)
     </div>
 
     <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="14-3. 합계와 평균은 다릅니다">
@@ -146,9 +149,11 @@
     </div>
 
     <div class="pycell" data-packages="pandas" data-data="cafe_sales.csv" data-title="14-5. 창 크기에 따른 매끄러움">
-    print(f"원본          표준편차 {s.std():>9,.0f}")
+    행 = [{"창 크기": "원본", "표준편차": round(s.std())}]
     for w in [7, 14, 30, 90]:
-        print(f"{w:>3}일 이동평균  표준편차 {s.rolling(w).mean().std():>9,.0f}")
+        행.append({"창 크기": f"{w}일 이동평균", "표준편차": round(s.rolling(w).mean().std())})
+
+    pd.DataFrame(행)
     </div>
 
     <div class="practice">
@@ -393,7 +398,7 @@
 </div>
 
 <script src="../assets/viz.js?v=312b9476b0"></script>
-<script src="../assets/pylab.js?v=869ae9b12b"></script>
+<script src="../assets/pylab.js?v=cb27f20364"></script>
 <script src="../assets/pycell.js?v=6dacc4c6ce"></script>
 <script>
 (function () {
