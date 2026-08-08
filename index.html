@@ -6,7 +6,7 @@
 <title>눈으로 보는 통계 · 인터랙티브 통계 교육</title>
 <meta name="description" content="공식보다 그림이 먼저. 직접 만져보며 배우는 통계 8강 — 티스토리 등 블로그에 그대로 임베드할 수 있습니다.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%F0%9F%93%8A%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="assets/viz.css?v=f932d49076">
+<link rel="stylesheet" href="assets/viz.css?v=b7dfb076b2">
 </head>
 <body>
 <div class="wrap">
@@ -38,6 +38,14 @@
     가상 카페 한 곳의 2년치 데이터를 처음부터 끝까지 함께 분석합니다.
   </p>
   <div class="hub-grid" id="pygrid"></div>
+
+  <h2 style="font-size:20px;margin:40px 0 6px;letter-spacing:-.02em">3부 · 눈으로 보는 선형대수</h2>
+  <p style="margin:0 0 16px;font-size:14px;color:var(--text-dim)">
+    벡터를 끌고 변환을 돌려보며 배웁니다. 각 강의는 <b>시각화 → 수식 → numpy 실습</b> 순서로,
+    한 페이지 안에서 손으로 만져보고 코드로 확인합니다.
+    데이터·전기전자 공학에서 쓰는 관점(열 관점, 분해, SVD)에 무게를 뒀습니다.
+  </p>
+  <div class="hub-grid" id="lagrid"></div>
 
   <section class="embed-box" id="embedBox">
     <h2 style="margin:0 0 6px;font-size:17px;">티스토리·블로그에 붙여넣기</h2>
@@ -265,6 +273,91 @@
     return /\/$/.test(v) ? v : v + '/';
   }
 
+
+  /* 선형대수 시리즈 */
+  var LA_LESSONS = [
+    { no: 'L01', file: 'linalg/L01-vectors.html', done: true,
+      title: '벡터와 선형결합',
+      desc: '벡터를 끌어 덧셈과 스칼라배를 눈으로 익히고, 선형결합이 평면을 어떻게 채우는지 확인합니다.',
+      tags: '벡터 · 스칼라배 · 선형결합 · Span · 선형종속' },
+    { no: 'L02', file: 'linalg/L02-two-pictures.html', done: false,
+      title: '연립방정식을 보는 두 가지 눈',
+      desc: '같은 방정식계를 "두 직선의 교점"과 "두 벡터를 섞어 목표 만들기"로 각각 봅니다.',
+      tags: 'Row picture · Column picture · Ax=b' },
+    { no: 'L03', file: 'linalg/L03-elimination.html', done: false,
+      title: '가우스 소거법과 LU 분해',
+      desc: '소거를 한 단계씩 따라가며 U를 만들고, 그 과정이 곧 L이라는 것을 확인합니다.',
+      tags: '소거 · 피봇 · 기본행렬 · A=LU' },
+    { no: 'L04', file: 'linalg/L04-matrix-ops.html', done: false,
+      title: '행렬 연산과 역행렬',
+      desc: '행렬 곱을 보는 네 가지 관점과, 가우스-조던으로 역행렬을 직접 만들어 봅니다.',
+      tags: '전치 · 행렬곱 4관점 · 역행렬 · 가우스-조던' },
+    { no: 'L05', file: 'linalg/L05-subspace.html', done: false,
+      title: '벡터공간과 부분공간',
+      desc: '원점을 지나야 한다는 조건이 왜 그렇게 중요한지, Span이 왜 항상 부분공간인지.',
+      tags: '벡터공간 · 부분공간 · Span' },
+    { no: 'L06', file: 'linalg/L06-nullspace.html', done: false,
+      title: '영공간과 열공간',
+      desc: 'Ax=0의 해집합과 Ax=b가 풀리는 조건. 완전해 = 특수해 + 영공간.',
+      tags: 'N(A) · C(A) · RREF · 자유변수 · 완전해' },
+    { no: 'L07', file: 'linalg/L07-rank.html', done: false,
+      title: '선형독립·기저·차원과 랭크',
+      desc: '네 가지 기본 부분공간의 차원이 어떻게 맞물리는지 — 선형대수의 Big Picture.',
+      tags: '선형독립 · 기저 · 차원 · 랭크 · 차원정리' },
+    { no: 'L08', file: 'linalg/L08-orthogonality.html', done: false,
+      title: '내적과 직교성',
+      desc: '내적이 0이면 수직. 이 한 줄에서 피타고라스 정리와 네 부분공간의 직교성이 나옵니다.',
+      tags: '내적 · 노름 · 직교 · 직교 부분공간' },
+    { no: 'L09', file: 'linalg/L09-projection.html', done: false,
+      title: '투영과 투영행렬',
+      desc: '벡터를 부분공간에 수직으로 내리는 연산. 오차가 직교한다는 조건 하나로 공식이 나옵니다.',
+      tags: '투영 · P=A(AᵀA)⁻¹Aᵀ · P²=P' },
+    { no: 'L10', file: 'linalg/L10-least-squares.html', done: false,
+      title: '최소제곱법과 회귀',
+      desc: '해가 없는 방정식에 Aᵀ를 곱하면 풀린다. 선형회귀가 왜 투영인지 눈으로 봅니다.',
+      tags: '정규방정식 · 최소제곱 · 선형회귀' },
+    { no: 'L11', file: 'linalg/L11-qr.html', done: false,
+      title: '그램-슈미트와 QR 분해',
+      desc: '직교 기저로 축을 다시 세우면 계산이 얼마나 단순해지는지.',
+      tags: '정규직교 · 직교행렬 Q · 그램-슈미트 · A=QR' },
+    { no: 'L12', file: 'linalg/L12-determinant.html', done: false,
+      title: '행렬식은 넓이다',
+      desc: '평행사변형의 넓이를 직접 늘려보며 행렬식이 0이 되는 순간을 목격합니다.',
+      tags: '행렬식 · 부피 · 특이행렬 · 여인수 전개' },
+    { no: 'L13', file: 'linalg/L13-eigen.html', done: false,
+      title: '고윳값과 고유벡터',
+      desc: '변환해도 방향이 안 바뀌는 축을 직접 찾아봅니다. 회전이면 실수 고유벡터가 없습니다.',
+      tags: 'Ax=λx · 특성방정식 · 고유벡터' },
+    { no: 'L14', file: 'linalg/L14-diagonalization.html', done: false,
+      title: '대각화와 동적 시스템',
+      desc: 'A=SΛS⁻¹ 로 거듭제곱이 붕괴합니다. 마르코프 체인과 미분방정식의 장기 거동까지.',
+      tags: '대각화 · Aᵏ · 차분·미분방정식 · 안정성' },
+    { no: 'L15', file: 'linalg/L15-symmetric.html', done: false,
+      title: '대칭행렬과 양의 정부호',
+      desc: '고윳값이 전부 실수이고 고유벡터가 직교하는 특별한 행렬. 최적화의 그릇 모양.',
+      tags: '스펙트럼 정리 · S=QΛQᵀ · 양의 정부호 · 이차형식' },
+    { no: 'L16', file: 'linalg/L16-svd.html', done: false,
+      title: '특이값 분해 (SVD)',
+      desc: '단위원이 타원으로 변하는 그림 하나가 SVD의 전부입니다. 어떤 모양의 행렬에도 통합니다.',
+      tags: 'A=UΣVᵀ · 특이값 · 회전-늘림-회전' },
+    { no: 'L17', file: 'linalg/L17-lowrank.html', done: false,
+      title: 'Low-rank 근사와 이미지 압축',
+      desc: '특이값 큰 것 몇 개만 남겨 이미지를 압축합니다. Eckart-Young 정리가 최적임을 보장합니다.',
+      tags: 'rank-1 분해 · Eckart-Young · 압축 · 노이즈 제거' },
+    { no: 'L18', file: 'linalg/L18-pseudoinverse.html', done: false,
+      title: '의사역행렬과 추천 시스템',
+      desc: '역행렬이 없어도 가장 안전한 해를 찾아주는 연산자. 최소노름해와 최소제곱해.',
+      tags: 'A⁺ · 최소노름해 · 협업 필터링 · 극분해' },
+    { no: 'L19', file: 'linalg/L19-transform.html', done: false,
+      title: '선형변환의 기하학',
+      desc: '회전·반사·투영·확대를 격자 변형으로 봅니다. 기저를 바꾸면 행렬이 단순해집니다.',
+      tags: '선형변환 · 기저 변환 · 회전 · 반사' },
+    { no: 'L20', file: 'linalg/L20-applications.html', done: false,
+      title: '복소 벡터공간과 응용',
+      desc: '에르미트 행렬과 유니터리 행렬, 그리고 PCA·페이지랭크·푸리에·희소행렬.',
+      tags: '에르미트 · 유니터리 · PCA · PageRank · DFT' }
+  ];
+
   /* ---------- 카드 ---------- */
   var grid = document.getElementById('grid');
   MODULES.forEach(function (m, i) {
@@ -298,6 +391,25 @@
       '<p>' + m.desc + '<br><span style="font-size:12px;opacity:.8">' + m.tags + '</span></p>' +
       '<div class="card-actions">' + action + '</div>';
     pygrid.appendChild(card);
+  });
+
+  /* ---------- 선형대수 시리즈 카드 ---------- */
+  var lagrid = document.getElementById('lagrid');
+  LA_LESSONS.forEach(function (m) {
+    var card = document.createElement('article');
+    card.className = 'card' + (m.done ? '' : ' card-soon');
+    var action = m.done
+      ? '<a class="btn primary" href="' + m.file + '">열기</a>'
+      : '<span class="btn" aria-disabled="true" style="opacity:.5;cursor:default">준비 중</span>';
+    var heading = m.done
+      ? '<a href="' + m.file + '">' + m.title + '</a>'
+      : m.title;
+    card.innerHTML =
+      '<div class="num">' + m.no + '</div>' +
+      '<h3>' + heading + '</h3>' +
+      '<p>' + m.desc + '<br><span style="font-size:12px;opacity:.8">' + m.tags + '</span></p>' +
+      '<div class="card-actions">' + action + '</div>';
+    lagrid.appendChild(card);
   });
 
   grid.addEventListener('click', function (ev) {

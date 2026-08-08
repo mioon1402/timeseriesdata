@@ -55,6 +55,7 @@ const PAGES = [
   'python/p14-timeseries.html',
   'python/p15-decompose.html',
   'python/p16-forecast.html',
+  'linalg/L01-vectors.html',
 ];
 
 /** 캔버스가 없어도 정상인 페이지 (파이썬 실습 강의 등) */
@@ -121,9 +122,13 @@ function checkLinks() {
 const COLAB_REPO = 'mioon1402/timeseriesdata';
 const COLAB_REF = 'main';
 
+function checkColabTargets() {
+  return PAGES.filter((p) => p.startsWith('python/') || p.startsWith('linalg/'));
+}
+
 function checkColab() {
   const problems = [];
-  const lessons = PAGES.filter((p) => p.startsWith('python/'));
+  const lessons = PAGES.filter((p) => p.startsWith('python/') || p.startsWith('linalg/'));
 
   for (const page of lessons) {
     const raw = fs.readFileSync(path.join(ROOT, page), 'utf8');
@@ -197,7 +202,7 @@ const run = async () => {
     console.log('  FAIL Colab 링크 문제:');
     colabProblems.forEach((p) => console.log('       ' + p));
   } else {
-    console.log(`  ok   강의 ${PAGES.filter((p) => p.startsWith('python/')).length}개 모두 정상`);
+    console.log(`  ok   강의 ${checkColabTargets().length}개 모두 정상`);
   }
 
   const staticProblems = linkProblems.length + colabProblems.length;

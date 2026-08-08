@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>벡터와 선형결합 · 선형대수</title>
+<meta name="description" content="벡터를 끌어보며 덧셈과 스칼라배를 눈으로 익히고, 선형결합이 공간을 어떻게 채우는지 확인합니다.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%E2%9E%97%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css?v=b7dfb076b2">
+<link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">선형대수 1강 · 선형방정식계와 행렬대수</p>
+    <h1>벡터와 선형결합</h1>
+    <p class="lede">
+      선형대수학 전체가 <b>단 하나의 식</b> 위에 서 있습니다.
+      <span class="m">c₁v₁ + c₂v₂ + ⋯ + cₙvₙ</span> — 재료가 될 벡터들과, 그걸 얼마나 섞을지 정하는 가중치.
+      앞으로 배울 모든 것(연립방정식, 부분공간, 고윳값, SVD)이 결국
+      <b>"이 선형결합을 찾아라"</b>는 문제로 되돌아옵니다.
+    </p>
+  </header>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 강의에서 배우는 것</b>
+      <ol>
+        <li><a href="#s1">벡터 — 숫자 목록이자 화살표</a></li>
+        <li><a href="#s2">덧셈과 스칼라배 (직접 끌어보기)</a></li>
+        <li><a href="#s3">선형결합이 공간을 채운다</a></li>
+        <li><a href="#s4">평행한 두 벡터는 평면을 못 만든다</a></li>
+        <li><a href="#s5">numpy 로 계산해보기</a></li>
+        <li><a href="#s6">실무에서 이게 무슨 뜻인가</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s1">1. 벡터 — 숫자 목록이자 화살표</h2>
+    <p>
+      벡터는 <b>순서가 있는 숫자 목록</b>입니다. 그게 정의의 전부입니다.
+      다만 2차원·3차원에서는 이걸 <b>화살표</b>로 그릴 수 있어서, 숫자만으로는
+      안 보이던 성질이 눈에 들어옵니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">벡터 = 좌표 = 화살표</div>
+      <div class="eq">
+        v &nbsp;=&nbsp; <span class="mat"><span>3</span><span>2</span></span>
+        &nbsp;&nbsp;⟷&nbsp;&nbsp; 원점에서 오른쪽 3, 위로 2 만큼 간 화살표
+      </div>
+      <ul class="where">
+        <li><span class="sym">성분</span><span class="desc">각 축 방향으로 <b>얼마나</b> 가는지. 개수가 곧 <b>차원</b>입니다</span></li>
+        <li><span class="sym">꼬리</span><span class="desc">보통 <b>원점에 고정</b>합니다(위치벡터). 그래야 "숫자 = 화살표"가 1:1이 됩니다</span></li>
+        <li><span class="sym">고차원</span><span class="desc">1000픽셀 이미지 = <b>1000차원 벡터</b>. 그림은 못 그려도 성질은 똑같습니다</span></li>
+      </ul>
+    </div>
+
+    <h2 id="s2">2. 덧셈과 스칼라배</h2>
+    <p>
+      벡터공간을 떠받치는 연산은 딱 두 개입니다 — <b>더하기</b>와 <b>상수배</b>.
+      아래에서 <b>파란 점과 초록 점을 끌어</b> 보세요.
+    </p>
+
+    <div class="panel">
+      <div class="board"><canvas id="cv-add"></canvas></div>
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">u 에 곱할 수 (스칼라 a)</span><span class="val" id="a-val">1</span></span>
+          <input type="range" id="a" min="-2" max="2" step="0.25" value="1">
+        </label>
+        <label class="ctrl">
+          <span class="label-row"><span class="name">v 에 곱할 수 (스칼라 b)</span><span class="val" id="b-val">1</span></span>
+          <input type="range" id="b" min="-2" max="2" step="0.25" value="1">
+        </label>
+      </div>
+      <div class="controls">
+        <label class="toggle"><input type="checkbox" id="para" checked> 평행사변형 보기</label>
+      </div>
+      <div class="readout">
+        <div class="stat accent"><span class="k">u</span><span class="v" id="s-u">–</span></div>
+        <div class="stat pos"><span class="k">v</span><span class="v" id="s-v">–</span></div>
+        <div class="stat"><span class="k">a·u</span><span class="v" id="s-au">–</span></div>
+        <div class="stat"><span class="k">b·v</span><span class="v" id="s-bv">–</span></div>
+        <div class="stat warn"><span class="k">a·u + b·v</span><span class="v" id="s-sum">–</span></div>
+      </div>
+    </div>
+
+    <p>
+      두 가지를 확인해 보세요.
+    </p>
+    <ul>
+      <li><b>스칼라를 음수로</b> 내리면 화살표가 정반대로 뒤집힙니다. 방향은 유지되고 <b>부호만</b> 바뀝니다.</li>
+      <li><b>덧셈은 이어 붙이기</b>입니다. <span class="m">a·u</span>의 머리에서 <span class="m">b·v</span>를
+          이어 붙인 끝점이 곧 합입니다. 순서를 바꿔도 같은 자리에 도착하죠 — 그래서 <b>평행사변형</b>이 생깁니다.</li>
+    </ul>
+
+    <div class="formula">
+      <div class="name">두 연산</div>
+      <div class="eq">
+        <span class="small">스칼라배</span>&nbsp;&nbsp;
+        c <span class="mat"><span>u₁</span><span>u₂</span></span>
+        = <span class="mat"><span>c u₁</span><span>c u₂</span></span>
+        <br>
+        <span class="small">덧셈</span>&nbsp;&nbsp;
+        <span class="mat"><span>u₁</span><span>u₂</span></span>
+        + <span class="mat"><span>v₁</span><span>v₂</span></span>
+        = <span class="mat"><span>u₁ + v₁</span><span>u₂ + v₂</span></span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">성분별</span><span class="desc">대수적으로는 <b>같은 자리끼리</b> 계산하면 끝입니다. 규칙이 이것뿐이라 고차원으로 그대로 올라갑니다</span></li>
+      </ul>
+    </div>
+
+    <h2 id="s3">3. 선형결합이 공간을 채운다</h2>
+    <p>
+      스칼라배와 덧셈을 <b>동시에</b> 쓴 것이 <b>선형결합(Linear Combination)</b>입니다.
+      위 그림에서 이미 하고 있었죠 — <span class="m">a·u + b·v</span> 가 바로 그것입니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">선형결합</div>
+      <div class="eq">
+        w &nbsp;=&nbsp; c<sub>1</sub> v<sub>1</sub> + c<sub>2</sub> v<sub>2</sub> + ⋯ + c<sub>n</sub> v<sub>n</sub>
+      </div>
+      <ul class="where">
+        <li><span class="sym">v<sub>i</sub></span><span class="desc"><b>재료</b>가 되는 벡터들. 무엇을 섞을 것인가</span></li>
+        <li><span class="sym">c<sub>i</sub></span><span class="desc"><b>가중치</b>(스칼라). 각 재료를 얼마나 넣을 것인가</span></li>
+        <li><span class="sym">w</span><span class="desc">합성된 결과. <b>이 식 하나가 선형대수 전체</b>입니다</span></li>
+      </ul>
+    </div>
+
+    <p>
+      그럼 <span class="m">a</span>와 <span class="m">b</span>를 <b>모든 값으로</b> 바꾸면
+      <span class="m">a·u + b·v</span>는 어디까지 갈 수 있을까요?
+      아래에서 <b>[흔적 남기기]</b>를 켜고 슬라이더를 움직여 보세요.
+    </p>
+
+    <div class="panel">
+      <div class="board"><canvas id="cv-span"></canvas></div>
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">가중치 c₁</span><span class="val" id="c1-val">1</span></span>
+          <input type="range" id="c1" min="-2" max="2" step="0.1" value="1">
+        </label>
+        <label class="ctrl">
+          <span class="label-row"><span class="name">가중치 c₂</span><span class="val" id="c2-val">1</span></span>
+          <input type="range" id="c2" min="-2" max="2" step="0.1" value="1">
+        </label>
+      </div>
+      <div class="controls">
+        <label class="toggle"><input type="checkbox" id="trace" checked> 흔적 남기기</label>
+        <button class="btn" id="sweep">전부 훑어보기</button>
+        <button class="btn" id="clear">흔적 지우기</button>
+      </div>
+      <div class="readout">
+        <div class="stat"><span class="k">c₁·v₁</span><span class="v" id="t-c1v">–</span></div>
+        <div class="stat"><span class="k">c₂·v₂</span><span class="v" id="t-c2v">–</span></div>
+        <div class="stat warn"><span class="k">결과 w</span><span class="v" id="t-w">–</span></div>
+        <div class="stat"><span class="k">지나간 점</span><span class="v" id="t-n">0</span></div>
+      </div>
+    </div>
+
+    <div class="takeaway">
+      <b>Span ·</b> 두 벡터의 가능한 <b>모든</b> 선형결합을 모은 집합을
+      그 벡터들이 <b>생성(Span)하는 공간</b>이라고 합니다.
+      평행하지 않은 두 벡터의 Span은 <b>평면 전체</b>입니다 — 흔적이 화면을 다 덮었죠.
+    </div>
+
+    <h2 id="s4">4. 평행하면 평면을 못 만든다</h2>
+    <p>
+      그런데 두 재료가 <b>같은 방향</b>이면 어떻게 될까요?
+      아래에서 <b>[평행하게]</b>를 골라 보세요.
+    </p>
+
+    <div class="panel">
+      <div class="board"><canvas id="cv-dep"></canvas></div>
+      <div class="controls">
+        <div class="seg">
+          <label><input type="radio" name="dep" value="indep" checked> 독립 (방향이 다름)</label>
+          <label><input type="radio" name="dep" value="dep"> 평행하게 (종속)</label>
+        </div>
+      </div>
+      <div class="readout">
+        <div class="stat accent"><span class="k">v₁</span><span class="v" id="d-v1">–</span></div>
+        <div class="stat pos"><span class="k">v₂</span><span class="v" id="d-v2">–</span></div>
+        <div class="stat warn"><span class="k">Span</span><span class="v" id="d-span">–</span></div>
+      </div>
+    </div>
+
+    <div class="pitfall">
+      <b>재료가 두 개라고 2차원이 되는 게 아닙니다</b>
+      <span class="m">v₂ = −1.5·v₁</span> 처럼 한 벡터가 다른 벡터의 상수배라면,
+      아무리 섞어도 <b>같은 직선 위</b>를 벗어나지 못합니다.
+      벡터의 <b>개수</b>가 아니라 <b>서로 다른 방향의 개수</b>가 공간의 크기를 결정합니다.
+      이것이 나중에 배울 <b>선형독립·랭크·차원</b>의 씨앗입니다.
+    </div>
+
+    <h2 id="s5">5. numpy 로 계산해보기</h2>
+    <p>
+      이제 손으로 그린 것을 코드로 확인합니다. 아래 <b>[실행]</b>을 누르면
+      브라우저 안에서 진짜 파이썬이 돌아갑니다. 설치는 필요 없습니다.
+    </p>
+
+    <div class="pycell" data-packages="numpy" data-title="1-1. 벡터 만들고 더하기">
+    import numpy as np
+
+    u = np.array([3, 1])
+    v = np.array([1, 3])
+
+    print("u      =", u)
+    print("v      =", v)
+    print("u + v  =", u + v)
+    print("2u     =", 2 * u)
+    print("-1.5v  =", -1.5 * v)
+    </div>
+
+    <p>
+      <code>np.array([3, 1])</code> 가 벡터입니다.
+      덧셈과 상수배가 <b>파이썬 기본 연산자 그대로</b> 동작하는 게 numpy의 핵심입니다.
+    </p>
+
+    <div class="pitfall">
+      <b>파이썬 리스트와 헷갈리지 마세요</b>
+      <code>[3, 1] + [1, 3]</code> 은 <code>[3, 1, 1, 3]</code> 이 됩니다 — <b>이어 붙이기</b>죠.
+      <code>2 * [3, 1]</code> 은 <code>[3, 1, 3, 1]</code> 이고요.
+      벡터 연산을 하려면 반드시 <b><code>np.array</code> 로 감싸야</b> 합니다.
+      아래에서 직접 확인해 보세요.
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="1-2. 리스트 vs 배열">
+    리스트 = [3, 1]
+    배열 = np.array([3, 1])
+
+    print("리스트 + 리스트 :", 리스트 + [1, 3])
+    print("배열   + 배열   :", 배열 + np.array([1, 3]))
+    print()
+    print("리스트 * 2 :", 리스트 * 2)
+    print("배열   * 2 :", 배열 * 2)
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="1-3. 선형결합 직접 만들기">
+    # 가중치를 바꿔가며 어디로 가는지 본다
+    for c1, c2 in [(1, 1), (2, -1), (0.5, 0.5), (0, 0), (-1, 2)]:
+        w = c1 * u + c2 * v
+        print(f"{c1:>5} · u + {c2:>5} · v  =  {w}")
+    </div>
+
+    <p>
+      가중치 <span class="m">(c₁, c₂)</span> 를 정하면 결과 <span class="m">w</span> 가 하나 정해집니다.
+      <b>거꾸로</b>, 원하는 <span class="m">w</span> 를 만들려면 어떤 가중치를 써야 할까요?
+      그 질문이 바로 <b>연립방정식</b>이고, 2강의 주제입니다.
+    </p>
+
+    <div class="pycell" data-packages="numpy" data-title="1-4. 선형결합을 행렬 곱으로">
+    # 재료 벡터들을 '열'로 세워 붙이면 행렬이 된다
+    A = np.column_stack([u, v])
+    print("A =")
+    print(A)
+    print()
+
+    c = np.array([2, -1])          # 가중치를 모은 벡터
+    print("A @ c      =", A @ c)   # @ 가 행렬 곱
+    print("2u - 1v    =", 2 * u - 1 * v)
+    print("같은가:", np.array_equal(A @ c, 2 * u - 1 * v))
+    </div>
+
+    <div class="takeaway">
+      <b>가장 중요한 한 줄 ·</b> <span class="m">A @ c</span> 는
+      <b>A의 열벡터들을 c의 값만큼 섞은 것</b>입니다.
+      행렬 곱을 "행과 열의 내적"으로만 외우면 여기서 막힙니다.
+      <b>행렬 = 열벡터 묶음, 곱셈 = 그 열들의 선형결합</b> — 이 시각이 앞으로 전부를 좌우합니다.
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="1-5. 표준기저 — 좌표란 결국 선형결합">
+    p = np.array([4, -2, 7])
+    I = np.eye(3, dtype=int)       # 3차원 단위행렬 = 표준기저 e1, e2, e3
+
+    print("e1, e2, e3 =")
+    print(I)
+    print()
+
+    재구성 = p[0] * I[:, 0] + p[1] * I[:, 1] + p[2] * I[:, 2]
+    print("4·e1 + (-2)·e2 + 7·e3 =", 재구성)
+    print("원래 p                =", p)
+    </div>
+
+    <p>
+      우리가 <b>"좌표 (4, −2, 7)"</b> 이라고 부르던 것은 사실
+      <b>표준기저를 그만큼씩 섞은 선형결합의 가중치</b>였습니다.
+      좌표는 처음부터 선형결합이었던 셈이죠.
+    </p>
+
+    <div class="pycell" data-packages="numpy,matplotlib" data-title="1-6. 그림으로 확인하기">
+    import matplotlib.pyplot as plt
+
+    def 화살표(ax, v, 색, 이름, 시작=(0, 0)):
+        ax.annotate("", xy=(시작[0] + v[0], 시작[1] + v[1]), xytext=시작,
+                    arrowprops=dict(arrowstyle="-|>", lw=2, color=색))
+        ax.text(시작[0] + v[0] * 0.55 + 0.15, 시작[1] + v[1] * 0.55 + 0.15,
+                이름, color=색, fontsize=12, fontweight="bold")
+
+    fig, ax = plt.subplots(figsize=(5.4, 5.4))
+    화살표(ax, u, "#2563eb", "u")
+    화살표(ax, v, "#16a34a", "v")
+    화살표(ax, v, "#16a34a", "", 시작=u)      # 머리-꼬리 잇기
+    화살표(ax, u + v, "#dc2626", "u+v")
+
+    ax.set_xlim(-1, 6); ax.set_ylim(-1, 6)
+    ax.set_aspect("equal")                    # 각도가 왜곡되면 안 된다
+    ax.axhline(0, lw=1, color="gray"); ax.axvline(0, lw=1, color="gray")
+    ax.set_title("벡터 덧셈 = 머리에 꼬리 잇기")
+    plt.show()
+    </div>
+
+    <div class="practice">
+      <b><code>set_aspect("equal")</code> 을 꼭 넣으세요</b>
+      이걸 빼면 x축과 y축의 배율이 달라져 <b>직각이 직각으로 안 보입니다.</b>
+      통계 그래프에서는 상관없지만, 벡터를 그릴 때는
+      <b>각도와 길이가 그림의 내용 자체</b>라 반드시 필요합니다.
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="1-7. 연습문제">
+    # 문제 1. u=[3,1], v=[1,3] 을 섞어서 [5, 5] 를 만드는 가중치는?
+    #         (힌트: 대칭이니 c1 = c2)
+
+    # 문제 2. w = [0, 0] 을 만드는 방법은 c1=c2=0 말고 또 있을까?
+
+    # 문제 3. v2 = [-4.5, -1.5] 로 바꾸면 u 와 평행해진다.
+    #         이때 u 와 v2 를 섞어서 [1, 3] 을 만들 수 있을까?
+
+    # 아래에 직접 써보세요
+    </div>
+
+    <details style="margin:18px 0">
+      <summary style="cursor:pointer;font-weight:600;color:var(--accent)">모범 답안 보기</summary>
+      <div class="pycell" data-packages="numpy" data-title="모범 답안">
+      # 문제 1 — 대칭이므로 c1 = c2 = 1.25
+      print("문제 1:", 1.25 * u + 1.25 * v)
+
+      # 문제 2 — u 와 v 는 평행하지 않으므로 c1=c2=0 뿐이다 (선형독립)
+      #          이것이 3강에서 배울 '영공간이 원점뿐' 이라는 말과 같은 뜻
+      print("문제 2:", 0 * u + 0 * v, "→ 자명한 해뿐")
+
+      # 문제 3 — v2 가 u 의 -1.5 배이므로, 둘을 섞으면 u 방향 직선만 나온다
+      v2 = np.array([-4.5, -1.5])
+      print("v2 는 u 의", v2[0] / u[0], "배 →", "평행" if np.isclose(v2[0]/u[0], v2[1]/u[1]) else "독립")
+      print("[1, 3] 은 이 직선 위에 있나?", np.isclose(1 / 3, 3 / 1))
+      print("→ 만들 수 없다. Span 이 직선으로 쪼그라들었기 때문")
+      </div>
+    </details>
+
+    <h2 id="s6">6. 실무에서 이게 무슨 뜻인가</h2>
+
+    <div class="practice">
+      <b>선형결합으로 읽는 현실</b>
+      <ul>
+        <li><b>신호 처리</b> — 덧셈은 <b>중첩(superposition)</b>, 스칼라배는 <b>증폭·감쇠</b>입니다.
+            잡음 섞인 신호 = 원신호 + 잡음벡터.</li>
+        <li><b>이미지</b> — 28×28 흑백 이미지는 784차원 벡터 하나입니다.
+            "평균 얼굴"은 얼굴 벡터들의 <b>가중평균(선형결합)</b>이죠.</li>
+        <li><b>포트폴리오</b> — 종목별 수익률 벡터를 비중만큼 섞은 것이 포트폴리오 수익률입니다.
+            비중이 곧 <span class="m">c<sub>i</sub></span> 입니다.</li>
+        <li><b>임베딩</b> — 단어 벡터에서 <span class="m">king − man + woman ≈ queen</span> 이
+            성립하는 것도 그저 선형결합입니다.</li>
+      </ul>
+    </div>
+
+    <div class="myth">
+      <b>"벡터는 크기와 방향을 가진 양"이라는 정의의 한계</b>
+      고등학교에서 배운 이 정의는 2·3차원 물리 벡터에는 잘 맞지만,
+      <b>다항식이나 함수도 벡터</b>라는 사실을 설명하지 못합니다.
+      선형대수의 진짜 정의는 <b>"더하기와 상수배가 되고 그 결과가 밖으로 안 나가는 것"</b>입니다.
+      2강 이후로는 이 관점으로 갈아타는 게 좋습니다.
+    </div>
+
+    <div class="summary">
+      <h3>1강 요약</h3>
+      <ul>
+        <li>벡터 = <b>순서 있는 숫자 목록</b>. 2·3차원에서만 화살표로 그릴 수 있을 뿐, 성질은 차원과 무관합니다.</li>
+        <li>연산은 <b>덧셈</b>(머리-꼬리 잇기)과 <b>스칼라배</b>(늘이기·뒤집기) 둘뿐입니다.</li>
+        <li>둘을 합친 <b>선형결합 <span class="m">c₁v₁ + ⋯ + cₙvₙ</span></b> 이 이 과목의 중심 식입니다.</li>
+        <li>가능한 모든 선형결합의 집합이 <b>Span</b>. 방향이 다른 두 벡터의 Span은 평면 전체입니다.</li>
+        <li>벡터가 <b>평행</b>하면 아무리 섞어도 직선을 벗어나지 못합니다 — 개수가 아니라 <b>방향의 개수</b>가 중요합니다.</li>
+        <li>numpy 에서 <b><span class="m">A @ c</span> 는 A의 열들을 c 만큼 섞는 것</b>입니다. 이 한 문장이 앞으로 계속 쓰입니다.</li>
+      </ul>
+    </div>
+
+    <div class="colab-cta">
+      <div class="colab-text">
+        <b>더 자유롭게 실험하고 싶다면</b><br>
+        이 강의의 실습만 모은 노트북을 Colab에서 열 수 있습니다.
+      </div>
+      <a class="btn" id="colab-link" href="#" target="_blank" rel="noopener">Colab에서 열기</a>
+    </div>
+
+    <p class="next-up">
+      다음 → <b>2강 · 연립방정식을 보는 두 가지 눈</b><br>
+      <span class="m">2x − y = 1, x + y = 5</span> 를 "두 직선의 교점"으로 볼 수도 있고,
+      "두 벡터를 섞어 목표에 도달하기"로 볼 수도 있습니다. 후자가 훨씬 강력합니다.
+    </p>
+
+  </section>
+
+</div>
+
+<script src="../assets/viz.js?v=312b9476b0"></script>
+<script src="../assets/linalg.js?v=a56f29a36c"></script>
+<script src="../assets/pylab.js?v=cb27f20364"></script>
+<script src="../assets/pycell.js?v=6dacc4c6ce"></script>
+<script>
+(function () {
+  'use strict';
+  var M = LA.M, num = LA.num;
+  function vs(v) { return '(' + num(v[0]) + ', ' + num(v[1]) + ')'; }
+
+  /* ==========================================================
+     1) 덧셈과 스칼라배 — u, v 를 끌 수 있다
+     ========================================================== */
+  var u = [3, 1], v = [1, 3];
+  var a = 1, b = 1, showPara = true;
+
+  var bAdd = new LA.Board(document.getElementById('cv-add'), { range: 6 });
+
+  function drawAdd() {
+    var au = M.scale(u, a), bv = M.scale(v, b);
+    var sum = M.add(au, bv);
+
+    bAdd.fit([u, v, au, bv, sum]).begin().grid({ step: 1 });
+
+    if (showPara && M.norm(au) > 1e-6 && M.norm(bv) > 1e-6) {
+      bAdd.parallelogram(au, bv, { fill: V.css('--accent-soft'), alpha: 0.45 });
+    }
+    // 이어 붙이기: a·u 의 머리에서 b·v 를 잇는다
+    bAdd.arrow(bv, { from: au, color: V.css('--pos'), width: 1.6, dash: [5, 4], alpha: 0.75 });
+    bAdd.arrow(au, { from: bv, color: V.css('--accent'), width: 1.6, dash: [5, 4], alpha: 0.75 });
+
+    // 원본 u, v 는 흐리게 — 끌기 손잡이가 무엇인지 알 수 있게
+    bAdd.arrow(u, { color: V.css('--accent'), width: 1.4, alpha: 0.3 });
+    bAdd.arrow(v, { color: V.css('--pos'), width: 1.4, alpha: 0.3 });
+
+    bAdd.arrow(au, { color: V.css('--accent'), label: 'a·u' });
+    bAdd.arrow(bv, { color: V.css('--pos'), label: 'b·v' });
+    bAdd.arrow(sum, { color: V.css('--neg'), width: 3, label: 'a·u + b·v' });
+
+    // 끌 수 있는 점은 원래 u, v 자리에
+    bAdd.handle(u, { color: V.css('--accent') });
+    bAdd.handle(v, { color: V.css('--pos') });
+
+    V.setText('#s-u', vs(u));
+    V.setText('#s-v', vs(v));
+    V.setText('#s-au', vs(au));
+    V.setText('#s-bv', vs(bv));
+    V.setText('#s-sum', vs(sum));
+  }
+
+  LA.drag(bAdd, [
+    { get: function () { return u; }, set: function (q) { u = q; } },
+    { get: function () { return v; }, set: function (q) { v = q; } }
+  ], drawAdd, { snap: 0.5 });
+
+  // 상태를 먼저 만든 뒤에 컨트롤을 묶는다 (range 는 즉시 콜백을 부른다)
+  V.range('a', function (x) { a = x; drawAdd(); });
+  V.range('b', function (x) { b = x; drawAdd(); });
+  V.check('para', function (on) { showPara = on; drawAdd(); });
+
+  /* ==========================================================
+     2) 선형결합이 평면을 채운다
+     ========================================================== */
+  var w1 = [2, 1], w2 = [-1, 1.5];
+  var c1 = 1, c2 = 1, trace = true, trail = [];
+  var sweeping = null;
+
+  var bSpan = new LA.Board(document.getElementById('cv-span'), { range: 7 });
+
+  function drawSpan() {
+    var p1 = M.scale(w1, c1), p2 = M.scale(w2, c2);
+    var w = M.add(p1, p2);
+
+    bSpan.begin().grid({ step: 1 });
+
+    if (trace && trail.length) {
+      var ctx = bSpan.ctx;
+      ctx.save();
+      ctx.fillStyle = V.css('--accent');
+      ctx.globalAlpha = 0.22;
+      trail.forEach(function (q) {
+        ctx.beginPath();
+        ctx.arc(bSpan.px(q[0]), bSpan.py(q[1]), 2.6, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.restore();
+    }
+
+    bSpan.arrow(w1, { color: V.css('--accent'), width: 1.6, alpha: 0.55, label: 'v₁' });
+    bSpan.arrow(w2, { color: V.css('--pos'), width: 1.6, alpha: 0.55, label: 'v₂' });
+    bSpan.arrow(p2, { from: p1, color: V.css('--pos'), width: 1.5, dash: [5, 4], alpha: 0.7 });
+    bSpan.arrow(p1, { color: V.css('--accent'), width: 2.2 });
+    bSpan.arrow(w, { color: V.css('--neg'), width: 3, label: 'w' });
+
+    V.setText('#t-c1v', vs(p1));
+    V.setText('#t-c2v', vs(p2));
+    V.setText('#t-w', vs(w));
+    V.setText('#t-n', String(trail.length));
+  }
+
+  function pushTrail() {
+    if (!trace) return;
+    trail.push(M.add(M.scale(w1, c1), M.scale(w2, c2)));
+    if (trail.length > 4000) trail.shift();
+  }
+
+  V.range('c1', function (x) { c1 = x; pushTrail(); drawSpan(); });
+  V.range('c2', function (x) { c2 = x; pushTrail(); drawSpan(); });
+  V.check('trace', function (on) { trace = on; drawSpan(); });
+
+  V.click('clear', function () { trail = []; drawSpan(); });
+
+  V.click('sweep', function () {
+    if (sweeping) { sweeping.stop(); sweeping = null; return; }
+    var i = 0, N = 900;
+    var rng = new V.Rng(7);
+    sweeping = new V.Loop(function () {
+      for (var k = 0; k < 12 && i < N; k++, i++) {
+        var q1 = -2 + rng.u() * 4, q2 = -2 + rng.u() * 4;
+        trail.push(M.add(M.scale(w1, q1), M.scale(w2, q2)));
+      }
+      drawSpan();
+      if (i >= N) { sweeping.stop(); sweeping = null; }
+    });
+    sweeping.start();
+  });
+
+  /* ==========================================================
+     3) 독립 vs 종속
+     ========================================================== */
+  var depMode = 'indep';
+  var bDep = new LA.Board(document.getElementById('cv-dep'), { range: 5 });
+
+  function drawDep() {
+    var d1 = [2, 1];
+    var d2 = depMode === 'dep' ? [-3, -1.5] : [-1, 2];
+    var rng = new V.Rng(11);
+
+    bDep.fit([d1, d2]).begin().grid({ step: 1 });
+
+    // 도달 가능한 점들을 뿌려 Span 을 보여준다
+    var ctx = bDep.ctx;
+    ctx.save();
+    ctx.fillStyle = V.css('--accent');
+    ctx.globalAlpha = 0.2;
+    for (var i = 0; i < 900; i++) {
+      var k1 = -4 + rng.u() * 8, k2 = -4 + rng.u() * 8;
+      var q = M.add(M.scale(d1, k1), M.scale(d2, k2));
+      ctx.beginPath();
+      ctx.arc(bDep.px(q[0]), bDep.py(q[1]), 2.4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+
+    bDep.arrow(d1, { color: V.css('--accent'), width: 3, label: 'v₁' });
+    bDep.arrow(d2, { color: V.css('--pos'), width: 3, label: 'v₂' });
+
+    V.setText('#d-v1', vs(d1));
+    V.setText('#d-v2', vs(d2));
+    V.setText('#d-span', depMode === 'dep' ? '직선 (1차원)' : '평면 전체 (2차원)');
+  }
+
+  V.radios('dep', function (val) { depMode = val; drawDep(); });
+
+  /* ---------- 최초 그리기 + 리사이즈 대응 ---------- */
+  V.onRedraw(function () { drawAdd(); drawSpan(); drawDep(); });
+  drawAdd(); drawSpan(); drawDep();
+
+  var a2 = document.getElementById('colab-link');
+  if (a2) a2.href = 'https://colab.research.google.com/github/mioon1402/timeseriesdata/blob/main/notebooks/L01-vectors.ipynb';
+})();
+</script>
+</body>
+</html>

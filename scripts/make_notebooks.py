@@ -18,13 +18,14 @@ import re
 from html.parser import HTMLParser
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SRC_DIR = os.path.join(HERE, "python")
+# 실습 셀이 들어 있는 강의 폴더들. 노트북은 전부 notebooks/ 하나에 모은다.
+SRC_DIRS = ["python", "linalg"]
 OUT_DIR = os.path.join(HERE, "notebooks")
 
 REPO = "mioon1402/timeseriesdata"
 BRANCH = "main"
 RAW = f"https://raw.githubusercontent.com/{REPO}/{BRANCH}"
-PAGE = f"https://mioon1402.github.io/timeseriesdata/python"
+SITE = "https://mioon1402.github.io/timeseriesdata"
 
 
 class LessonParser(HTMLParser):
@@ -129,7 +130,7 @@ def code(source):
     }
 
 
-def build_notebook(path):
+def build_notebook(path, folder):
     with open(path, encoding="utf-8") as f:
         raw = f.read()
 
@@ -155,29 +156,33 @@ def build_notebook(path):
         f"\n"
         f"이 노트북은 웹 강의의 **실습 부분만** 옮겨온 것입니다.\n"
         f"자세한 설명과 그림은 원문을 함께 보세요 → "
-        f"[{p.title}]({PAGE}/{slug}.html)\n"
+        f"[{p.title}]({SITE}/{folder}/{slug}.html)\n"
         f"\n"
         f"---\n"
         f"\n"
-        f"**먼저 아래 준비 셀을 한 번 실행하세요.** 예시 데이터를 내려받습니다."
+        f"**먼저 아래 준비 셀을 한 번 실행하세요.**"
     )]
 
     # 준비 셀 — 데이터 내려받기 (+ 필요하면 설치)
-    setup = ["# 예시 데이터 내려받기"]
-    for name in data_files:
-        setup.append(f'!wget -q -nc {RAW}/data/{name}')
+    setup = []
+    if data_files:
+        setup.append("# 예시 데이터 내려받기")
+        for name in data_files:
+            setup.append(f'!wget -q -nc {RAW}/data/{name}')
     if "seaborn" in packages:
         setup.append("")
         setup.append("# Colab 에는 대부분 설치돼 있지만, 없으면 아래 주석을 푸세요")
         setup.append("# !pip install -q seaborn")
-    setup.append("")
-    setup.append("# 표를 글자로 찍을 때 한글 열이 어긋나지 않게 (한글을 두 칸으로 계산)")
-    setup.append("import pandas as pd")
-    setup.append('pd.set_option("display.unicode.east_asian_width", True)')
-    setup.append("")
-    setup.append("# 그래프 한글 깨짐 방지")
-    setup.append("!pip install -q koreanize-matplotlib")
-    setup.append("import koreanize_matplotlib  # noqa: F401")
+    if "pandas" in packages:
+        setup.append("")
+        setup.append("# 표를 글자로 찍을 때 한글 열이 어긋나지 않게 (한글을 두 칸으로 계산)")
+        setup.append("import pandas as pd")
+        setup.append('pd.set_option("display.unicode.east_asian_width", True)')
+    if "matplotlib" in packages or "seaborn" in packages:
+        setup.append("")
+        setup.append("# 그래프 한글 깨짐 방지")
+        setup.append("!pip install -q koreanize-matplotlib")
+        setup.append("import koreanize_matplotlib  # noqa: F401")
     setup.append("")
     setup.append("print('준비 완료')")
     cells.append(code("\n".join(setup)))
@@ -194,7 +199,7 @@ def build_notebook(path):
     cells.append(md(
         "---\n"
         "\n"
-        f"전체 강의 목록 → [눈으로 보는 통계](https://mioon1402.github.io/timeseriesdata/)"
+        f"전체 강의 목록 → [눈으로 보는 수학·통계]({SITE}/)"
     ))
 
     nb = {
@@ -212,18 +217,23 @@ def build_notebook(path):
 
 def main():
     os.makedirs(OUT_DIR, exist_ok=True)
-    pages = sorted(f for f in os.listdir(SRC_DIR) if f.endswith(".html"))
-    if not pages:
-        print("python/ 에 강의 파일이 없습니다.")
-        return
-
-    for name in pages:
-        slug, nb, n_code = build_notebook(os.path.join(SRC_DIR, name))
-        out = os.path.join(OUT_DIR, slug + ".ipynb")
-        with open(out, "w", encoding="utf-8") as f:
-            json.dump(nb, f, ensure_ascii=False, indent=1)
-            f.write("\n")
-        print(f"{os.path.relpath(out, HERE):40s} 코드 셀 {n_code}개")
+    total = 0
+    for folder in SRC_DIRS:
+        d = os.path.join(HERE, folder)
+        if not os.path.isdir(d):
+            continue
+        for name in sorted(f for f in os.listdir(d) if f.endswith(".html")):
+            slug, nb, n_code = build_notebook(os.path.join(d, name), folder)
+            if n_code == 0:
+                continue                      # 실습 셀이 없는 페이지는 노트북을 만들지 않는다
+            out = os.path.join(OUT_DIR, slug + ".ipynb")
+            with open(out, "w", encoding="utf-8") as f:
+                json.dump(nb, f, ensure_ascii=False, indent=1)
+                f.write("\n")
+            total += 1
+            print(f"{os.path.relpath(out, HERE):40s} 코드 셀 {n_code}개")
+    if not total:
+        print("강의 파일을 찾지 못했습니다.")
 
 
 if __name__ == "__main__":

@@ -541,6 +541,65 @@ kbd {
   padding: 0.15em 0;
 }
 
+/* 등축 좌표판 — 가로로 길면 x축만 쓸데없이 넓어진다. 폭을 제한해 정사각형에 가깝게. */
+.board { max-width: 520px; margin: 0 auto; }
+
+/* ---------------- 행렬 표기 ----------------
+   대괄호를 글자로 쓰면 행 수에 따라 늘어나지 않는다. 테두리로 그리면
+   내용 높이에 저절로 맞춰지고, currentColor 라 테마도 따라간다.
+
+     <span class="mat" style="--cols:2">
+       <span>2</span><span>−1</span>
+       <span>1</span><span>1</span>
+     </span>
+
+   첨가행렬 [A | b] 은 구분선이 시작되는 칸에 class="bar" 를 준다. */
+.mat {
+  display: inline-grid;
+  grid-template-columns: repeat(var(--cols, 1), auto);
+  justify-items: center;
+  align-items: center;
+  gap: 0.18em 0.62em;
+  vertical-align: middle;
+  padding: 0.34em 0.62em;
+  margin: 0 0.16em;
+  position: relative;
+  line-height: 1.35;
+  font-size: 0.94em;
+}
+.mat::before,
+.mat::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0.26em;
+  border: 1.6px solid currentColor;
+  pointer-events: none;
+}
+.mat::before { left: 0; border-right: none; }
+.mat::after { right: 0; border-left: none; }
+
+/* 첨가행렬 구분선 */
+.mat > .bar {
+  border-left: 1.4px solid currentColor;
+  padding-left: 0.5em;
+  margin-left: 0.1em;
+  justify-self: stretch;
+  text-align: center;
+}
+
+/* 열벡터 — 칸이 하나뿐이라 --cols 를 생략해도 된다 */
+.vec { }
+
+/* 소괄호 행렬(확률·좌표 표기용) */
+.mat.paren::before { border-radius: 45% / 50%; width: 0.42em; }
+.mat.paren::after  { border-radius: 45% / 50%; width: 0.42em; }
+
+/* 행렬 이름은 굵게, 스칼라는 기울임 — 본문 안에서 쓰는 인라인 표기 */
+.mx { font-weight: 700; }
+.sc { font-style: italic; }
+
 /* ---------------- 실무 / 함정 / 점검 ---------------- */
 .practice {
   border: 1px solid var(--pos);
