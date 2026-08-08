@@ -57,6 +57,8 @@ const PAGES = [
   'python/p16-forecast.html',
   'linalg/L01-vectors.html',
   'linalg/L02-two-pictures.html',
+  'linalg/L03-elimination.html',
+  'linalg/L04-matrix-ops.html',
 ];
 
 /** 캔버스가 없어도 정상인 페이지 (파이썬 실습 강의 등) */

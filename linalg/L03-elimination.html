@@ -1,0 +1,633 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>가우스 소거법과 LU 분해 · 선형대수</title>
+<meta name="description" content="소거를 한 단계씩 따라가며 U를 만들고, 그 과정을 기록해두면 L이 된다는 것을 확인합니다.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%E2%9E%97%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css?v=b7dfb076b2">
+<link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">선형대수 3강 · 선형방정식계와 행렬대수</p>
+    <h1>가우스 소거법과 LU 분해</h1>
+    <p class="lede">
+      연립방정식을 <b>손으로 푸는 방법</b>은 사실 중학교에서 이미 배웠습니다.
+      "한 식에서 다른 식을 빼서 미지수를 없앤다" — 그게 전부죠.
+      이 강의는 그 과정을 <b>기계가 따라할 수 있게 정리</b>하고,
+      놀랍게도 <b>그 과정 자체를 저장해두면 행렬 하나가 된다</b>는 걸 보여줍니다.
+    </p>
+  </header>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 강의에서 배우는 것</b>
+      <ol>
+        <li><a href="#s0">기초 다지기 — 왜 식을 빼도 되는가</a></li>
+        <li><a href="#s1">소거를 눈으로 보기 (직접 해보기)</a></li>
+        <li><a href="#s2">피봇과 상삼각행렬 U</a></li>
+        <li><a href="#s3">피봇이 0이면 — 행 교환과 특이행렬</a></li>
+        <li><a href="#s4">기본행렬 — 행 연산도 행렬 곱이다</a></li>
+        <li><a href="#s5">A = LU 유도</a></li>
+        <li><a href="#s6">numpy 로 직접 구현하기</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s0">0. 기초 다지기 — 왜 식을 빼도 되는가</h2>
+    <p>
+      연립방정식을 풀 때 우리는 아무렇지 않게 이런 일을 합니다.
+    </p>
+    <div class="callout" style="font-family:var(--mono);font-size:13.5px;line-height:2">
+      ① &nbsp;2x + y = 7<br>
+      ② &nbsp;&nbsp;x + y = 4<br>
+      <span style="color:var(--accent)">① − ② 를 하면 &nbsp; x = 3</span>
+    </div>
+    <p>
+      "왜 빼도 되지?" 를 한 번은 짚고 가야 합니다.
+      ②가 <b>참인 식</b>이라면 좌변과 우변은 <b>같은 수</b>입니다.
+      같은 수를 ①의 양변에서 빼는 것이니 등식은 그대로 유지되죠.
+      그리고 결정적으로 — <b>원래 두 식을 만족하던 <span class="m">(x, y)</span>는
+      새 식도 여전히 만족합니다.</b>
+    </p>
+
+    <div class="takeaway">
+      <b>핵심 ·</b> 소거는 방정식을 <b>바꾸는</b> 것처럼 보이지만
+      <b>해집합은 전혀 건드리지 않습니다.</b> 모양만 다루기 쉽게 바꿀 뿐이죠.
+      아래 그림에서 직접 확인하게 됩니다 — 직선은 움직이는데 <b>교점은 제자리</b>입니다.
+    </div>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>허용되는 연산</th><th>왜 안전한가</th></tr></thead>
+        <tbody>
+          <tr><td>어떤 행에 <b>0이 아닌 수</b>를 곱한다</td>
+              <td>등식의 양변에 같은 수를 곱하는 것</td></tr>
+          <tr><td>한 행에 <b>다른 행의 배수를 더하거나 뺀다</b></td>
+              <td>참인 등식을 더하는 것 (위에서 본 이유)</td></tr>
+          <tr><td>두 행의 <b>순서를 바꾼다</b></td>
+              <td>식을 적는 순서는 의미가 없음</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pitfall">
+      <b>0을 곱하면 안 됩니다</b>
+      <span class="m">0 × (2x + y = 7)</span> 은 <span class="m">0 = 0</span> 이 됩니다.
+      항상 참이지만 <b>아무 정보도 없죠.</b> 식 하나를 통째로 잃어버리는 셈입니다.
+      "0이 아닌 수"라는 단서가 그래서 붙습니다.
+    </div>
+
+    <h2 id="s1">1. 소거를 눈으로 보기</h2>
+    <p>
+      아래에서 <b>[한 단계 소거]</b>를 눌러보세요.
+      왼쪽 표(첨가행렬)와 오른쪽 그림이 함께 변합니다.
+    </p>
+
+    <div class="panel">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;align-items:start">
+        <div>
+          <p class="panel-title" style="text-align:center">첨가행렬 [A | b]</p>
+          <div id="matbox" style="text-align:center;font-size:20px;padding:18px 0"></div>
+          <p id="steptext" style="text-align:center;font-size:13px;color:var(--text-dim);min-height:3em;margin:0 8px"></p>
+        </div>
+        <div>
+          <p class="panel-title" style="text-align:center">두 식이 그리는 직선</p>
+          <div class="board"><canvas id="cv"></canvas></div>
+        </div>
+      </div>
+
+      <div class="btns">
+        <button class="btn primary" id="step">한 단계 소거 ▶</button>
+        <button class="btn" id="reset">처음으로</button>
+      </div>
+
+      <div class="readout">
+        <div class="stat"><span class="k">단계</span><span class="v" id="s-stage">0 / 3</span></div>
+        <div class="stat warn"><span class="k">쓴 배수 (multiplier)</span><span class="v" id="s-mult">–</span></div>
+        <div class="stat accent"><span class="k">해 x</span><span class="v" id="s-x">–</span></div>
+        <div class="stat accent"><span class="k">해 y</span><span class="v" id="s-y">–</span></div>
+      </div>
+    </div>
+
+    <p>
+      <b>빨간 점(해)이 한 번도 움직이지 않는다</b>는 게 이 그림의 전부입니다.
+      직선은 회전하는데 교점은 그대로죠. 2단계가 끝나면 두 번째 직선이
+      <b>완전히 수직</b>이 되는데, 이건 <span class="m">y</span>가 사라져
+      <span class="m">x</span>만 남았다는 뜻입니다.
+    </p>
+
+    <h2 id="s2">2. 피봇과 상삼각행렬 U</h2>
+    <p>
+      소거할 때 <b>기준으로 삼아 나누는 대각선 위의 원소</b>를 <b>피봇(Pivot)</b>이라고 합니다.
+      위 예에서 첫 번째 피봇은 <span class="m">2</span>였죠.
+      "2번째 행에서 x를 없애려면 1번째 행을 몇 배 해서 빼야 하나?" 의 답이
+      <b>배수(multiplier)</b>이고, 그건 <span class="m">(없앨 값) ÷ (피봇)</span> 입니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">소거의 목표 — 왼쪽 아래를 0으로</div>
+      <div class="eq">
+        <span class="mat" style="--cols:3">
+          <span>2</span><span>1</span><span>1</span>
+          <span>4</span><span>−6</span><span>0</span>
+          <span>−2</span><span>7</span><span>2</span>
+        </span>
+        &nbsp;→&nbsp;
+        <span class="mat" style="--cols:3">
+          <span><b>2</b></span><span>1</span><span>1</span>
+          <span>0</span><span><b>−8</b></span><span>−2</span>
+          <span>0</span><span>0</span><span><b>1</b></span>
+        </span>
+        &nbsp;= U
+      </div>
+      <ul class="where">
+        <li><span class="sym">피봇</span><span class="desc">굵게 표시된 <b>2, −8, 1</b>. 대각선 위에서 소거의 기준이 되는 값</span></li>
+        <li><span class="sym">U</span><span class="desc"><b>상삼각행렬</b>(Upper triangular). 대각선 <b>아래</b>가 전부 0</span></li>
+        <li><span class="sym">배수</span><span class="desc">각 소거에서 쓴 수. 이걸 버리지 않고 모아두면 <b>L</b>이 됩니다(§5)</span></li>
+      </ul>
+    </div>
+
+    <p>
+      U 형태가 되면 <b>맨 아래 식부터</b> 풀 수 있습니다.
+      마지막 행은 미지수가 하나뿐이니 바로 나오고, 그 값을 위로 대입하면
+      그 위도 미지수가 하나가 되죠. 이것을 <b>후진 대입법(Back Substitution)</b>이라고 합니다.
+    </p>
+
+    <div class="practice">
+      <b>왜 굳이 삼각형 모양을 만드나</b>
+      삼각형이면 <b>순서대로 하나씩</b> 풀 수 있기 때문입니다.
+      <span class="m">n</span>개 미지수를 한꺼번에 상대하는 대신,
+      1개짜리 문제를 <span class="m">n</span>번 푸는 것으로 바뀌죠.
+      컴퓨터가 연립방정식을 푸는 방식이 <b>지금도</b> 이것입니다.
+    </div>
+
+    <h2 id="s3">3. 피봇이 0이면</h2>
+    <p>
+      소거하려는 자리의 피봇이 <b>0</b>이면 나눌 수가 없습니다.
+      이걸 <b>피봇 실패(Pivot breakdown)</b>라고 하는데, 두 가지 경우가 있습니다.
+    </p>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>상황</th><th>대응</th><th>의미</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>아래쪽 행에 <b>0이 아닌 값</b>이 있다</td>
+            <td><b>행 교환</b>(Row exchange) 후 계속 진행</td>
+            <td>일시적인 문제. 해는 여전히 유일하게 존재</td>
+          </tr>
+          <tr>
+            <td>아래쪽이 <b>전부 0</b>이다</td>
+            <td>더 진행 불가</td>
+            <td><b>특이행렬</b>. 역행렬이 없고, 해가 없거나 무한히 많음</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout">
+      <b>2강과 이어집니다</b><br>
+      피봇을 <span class="m">n</span>개 다 확보 = 열들이 서로 독립 = <b>해가 하나</b><br>
+      피봇이 모자람 = 열 중 일부가 다른 열의 조합 = <b>해가 없거나 무한</b><br>
+      2강에서 그림으로 본 것을 <b>알고리즘이 자동으로 판정</b>해주는 셈입니다.
+    </div>
+
+    <h2 id="s4">4. 기본행렬 — 행 연산도 행렬 곱이다</h2>
+    <p>
+      여기서 관점이 한 번 도약합니다.
+      "2번 행에서 1번 행의 2배를 뺀다"는 <b>손으로 하는 조작</b>처럼 보이지만,
+      사실 <b>행렬 하나를 왼쪽에 곱하는 것</b>과 완전히 같습니다.
+    </p>
+    <p>
+      단위행렬 <span class="m">I</span> 에 <b>딱 그 연산 하나만</b> 가해서 만든 행렬을
+      <b>기본행렬(Elementary Matrix)</b> <span class="m">E</span> 라고 합니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">기본행렬 E₂₁ — "2행에서 1행의 ℓ₂₁배를 뺀다"</div>
+      <div class="eq">
+        E<sub>21</sub> =
+        <span class="mat" style="--cols:3">
+          <span>1</span><span>0</span><span>0</span>
+          <span>−ℓ<sub>21</sub></span><span>1</span><span>0</span>
+          <span>0</span><span>0</span><span>1</span>
+        </span>
+        &nbsp;&nbsp;&nbsp;
+        E<sub>21</sub> A = <span class="small">(2행이 소거된 A)</span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">ℓ<sub>21</sub></span><span class="desc">2행에서 1행을 <b>몇 배</b> 뺐는지 (배수)</span></li>
+        <li><span class="sym">왼쪽 곱</span><span class="desc"><b>왼쪽</b>에 곱하면 <b>행</b>이 조작됩니다.
+            오른쪽에 곱하면 <b>열</b>이 조작되죠 — 헷갈리기 쉬운 지점입니다</span></li>
+      </ul>
+    </div>
+
+    <p>
+      그러면 소거 전체는 기본행렬들을 차례로 곱하는 것으로 적힙니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">소거 = 기본행렬들의 곱</div>
+      <div class="eq">
+        ( E<sub>32</sub> E<sub>31</sub> E<sub>21</sub> ) A &nbsp;=&nbsp; U
+      </div>
+      <ul class="where">
+        <li><span class="sym">순서</span><span class="desc"><b>오른쪽부터</b> 적용됩니다.
+            E₂₁ 이 먼저, E₃₂ 가 마지막. 함수 합성과 같은 순서입니다</span></li>
+      </ul>
+    </div>
+
+    <h2 id="s5">5. A = LU 유도</h2>
+    <p>
+      이제 위 식을 뒤집어 <span class="m">A</span> 만 남겨봅시다.
+      각 기본행렬의 <b>역행렬</b>을 왼쪽부터 차례로 곱하면 됩니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">유도</div>
+      <div class="eq" style="font-size:16px;line-height:2.4">
+        <span class="small">①</span>&nbsp; E<sub>k</sub> ⋯ E<sub>2</sub> E<sub>1</sub> A = U<br>
+        <span class="small">②</span>&nbsp; A = ( E<sub>1</sub><sup>−1</sup> E<sub>2</sub><sup>−1</sup> ⋯ E<sub>k</sub><sup>−1</sup> ) U<br>
+        <span class="small">③</span>&nbsp; L ≔ E<sub>1</sub><sup>−1</sup> E<sub>2</sub><sup>−1</sup> ⋯ E<sub>k</sub><sup>−1</sup>
+        &nbsp;⟹&nbsp; <b>A = L U</b>
+      </div>
+    </div>
+
+    <p>
+      기본행렬의 역행렬은 <b>구하기가 우스울 정도로 쉽습니다.</b>
+      "뺐던 만큼 도로 더해주면" 되니까 <b>부호만 뒤집으면</b> 끝이죠.
+    </p>
+
+    <div class="formula">
+      <div class="name">역행렬은 부호만 뒤집으면 된다</div>
+      <div class="eq">
+        E<sub>21</sub> =
+        <span class="mat" style="--cols:3">
+          <span>1</span><span>0</span><span>0</span>
+          <span>−ℓ</span><span>1</span><span>0</span>
+          <span>0</span><span>0</span><span>1</span>
+        </span>
+        &nbsp;⟹&nbsp;
+        E<sub>21</sub><sup>−1</sup> =
+        <span class="mat" style="--cols:3">
+          <span>1</span><span>0</span><span>0</span>
+          <span>+ℓ</span><span>1</span><span>0</span>
+          <span>0</span><span>0</span><span>1</span>
+        </span>
+      </div>
+    </div>
+
+    <div class="takeaway">
+      <b>가장 놀라운 부분 ·</b> 이 역행렬들을 순서대로 곱하면
+      배수 <span class="m">ℓ<sub>ij</sub></span> 들이 <b>서로 섞이지 않고 제자리에 그대로</b> 들어갑니다.
+      그래서 <b>L 은 따로 계산할 필요가 없습니다.</b>
+      소거하면서 쓴 배수를 <b>그 자리에 적어두기만</b> 하면 그게 곧 L 이죠.
+      아래 코드에서 직접 확인합니다.
+    </div>
+
+    <div class="formula">
+      <div class="name">A = LU</div>
+      <div class="eq">
+        A &nbsp;=&nbsp;
+        <span class="mat" style="--cols:3">
+          <span>1</span><span>0</span><span>0</span>
+          <span>ℓ<sub>21</sub></span><span>1</span><span>0</span>
+          <span>ℓ<sub>31</sub></span><span>ℓ<sub>32</sub></span><span>1</span>
+        </span>
+        <span class="mat" style="--cols:3">
+          <span>피봇</span><span>*</span><span>*</span>
+          <span>0</span><span>피봇</span><span>*</span>
+          <span>0</span><span>0</span><span>피봇</span>
+        </span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">L</span><span class="desc"><b>하삼각행렬</b>(Lower). 대각선은 전부 1,
+            아래는 소거에 쓴 <b>배수</b>들</span></li>
+        <li><span class="sym">U</span><span class="desc"><b>상삼각행렬</b>. 대각선은 <b>피봇</b>들</span></li>
+      </ul>
+    </div>
+
+    <div class="practice">
+      <b>왜 분해해두면 이득인가</b>
+      같은 <span class="m">A</span> 에 대해 <span class="m">b</span> 만 바꿔가며
+      <b>여러 번</b> 풀어야 할 때가 실무에서 아주 흔합니다(매일 들어오는 새 관측값 등).
+      <ul>
+        <li>매번 소거하면 <b>매번</b> <span class="m">O(n³)</span> 이 듭니다.</li>
+        <li>한 번 <span class="m">A = LU</span> 로 쪼개두면, 이후에는
+            <span class="m">Lc = b</span>(전진 대입) → <span class="m">Ux = c</span>(후진 대입) 두 번으로 끝나
+            <span class="m">O(n²)</span> 입니다.</li>
+      </ul>
+      <span class="m">n</span>이 1000이면 <b>1000배 가까이</b> 차이 납니다.
+    </div>
+
+    <h2 id="s6">6. numpy 로 직접 구현하기</h2>
+
+    <div class="pycell" data-packages="numpy" data-title="3-1. 소거를 한 줄씩 따라가기">
+    import numpy as np
+    np.set_printoptions(precision=3, suppress=True)   # 보기 좋게
+
+    A = np.array([[ 2.,  1., 1.],
+                  [ 4., -6., 0.],
+                  [-2.,  7., 2.]])
+    b = np.array([5., -2., 9.])
+
+    U = A.copy()
+    c = b.copy()
+    L = np.eye(3)              # 배수를 적어둘 자리
+
+    for j in range(3):                     # j 번째 열을 소거
+        for i in range(j + 1, 3):          # 그 아래 행들에 대해
+            m = U[i, j] / U[j, j]          # 배수 = 없앨 값 ÷ 피봇
+            L[i, j] = m                    # 버리지 말고 적어둔다
+            U[i] -= m * U[j]
+            c[i] -= m * c[j]
+            print(f"{i+1}행 -= {m:.3g} × {j+1}행")
+        print(U, "\n")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="3-2. L 과 U 확인, 그리고 A = LU">
+    print("L =")
+    print(L)
+    print("\nU =")
+    print(U)
+    print("\nL @ U =")
+    print(L @ U)
+    print("\nA 와 같은가:", np.allclose(L @ U, A))
+    </div>
+
+    <div class="takeaway">
+      <b>확인 ·</b> L 의 대각선 아래 값 <span class="m">2, −1, −1</span> 은
+      우리가 소거하며 출력한 배수와 <b>정확히 같습니다.</b>
+      따로 계산한 게 아니라 <b>그냥 받아 적은 것</b>입니다.
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="3-3. 후진 대입으로 해 구하기">
+    # U x = c 를 아래 행부터 푼다
+    n = 3
+    x = np.zeros(n)
+    for i in range(n - 1, -1, -1):
+        이미_구한_부분 = U[i, i+1:] @ x[i+1:]
+        x[i] = (c[i] - 이미_구한_부분) / U[i, i]
+        print(f"x[{i}] = ({c[i]:.3g} - {이미_구한_부분:.3g}) / {U[i,i]:.3g} = {x[i]:.3g}")
+
+    print("\n직접 구한 해 :", x)
+    print("numpy 의 해  :", np.linalg.solve(A, b))
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="3-4. 피봇이 0이면 무슨 일이">
+    나쁜A = np.array([[0., 1.],
+                     [2., 3.]])
+    print("첫 피봇 =", 나쁜A[0, 0], " → 0 이라 나눌 수 없다")
+    print()
+
+    # 해결책: 행을 바꾼다
+    바꾼A = 나쁜A[[1, 0]]          # 1행과 0행을 교환
+    print("행 교환 후:")
+    print(바꾼A)
+    print("이제 첫 피봇 =", 바꾼A[0, 0], " → 진행 가능")
+    print()
+
+    # 아래가 전부 0이면 교환해도 소용없다 = 특이행렬
+    특이 = np.array([[1., 2.],
+                     [2., 4.]])
+    print("특이행렬 det =", np.linalg.det(특이))
+    print("→ 피봇을 2개 확보할 수 없다. 역행렬 없음")
+    </div>
+
+    <div class="pitfall">
+      <b>scipy 의 <code>lu()</code> 는 우리가 손으로 한 것과 다른 답을 줍니다</b>
+      <code>scipy.linalg.lu(A)</code> 는 <span class="m">PA = LU</span> 형태로,
+      <b>P(행 교환 행렬)</b>를 함께 돌려줍니다.
+      피봇이 0이 아니어도 <b>절댓값이 가장 큰 값을 피봇으로 쓰려고 일부러 행을 바꾸기</b> 때문입니다
+      (부분 피봇팅, partial pivoting).
+      <br><br>
+      왜냐면 아주 작은 수로 나누면 <b>반올림 오차가 폭발</b>하거든요.
+      그래서 실제 라이브러리는 교과서 순서를 그대로 따르지 않습니다.
+      아래에서 직접 비교해 보세요 — <b>다르게 나오는 게 정상</b>입니다.
+    </div>
+
+    <div class="pycell" data-packages="numpy,scipy" data-title="3-5. 라이브러리와 비교 — 왜 다른가">
+    from scipy.linalg import lu
+
+    P, L2, U2 = lu(A)
+
+    print("P (행 교환 행렬) =")
+    print(P)
+    print("\nP 가 단위행렬인가:", np.allclose(P, np.eye(3)), " ← False 면 행을 바꿨다는 뜻")
+    print()
+    print("우리가 구한 U =\n", U)
+    print("\nscipy 의 U   =\n", U2)
+    print()
+    print("둘 다 맞는 분해인가:")
+    print("  우리 것 : L @ U   == A     →", np.allclose(L @ U, A))
+    print("  scipy   : P @ L2 @ U2 == A →", np.allclose(P @ L2 @ U2, A))
+    </div>
+
+    <div class="pycell" data-packages="numpy,scipy" data-title="3-6. 분해해두면 정말 빠른가">
+    import time
+    from scipy.linalg import lu_factor, lu_solve
+
+    rng = np.random.default_rng(0)
+    n = 300
+    큰A = rng.random((n, n)) + n * np.eye(n)     # 잘 풀리는 행렬로
+    b들 = rng.random((50, n))                    # 우변 50개
+
+    t = time.perf_counter()
+    for bb in b들:
+        np.linalg.solve(큰A, bb)                 # 매번 처음부터
+    t1 = time.perf_counter() - t
+
+    t = time.perf_counter()
+    lu_piv = lu_factor(큰A)                      # 한 번만 분해
+    for bb in b들:
+        lu_solve(lu_piv, bb)                     # 대입 두 번씩
+    t2 = time.perf_counter() - t
+
+    print(f"매번 소거      : {t1*1000:7.1f} ms")
+    print(f"한 번 분해 후  : {t2*1000:7.1f} ms")
+    print(f"→ 약 {t1/t2:.1f} 배 빠름  (n={n}, 우변 {len(b들)}개)")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="3-7. 연습문제">
+    # 문제 1. 아래 행렬을 손으로 소거해 U 와 L 을 구하고, 코드로 확인해보세요.
+    #         [[1, 2],
+    #          [3, 8]]
+
+    # 문제 2. 그 A 에 대해 b = [5, 19] 일 때 해를 후진 대입으로 구해보세요.
+
+    # 문제 3. [[0, 1], [1, 0]] 은 피봇이 0 입니다.
+    #         행을 바꾸면 무엇이 되나요? det 는 얼마인가요?
+
+    # 아래에 직접 써보세요
+    </div>
+
+    <details style="margin:18px 0">
+      <summary style="cursor:pointer;font-weight:600;color:var(--accent)">모범 답안 보기</summary>
+      <div class="pycell" data-packages="numpy" data-title="모범 답안">
+      # 문제 1 — 2행에서 1행의 3배를 뺀다
+      A1 = np.array([[1., 2.], [3., 8.]])
+      m = A1[1, 0] / A1[0, 0]           # = 3
+      U1 = A1.copy(); U1[1] -= m * U1[0]
+      L1 = np.array([[1., 0.], [m, 1.]])
+      print("배수 =", m)
+      print("U =\n", U1)
+      print("L =\n", L1)
+      print("L@U == A :", np.allclose(L1 @ U1, A1))
+
+      # 문제 2
+      b1 = np.array([5., 19.])
+      c1 = b1.copy(); c1[1] -= m * c1[0]        # 우변도 같이 소거
+      y = c1[1] / U1[1, 1]
+      x = (c1[0] - U1[0, 1] * y) / U1[0, 0]
+      print("\n해 =", [x, y], " 확인:", np.linalg.solve(A1, b1))
+
+      # 문제 3 — 행을 바꾸면 단위행렬이 된다
+      A3 = np.array([[0., 1.], [1., 0.]])
+      print("\n행 교환 후:\n", A3[[1, 0]])
+      print("det =", np.linalg.det(A3), " ← 행을 한 번 바꾸면 부호가 뒤집힌다 (12강)")
+      </div>
+    </details>
+
+    <div class="summary">
+      <h3>3강 요약</h3>
+      <ul>
+        <li>소거는 <b>해집합을 건드리지 않습니다.</b> 직선은 움직여도 교점은 제자리입니다.</li>
+        <li><b>피봇</b>으로 나눠 <b>배수</b>를 정하고, 그만큼 빼서 아래를 0으로 만듭니다 → <b>U</b>(상삼각).</li>
+        <li>U가 되면 <b>후진 대입</b>으로 아래부터 하나씩 풀립니다.</li>
+        <li>피봇이 0이면 <b>행 교환</b>. 아래가 전부 0이면 <b>특이행렬</b>(해가 없거나 무한).</li>
+        <li>행 연산은 <b>기본행렬을 왼쪽에 곱하는 것</b>과 같습니다.</li>
+        <li><b><span class="m">A = LU</span></b> — 소거에 쓴 <b>배수를 그 자리에 적어두면 그게 L</b>입니다.
+            따로 계산하지 않습니다.</li>
+        <li>실제 라이브러리는 <b>수치 안정성 때문에 행을 바꿉니다</b>(<span class="m">PA = LU</span>).
+            교과서와 답이 달라도 <b>둘 다 맞습니다.</b></li>
+      </ul>
+    </div>
+
+    <div class="colab-cta">
+      <div class="colab-text">
+        <b>더 자유롭게 실험하고 싶다면</b><br>
+        이 강의의 실습만 모은 노트북을 Colab에서 열 수 있습니다.
+      </div>
+      <a class="btn" id="colab-link" href="#" target="_blank" rel="noopener">Colab에서 열기</a>
+    </div>
+
+    <p class="next-up">
+      다음 → <b>4강 · 행렬 연산과 역행렬</b><br>
+      행렬 곱을 보는 <b>네 가지 관점</b>과, 역행렬을 가우스-조던으로 직접 만들어 봅니다.
+      그리고 "왜 실무에서는 역행렬을 구하면 안 되는가"도요.
+    </p>
+
+  </section>
+
+</div>
+
+<script src="../assets/viz.js?v=312b9476b0"></script>
+<script src="../assets/linalg.js?v=270d914364"></script>
+<script src="../assets/pylab.js?v=cb27f20364"></script>
+<script src="../assets/pycell.js?v=6dacc4c6ce"></script>
+<script>
+(function () {
+  'use strict';
+  var M = LA.M, num = LA.num;
+
+  /* 2x + y = 7 / x + y = 4  →  해 (3, 1) */
+  var A0 = [[2, 1], [1, 1]];
+  var b0 = [7, 4];
+
+  var stage = 0;                 // 0 원본 → 1 소거 → 2 위쪽도 소거 → 3 대각 1로
+  var MAXSTAGE = 3;
+
+  var board = new LA.Board(document.getElementById('cv'), { range: 6 });
+
+  /** 현재 단계의 [A|b] 를 계산한다 (매번 원본에서 다시 만든다) */
+  function current() {
+    var a = [A0[0].slice(), A0[1].slice()];
+    var b = b0.slice();
+    var mult = null;
+
+    if (stage >= 1) {                       // 2행에서 1행의 (1/2)배를 빼 x 소거
+      mult = a[1][0] / a[0][0];
+      a[1][0] -= mult * a[0][0];
+      a[1][1] -= mult * a[0][1];
+      b[1]    -= mult * b[0];
+    }
+    if (stage >= 2) {                       // 1행에서 2행의 배수를 빼 y 소거 (가우스-조던)
+      var m2 = a[0][1] / a[1][1];
+      a[0][0] -= m2 * a[1][0];
+      a[0][1] -= m2 * a[1][1];
+      b[0]    -= m2 * b[1];
+    }
+    if (stage >= 3) {                       // 대각선을 1로
+      for (var i = 0; i < 2; i++) {
+        var p = a[i][i];
+        a[i][0] /= p; a[i][1] /= p; b[i] /= p;
+      }
+    }
+    return { a: a, b: b, mult: mult };
+  }
+
+  var STEP_TEXT = [
+    '원래 방정식입니다. 두 직선이 (3, 1) 에서 만납니다.',
+    '2행에서 1행의 <b>0.5배</b>를 뺐습니다. x 가 사라져 두 번째 직선이 <b>수평</b>이 되었습니다. ' +
+      '<b>교점은 그대로</b>입니다.',
+    '이번엔 1행에서 2행의 배수를 빼 y 도 없앴습니다. 첫 번째 직선이 <b>수직</b>이 되었습니다.',
+    '마지막으로 피봇을 1로 나눴습니다. 왼쪽이 <b>단위행렬</b>이 되었고, ' +
+      '오른쪽에 <b>해가 그대로 적혀</b> 있습니다.'
+  ];
+
+  function matHtml(a, b) {
+    function cell(v, extra) {
+      return '<span' + (extra || '') + '>' + num(v) + '</span>';
+    }
+    var h = '<span class="mat" style="--cols:3">';
+    for (var i = 0; i < 2; i++) {
+      h += cell(a[i][0]) + cell(a[i][1]) + cell(b[i], ' class="bar"');
+    }
+    return h + '</span>';
+  }
+
+  function draw() {
+    var st = current();
+    var a = st.a, b = st.b;
+    var sol = M.solve(A0, b0);            // 해는 절대 안 변한다
+
+    document.getElementById('matbox').innerHTML = matHtml(a, b);
+    document.getElementById('steptext').innerHTML = STEP_TEXT[stage];
+
+    board.begin().grid({ step: 1 });
+    board.lineEq(a[0][0], a[0][1], b[0], { color: V.css('--accent'), label: '식 1', labelAt: 0.3 });
+    board.lineEq(a[1][0], a[1][1], b[1], { color: V.css('--pos'), label: '식 2', labelAt: 0.66 });
+    board.point(sol, {
+      color: V.css('--neg'), r: 6, ring: V.css('--surface'),
+      label: '(' + num(sol[0]) + ', ' + num(sol[1]) + ')', dx: 10
+    });
+
+    V.setText('#s-stage', stage + ' / ' + MAXSTAGE);
+    V.setText('#s-mult', st.mult === null ? '–' : num(st.mult));
+    V.setText('#s-x', num(sol[0]));
+    V.setText('#s-y', num(sol[1]));
+
+    var btn = document.getElementById('step');
+    btn.disabled = stage >= MAXSTAGE;
+    btn.textContent = stage >= MAXSTAGE ? '완료' : '한 단계 소거 ▶';
+  }
+
+  V.click('step', function () { if (stage < MAXSTAGE) { stage++; draw(); } });
+  V.click('reset', function () { stage = 0; draw(); });
+
+  V.onRedraw(draw);
+  draw();
+
+  var a2 = document.getElementById('colab-link');
+  if (a2) a2.href = 'https://colab.research.google.com/github/mioon1402/timeseriesdata/blob/main/notebooks/L03-elimination.ipynb';
+})();
+</script>
+</body>
+</html>

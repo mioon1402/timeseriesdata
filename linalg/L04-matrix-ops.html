@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>행렬 연산과 역행렬 · 선형대수</title>
+<meta name="description" content="행렬 곱을 보는 네 가지 관점과, 역행렬이 '되돌리는 변환'이라는 것을 그림으로 확인합니다.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%E2%9E%97%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css?v=b7dfb076b2">
+<link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">선형대수 4강 · 선형방정식계와 행렬대수</p>
+    <h1>행렬 연산과 역행렬</h1>
+    <p class="lede">
+      행렬 곱은 "행과 열을 곱해서 더한다"로 계산합니다. 계산은 그게 맞습니다.
+      하지만 <b>의미</b>를 이해하려면 관점이 하나로는 부족합니다.
+      이 강의에서는 <b>같은 곱셈을 네 가지로 읽는 법</b>을 익히고,
+      역행렬이 <b>"변환을 되돌리는 것"</b>이라는 걸 눈으로 확인합니다.
+    </p>
+  </header>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 강의에서 배우는 것</b>
+      <ol>
+        <li><a href="#s0">기초 다지기 — 크기가 맞아야 곱할 수 있다</a></li>
+        <li><a href="#s1">전치 (Transpose)</a></li>
+        <li><a href="#s2">행렬 곱을 보는 네 가지 관점</a></li>
+        <li><a href="#s3">행렬은 변환이다 (직접 해보기)</a></li>
+        <li><a href="#s4">역행렬 — 되돌리는 변환</a></li>
+        <li><a href="#s5">가우스-조던으로 역행렬 구하기</a></li>
+        <li><a href="#s6">numpy 실습</a></li>
+        <li><a href="#s7">실무: 역행렬을 구하지 마세요</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s0">0. 기초 다지기 — 크기가 맞아야 곱할 수 있다</h2>
+    <p>
+      행렬의 <b>크기</b>는 <span class="m">(행 개수) × (열 개수)</span> 로 씁니다.
+      <span class="m">3 × 2</span> 행렬은 <b>가로줄 3개, 세로줄 2개</b>죠.
+      행이 먼저입니다. 헷갈리면 "행렬"이라는 말 자체가 <b>행-열</b> 순서라고 기억하세요.
+    </p>
+
+    <div class="formula">
+      <div class="name">곱셈이 가능한 조건</div>
+      <div class="eq" style="font-size:17px">
+        A <span class="small">(m × <b style="color:var(--accent)">n</b>)</span>
+        &nbsp;×&nbsp;
+        B <span class="small">(<b style="color:var(--accent)">n</b> × p)</span>
+        &nbsp;=&nbsp;
+        C <span class="small">(m × p)</span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">가운데</span><span class="desc"><b>A의 열 수</b>와 <b>B의 행 수</b>가 같아야 합니다.
+            다르면 곱할 수 없습니다</span></li>
+        <li><span class="sym">바깥</span><span class="desc">결과의 크기는 <b>바깥쪽 두 숫자</b>가 됩니다</span></li>
+      </ul>
+    </div>
+
+    <div class="callout">
+      <b>왜 하필 이 조건인가</b><br>
+      2강에서 <span class="m">Ax</span> 는 <b>A의 열들을 x 만큼 섞는 것</b>이라고 했습니다.
+      섞으려면 <b>가중치 개수</b>(x의 성분 수)와 <b>재료 개수</b>(A의 열 수)가 같아야겠죠.
+      곱셈 조건은 그 당연한 요구를 적어놓은 것뿐입니다.
+    </div>
+
+    <div class="pitfall">
+      <b>행렬 곱은 순서를 바꾸면 안 됩니다</b>
+      숫자는 <span class="m">3 × 5 = 5 × 3</span> 이지만 행렬은 일반적으로
+      <span class="m">AB ≠ BA</span> 입니다. 크기가 안 맞아 <b>아예 계산이 안 되는</b> 경우도 많고,
+      크기가 맞아도 값이 다릅니다. 아래 실습에서 직접 확인합니다.
+    </div>
+
+    <h2 id="s1">1. 전치 (Transpose)</h2>
+    <p>
+      <b>전치</b>는 행과 열을 맞바꾸는 연산입니다. <span class="m">A<sup>T</sup></span> 로 씁니다.
+      대각선을 거울 삼아 뒤집는다고 생각하면 됩니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">전치</div>
+      <div class="eq">
+        A =
+        <span class="mat" style="--cols:3">
+          <span>1</span><span>2</span><span>3</span>
+          <span>4</span><span>5</span><span>6</span>
+        </span>
+        &nbsp;⟹&nbsp;
+        A<sup>T</sup> =
+        <span class="mat" style="--cols:2">
+          <span>1</span><span>4</span>
+          <span>2</span><span>5</span>
+          <span>3</span><span>6</span>
+        </span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">크기</span><span class="desc">2×3 이 <b>3×2</b> 가 됩니다</span></li>
+        <li><span class="sym">(AB)<sup>T</sup></span><span class="desc">= <b>B<sup>T</sup>A<sup>T</sup></b> —
+            <b>순서가 뒤집힙니다.</b> 자주 틀리는 곳입니다</span></li>
+        <li><span class="sym">(A+B)<sup>T</sup></span><span class="desc">= A<sup>T</sup> + B<sup>T</sup> — 덧셈은 순서가 그대로</span></li>
+      </ul>
+    </div>
+
+    <div class="practice">
+      <b>전치는 왜 이렇게 자주 나오나</b>
+      <ul>
+        <li><b>내적</b>을 <span class="m">u<sup>T</sup>v</span> 로 적기 위해 (8강)</li>
+        <li><b><span class="m">A<sup>T</sup>A</span></b> 는 항상 <b>정사각·대칭</b>이 됩니다 —
+            최소제곱법(10강)과 SVD(16강)의 핵심 도구</li>
+        <li>딥러닝에서 <b>차원을 맞추려고</b> 끝없이 등장합니다</li>
+      </ul>
+    </div>
+
+    <h2 id="s2">2. 행렬 곱을 보는 네 가지 관점</h2>
+    <p>
+      아래 <span class="m">C = BC</span> 를 예로, <b>완전히 같은 계산</b>을 네 가지로 읽어봅니다.
+      결과는 당연히 전부 같습니다. 다른 건 <b>무엇을 보느냐</b>입니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">예제</div>
+      <div class="eq">
+        B =
+        <span class="mat" style="--cols:2"><span>2</span><span>0</span><span>1</span><span>3</span></span>
+        ,&nbsp;
+        C =
+        <span class="mat" style="--cols:2"><span>1</span><span>4</span><span>2</span><span>5</span></span>
+        &nbsp;⟹&nbsp;
+        BC =
+        <span class="mat" style="--cols:2"><span>2</span><span>8</span><span>7</span><span>19</span></span>
+      </div>
+    </div>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>관점</th><th>읽는 법</th><th>언제 쓰나</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><b>① 원소별</b><br><span class="small">내적</span></td>
+            <td>결과의 <span class="m">(i, j)</span> 칸 = <b>B의 i번째 행</b> · <b>C의 j번째 열</b>의 내적</td>
+            <td>손으로 계산할 때. 가장 기본</td>
+          </tr>
+          <tr>
+            <td><b>② 열 관점</b></td>
+            <td>결과의 <b>각 열</b> = <span class="m">B ×</span> (C의 그 열) = <b>B의 열들의 선형결합</b></td>
+            <td><b>의미를 이해할 때.</b> 2강의 연장</td>
+          </tr>
+          <tr>
+            <td><b>③ 행 관점</b></td>
+            <td>결과의 <b>각 행</b> = (B의 그 행) <span class="m">× C</span> = <b>C의 행들의 선형결합</b></td>
+            <td>소거법(3강)을 행렬로 볼 때</td>
+          </tr>
+          <tr>
+            <td><b>④ 외적 합</b></td>
+            <td>(B의 k번째 <b>열</b>) × (C의 k번째 <b>행</b>) 을 모두 더한 것</td>
+            <td><b>SVD·저랭크 근사</b>(16·17강). 데이터를 <b>층으로 쌓는</b> 시각</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="takeaway">
+      <b>데이터 공학에서 중요한 건 ②와 ④ ·</b>
+      ②는 "이 행렬이 무엇을 섞고 있는가"를 알려주고,
+      ④는 "이 행렬을 <b>단순한 조각 몇 개의 합</b>으로 쪼갤 수 있는가"를 알려줍니다.
+      ④가 바로 <b>이미지 압축과 추천 시스템</b>의 원리입니다(17·18강).
+    </div>
+
+    <h2 id="s3">3. 행렬은 변환이다</h2>
+    <p>
+      이제 행렬을 <b>공간을 주무르는 기계</b>로 봅시다.
+      아래에서 행렬의 네 값을 바꿔보세요. <b>회색 격자</b>가 원래 공간이고,
+      <b>파란 격자</b>가 A 를 통과한 뒤의 모습입니다.
+    </p>
+
+    <div class="panel">
+      <div class="board"><canvas id="cv-t"></canvas></div>
+
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">a (1행 1열)</span><span class="val" id="a11-val">1</span></span>
+          <input type="range" id="a11" min="-2" max="3" step="0.1" value="1">
+        </label>
+        <label class="ctrl">
+          <span class="label-row"><span class="name">b (1행 2열)</span><span class="val" id="a12-val">1</span></span>
+          <input type="range" id="a12" min="-2" max="3" step="0.1" value="1">
+        </label>
+        <label class="ctrl">
+          <span class="label-row"><span class="name">c (2행 1열)</span><span class="val" id="a21-val">0</span></span>
+          <input type="range" id="a21" min="-2" max="3" step="0.1" value="0">
+        </label>
+        <label class="ctrl">
+          <span class="label-row"><span class="name">d (2행 2열)</span><span class="val" id="a22-val">2</span></span>
+          <input type="range" id="a22" min="-2" max="3" step="0.1" value="2">
+        </label>
+      </div>
+
+      <div class="controls">
+        <label class="toggle"><input type="checkbox" id="showInv"> 역변환도 함께 보기</label>
+        <button class="btn" id="preset-id">단위행렬</button>
+        <button class="btn" id="preset-sing">특이행렬 (납작)</button>
+      </div>
+
+      <div class="readout">
+        <div class="stat accent"><span class="k">e₁ = (1,0) 이 가는 곳</span><span class="v" id="t-c1">–</span></div>
+        <div class="stat pos"><span class="k">e₂ = (0,1) 이 가는 곳</span><span class="v" id="t-c2">–</span></div>
+        <div class="stat warn"><span class="k">행렬식 det</span><span class="v" id="t-det">–</span></div>
+        <div class="stat"><span class="k">역행렬</span><span class="v" id="t-inv">–</span></div>
+      </div>
+    </div>
+
+    <div class="takeaway">
+      <b>행렬의 열 = 기저벡터가 가는 곳 ·</b>
+      슬라이더를 보면 알 수 있듯이, <b>A의 첫 번째 열이 곧 <span class="m">e₁=(1,0)</span>의 도착지</b>이고
+      <b>두 번째 열이 <span class="m">e₂=(0,1)</span>의 도착지</b>입니다.
+      행렬을 만들고 싶으면 <b>"기저벡터를 어디로 보낼지"만 정하면</b> 됩니다. (19강에서 본격적으로)
+    </div>
+
+    <div class="pitfall">
+      <b>[특이행렬] 버튼을 눌러보세요</b>
+      격자가 <b>직선으로 납작하게 눌립니다.</b> 2차원이 1차원으로 찌그러진 거죠.
+      이렇게 되면 <b>되돌릴 수 없습니다</b> — 서로 다른 점들이 같은 자리로 뭉개졌으니
+      어디서 왔는지 알 방법이 없습니다. 그래서 <b>역행렬이 존재하지 않습니다.</b>
+      <span class="m">det = 0</span> 은 "납작해졌다"는 신호입니다(12강).
+    </div>
+
+    <h2 id="s4">4. 역행렬 — 되돌리는 변환</h2>
+    <p>
+      숫자에서 <span class="m">3 × ⅓ = 1</span> 이듯, 행렬에서도
+      <b>곱하면 아무것도 안 한 것과 같아지는 짝</b>이 있습니다.
+      그 "아무것도 안 함"이 <b>단위행렬 <span class="m">I</span></b> 입니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">역행렬의 정의</div>
+      <div class="eq">
+        A A<sup>−1</sup> = I &nbsp;&nbsp;그리고&nbsp;&nbsp; A<sup>−1</sup> A = I
+        <br>
+        <span class="small">I =
+        <span class="mat" style="--cols:2"><span>1</span><span>0</span><span>0</span><span>1</span></span>
+        &nbsp; (대각선만 1, 나머지 0)</span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">I</span><span class="desc"><b>단위행렬.</b> <span class="m">Ix = x</span> —
+            어떤 벡터에 곱해도 그대로 둡니다</span></li>
+        <li><span class="sym">가역</span><span class="desc">역행렬이 <b>있는</b> 행렬. Invertible / Nonsingular</span></li>
+        <li><span class="sym">특이</span><span class="desc">역행렬이 <b>없는</b> 행렬. Singular. <span class="m">det = 0</span></span></li>
+      </ul>
+    </div>
+
+    <p>
+      위 그림에서 <b>[역변환도 함께 보기]</b>를 켜보세요.
+      주황 격자가 <span class="m">A<sup>−1</sup></span> 의 변환입니다.
+      두 변환을 <b>연달아</b> 적용하면 원래 격자로 정확히 돌아옵니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">2×2 역행렬 공식</div>
+      <div class="eq">
+        A =
+        <span class="mat" style="--cols:2"><span>a</span><span>b</span><span>c</span><span>d</span></span>
+        &nbsp;⟹&nbsp;
+        A<sup>−1</sup> =
+        <span class="frac"><span>1</span><span>ad − bc</span></span>
+        <span class="mat" style="--cols:2"><span>d</span><span>−b</span><span>−c</span><span>a</span></span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">ad − bc</span><span class="desc"><b>행렬식</b>. 이게 0이면 <b>0으로 나누게 되어</b> 역행렬이 없습니다</span></li>
+        <li><span class="sym">주의</span><span class="desc">이 간단한 공식은 <b>2×2 에서만</b> 통합니다.
+            3×3 이상은 §5의 방법을 씁니다</span></li>
+      </ul>
+    </div>
+
+    <div class="callout">
+      <b>곱의 역행렬은 순서가 뒤집힙니다</b><br>
+      <span class="m">(AB)<sup>−1</sup> = B<sup>−1</sup> A<sup>−1</sup></span>
+      <br><br>
+      <b>양말과 신발</b>로 기억하세요. 양말 → 신발 순으로 신었다면,
+      벗을 때는 <b>신발 → 양말</b> 순입니다. 마지막에 한 것을 먼저 되돌리죠.
+      전치 <span class="m">(AB)<sup>T</sup> = B<sup>T</sup>A<sup>T</sup></span> 도 같은 모양입니다.
+    </div>
+
+    <h2 id="s5">5. 가우스-조던으로 역행렬 구하기</h2>
+    <p>
+      3강에서 <span class="m">[A | b]</span> 를 붙여 소거했듯이,
+      이번엔 <b><span class="m">[A | I]</span></b> 를 붙여 소거합니다.
+      대각선 <b>위쪽까지</b> 전부 0으로 만들고 피봇을 1로 나누면,
+      왼쪽이 <span class="m">I</span> 가 되고 — <b>오른쪽에 <span class="m">A<sup>−1</sup></span> 이 남습니다.</b>
+    </p>
+
+    <div class="formula">
+      <div class="name">가우스-조던</div>
+      <div class="eq">
+        [ A | I ] &nbsp;&nbsp;<span class="small">— 소거 →</span>&nbsp;&nbsp; [ I | A<sup>−1</sup> ]
+      </div>
+      <ul class="where">
+        <li><span class="sym">왜 되나</span><span class="desc">왼쪽 A 를 I 로 만든 <b>연산들의 총합이 곧 A<sup>−1</sup></b>입니다.
+            그 연산을 오른쪽 I 에도 똑같이 가했으니 <span class="m">A<sup>−1</sup>I = A<sup>−1</sup></span> 이 남죠</span></li>
+      </ul>
+    </div>
+
+    <h2 id="s6">6. numpy 실습</h2>
+
+    <div class="pycell" data-packages="numpy" data-title="4-1. 전치와 크기">
+    import numpy as np
+    np.set_printoptions(precision=3, suppress=True)
+
+    A = np.array([[1, 2, 3],
+                  [4, 5, 6]])
+
+    print("A 크기   :", A.shape, "  ← (행, 열)")
+    print("A.T 크기 :", A.T.shape)
+    print("\nA.T =")
+    print(A.T)
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="4-2. 곱셈 네 가지 관점 — 전부 같은 답">
+    B = np.array([[2, 0],
+                  [1, 3]])
+    C = np.array([[1, 4],
+                  [2, 5]])
+
+    print("B @ C =")
+    print(B @ C)
+    print()
+
+    print("① 원소별  (0,0) 칸 :", B[0, :] @ C[:, 0])
+    print("② 열 관점  첫 열   :", C[0, 0] * B[:, 0] + C[1, 0] * B[:, 1])
+    print("③ 행 관점  첫 행   :", B[0, 0] * C[0, :] + B[0, 1] * C[1, :])
+
+    외적합 = sum(np.outer(B[:, k], C[k, :]) for k in range(2))
+    print("④ 외적 합 =")
+    print(외적합)
+    print("   B@C 와 같은가:", np.array_equal(외적합, B @ C))
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="4-3. 순서를 바꾸면 달라진다">
+    print("B @ C =\n", B @ C)
+    print("\nC @ B =\n", C @ B)
+    print("\n같은가:", np.array_equal(B @ C, C @ B))
+    print()
+    print("(BC)ᵀ == CᵀBᵀ :", np.array_equal((B @ C).T, C.T @ B.T))
+    print("(BC)ᵀ == BᵀCᵀ :", np.array_equal((B @ C).T, B.T @ C.T), " ← 이건 틀린 식")
+    </div>
+
+    <div class="pitfall">
+      <b><code>*</code> 와 <code>@</code> 는 완전히 다릅니다</b>
+      numpy 에서 <code>B * C</code> 는 <b>같은 자리끼리 곱하기</b>(원소별)이고,
+      <code>B @ C</code> 가 <b>행렬 곱</b>입니다.
+      크기가 같으면 둘 다 에러 없이 돌아가서 <b>조용히 틀린 답</b>이 나옵니다.
+      가장 흔한 버그 중 하나입니다.
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="4-4. * 와 @ 의 차이">
+    print("B * C  (원소별) =")
+    print(B * C)
+    print("\nB @ C  (행렬곱) =")
+    print(B @ C)
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="4-5. 역행렬">
+    B_inv = np.linalg.inv(B)
+    print("B⁻¹ =")
+    print(B_inv)
+    print("\nB @ B⁻¹ =")
+    print(B @ B_inv)
+    print("\n단위행렬인가:", np.allclose(B @ B_inv, np.eye(2)))
+    print()
+    print("(BC)⁻¹ == C⁻¹B⁻¹ :",
+          np.allclose(np.linalg.inv(B @ C), np.linalg.inv(C) @ np.linalg.inv(B)))
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="4-6. 가우스-조던으로 직접 만들기">
+    # [B | I] 를 만들어 소거한다
+    M = np.hstack([B.astype(float), np.eye(2)])
+    print("[B | I] =")
+    print(M)
+
+    M[0] /= M[0, 0]              # 1행 피봇을 1로
+    M[1] -= M[1, 0] * M[0]       # 2행에서 x 소거
+    M[1] /= M[1, 1]              # 2행 피봇을 1로
+    M[0] -= M[0, 1] * M[1]       # 1행에서 y 소거 (위쪽까지)
+
+    print("\n소거 후 =")
+    print(M)
+    print("\n오른쪽 절반이 B⁻¹ 인가:", np.allclose(M[:, 2:], B_inv))
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="4-7. 특이행렬은 역행렬이 없다">
+    특이 = np.array([[1., 2.],
+                     [2., 4.]])       # 2행 = 1행의 2배
+
+    print("det =", np.linalg.det(특이))
+    try:
+        np.linalg.inv(특이)
+    except np.linalg.LinAlgError as e:
+        print("역행렬 없음:", e)
+        print("→ 이 변환은 평면을 직선으로 눌러버려 되돌릴 수 없다")
+    </div>
+
+    <h2 id="s7">7. 실무: 역행렬을 구하지 마세요</h2>
+    <p>
+      <span class="m">Ax = b</span> 를 풀 때 <span class="m">x = A<sup>−1</sup>b</span> 라고 배웠으니
+      역행렬을 구해서 곱하고 싶어집니다. <b>하지만 실무에서는 그렇게 하지 않습니다.</b>
+    </p>
+
+    <div class="pycell" data-packages="numpy" data-title="4-8. solve vs inv — 속도와 정확도">
+    import time
+
+    rng = np.random.default_rng(0)
+    n = 400
+    큰A = rng.random((n, n)) + n * np.eye(n)
+    b = rng.random(n)
+
+    t = time.perf_counter(); x1 = np.linalg.solve(큰A, b);        t1 = time.perf_counter() - t
+    t = time.perf_counter(); x2 = np.linalg.inv(큰A) @ b;         t2 = time.perf_counter() - t
+
+    print(f"solve   : {t1*1000:6.1f} ms   최대오차 {np.abs(큰A @ x1 - b).max():.2e}")
+    print(f"inv @ b : {t2*1000:6.1f} ms   최대오차 {np.abs(큰A @ x2 - b).max():.2e}")
+    print()
+    print("→ solve 가 더 빠르고 더 정확합니다.")
+    print("   (정확한 배수는 실행 환경에 따라 달라집니다)")
+    </div>
+
+    <div class="practice">
+      <b>왜 solve 를 써야 하나</b>
+      <ul>
+        <li><b>계산량</b> — 역행렬을 만드는 건 <span class="m">Ax=b</span> 를
+            <b>n번 푸는 것</b>과 같습니다. 우리는 한 번만 풀면 되는데요.</li>
+        <li><b>정확도</b> — 나눗셈이 더 많이 일어나 <b>반올림 오차가 쌓입니다.</b>
+            위 실습에서 오차 자릿수를 비교해 보세요.</li>
+        <li><b>희소성 파괴</b> — 0이 잔뜩인 큰 행렬(추천 시스템 등)의 역행렬은
+            <b>0이 거의 없는 빽빽한 행렬</b>이 됩니다. 메모리가 터집니다.</li>
+      </ul>
+      <b>규칙:</b> 코드에 <code>inv(A) @ b</code> 가 보이면 <code>solve(A, b)</code> 로 바꾸세요.
+      <span class="m">A<sup>−1</sup></span> 은 <b>이론을 적기 위한 기호</b>이지 계산 절차가 아닙니다.
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="4-9. 연습문제">
+    # 문제 1. A = [[3, 1], [2, 4]] 의 역행렬을 2×2 공식으로 손계산하고 inv 와 비교하세요.
+
+    # 문제 2. A @ A.T 는 항상 대칭행렬입니다. 아무 A 나 만들어 확인해보세요.
+    #         (대칭 = 전치해도 자기 자신)
+
+    # 문제 3. [[1,2],[2,4]] 처럼 det=0 인 2×2 행렬을 하나 더 만들어보세요.
+    #         어떤 조건이면 det 가 0 이 되나요?
+
+    # 아래에 직접 써보세요
+    </div>
+
+    <details style="margin:18px 0">
+      <summary style="cursor:pointer;font-weight:600;color:var(--accent)">모범 답안 보기</summary>
+      <div class="pycell" data-packages="numpy" data-title="모범 답안">
+      # 문제 1
+      A1 = np.array([[3., 1.], [2., 4.]])
+      det = 3*4 - 1*2                      # = 10
+      손계산 = np.array([[4., -1.], [-2., 3.]]) / det
+      print("손계산 =\n", 손계산)
+      print("inv    =\n", np.linalg.inv(A1))
+      print("같은가:", np.allclose(손계산, np.linalg.inv(A1)))
+
+      # 문제 2
+      R = np.random.default_rng(1).random((3, 5))
+      S = R @ R.T
+      print("\nR@R.T 크기:", S.shape, " 대칭인가:", np.allclose(S, S.T))
+
+      # 문제 3 — 한 행(열)이 다른 행(열)의 상수배면 det = 0
+      for k in [3., -0.5]:
+          Z = np.array([[1., 2.], [k*1., k*2.]])
+          print(f"\n[[1,2],[{k},{2*k}]] det =", np.linalg.det(Z))
+      print("\n→ 두 행이 평행하면(한쪽이 다른 쪽의 상수배) 항상 det = 0")
+      </div>
+    </details>
+
+    <div class="summary">
+      <h3>4강 요약</h3>
+      <ul>
+        <li>곱셈은 <b>A의 열 수 = B의 행 수</b> 여야 가능하고, 결과 크기는 바깥 두 숫자입니다.</li>
+        <li><b><span class="m">AB ≠ BA</span></b>. 전치와 역행렬은 곱에서 <b>순서가 뒤집힙니다</b>(양말-신발).</li>
+        <li>행렬 곱을 보는 <b>네 관점</b> — 의미는 <b>②열 관점</b>, 분해는 <b>④외적 합</b>으로 봅니다.</li>
+        <li><b>A의 열 = 기저벡터가 가는 곳.</b> 행렬을 만들려면 그것만 정하면 됩니다.</li>
+        <li>역행렬은 <b>변환을 되돌리는 것</b>. 공간이 납작해지면(det=0) 되돌릴 수 없습니다.</li>
+        <li><b><span class="m">[A|I] → [I|A⁻¹]</span></b> 가 역행렬을 구하는 체계적 방법입니다.</li>
+        <li>실무에서는 <b><code>inv</code> 대신 <code>solve</code></b>. 더 빠르고 더 정확합니다.</li>
+      </ul>
+    </div>
+
+    <div class="colab-cta">
+      <div class="colab-text">
+        <b>더 자유롭게 실험하고 싶다면</b><br>
+        이 강의의 실습만 모은 노트북을 Colab에서 열 수 있습니다.
+      </div>
+      <a class="btn" id="colab-link" href="#" target="_blank" rel="noopener">Colab에서 열기</a>
+    </div>
+
+    <p class="next-up">
+      다음 → <b>5강 · 벡터공간과 부분공간</b><br>
+      "원점을 지나야 한다"는 조건이 왜 그렇게 중요한지, 그리고
+      1강에서 만난 <b>Span</b>이 왜 항상 부분공간이 되는지 확인합니다.
+    </p>
+
+  </section>
+
+</div>
+
+<script src="../assets/viz.js?v=312b9476b0"></script>
+<script src="../assets/linalg.js?v=270d914364"></script>
+<script src="../assets/pylab.js?v=cb27f20364"></script>
+<script src="../assets/pycell.js?v=6dacc4c6ce"></script>
+<script>
+(function () {
+  'use strict';
+  var M = LA.M, num = LA.num;
+  function vs(v) { return '(' + num(v[0]) + ', ' + num(v[1]) + ')'; }
+
+  var a11 = 1, a12 = 1, a21 = 0, a22 = 2;
+  var showInv = false;
+
+  var board = new LA.Board(document.getElementById('cv-t'), { range: 5 });
+
+  function draw() {
+    var A = [[a11, a12], [a21, a22]];
+    var det = M.det(A);
+    var Ai = M.inv(A);
+
+    board.begin();
+
+    // 원래 격자는 흐리게 (기준선)
+    board.grid({ step: 1 });
+
+    // 역변환 격자 (선택)
+    if (showInv && Ai) {
+      board.transformedGrid(Ai, { color: V.css('--warn'), alpha: 0.55, width: 1 });
+    }
+    // 변환된 격자
+    board.transformedGrid(A, { color: V.css('--accent'), alpha: 0.85, width: 1.2 });
+
+    // 기저벡터가 어디로 가는가 = A 의 열
+    var c1 = [A[0][0], A[1][0]];
+    var c2 = [A[0][1], A[1][1]];
+    board.arrow([1, 0], { color: V.css('--text-dim'), width: 1.4, alpha: 0.5 });
+    board.arrow([0, 1], { color: V.css('--text-dim'), width: 1.4, alpha: 0.5 });
+    board.arrow(c1, { color: V.css('--accent'), width: 3, label: 'A e₁' });
+    board.arrow(c2, { color: V.css('--pos'), width: 3, label: 'A e₂' });
+
+    V.setText('#t-c1', vs(c1));
+    V.setText('#t-c2', vs(c2));
+    V.setText('#t-det', num(det));
+    V.setText('#t-inv', Ai ? '있음' : '없음 (납작해짐)');
+  }
+
+  var rA = V.range('a11', function (v) { a11 = v; draw(); });
+  var rB = V.range('a12', function (v) { a12 = v; draw(); });
+  var rC = V.range('a21', function (v) { a21 = v; draw(); });
+  var rD = V.range('a22', function (v) { a22 = v; draw(); });
+  V.check('showInv', function (on) { showInv = on; draw(); });
+
+  V.click('preset-id', function () { rA.set(1); rB.set(0); rC.set(0); rD.set(1); });
+  V.click('preset-sing', function () { rA.set(1); rB.set(2); rC.set(0.5); rD.set(1); });
+
+  V.onRedraw(draw);
+  draw();
+
+  var a2 = document.getElementById('colab-link');
+  if (a2) a2.href = 'https://colab.research.google.com/github/mioon1402/timeseriesdata/blob/main/notebooks/L04-matrix-ops.ipynb';
+})();
+</script>
+</body>
+</html>
