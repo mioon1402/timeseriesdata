@@ -71,6 +71,10 @@ const PAGES = [
   'linalg/L14-diagonalization.html',
   'linalg/L15-symmetric.html',
   'linalg/L16-svd.html',
+  'linalg/L17-lowrank.html',
+  'linalg/L18-pseudoinverse.html',
+  'linalg/L19-transform.html',
+  'linalg/L20-applications.html',
 ];
 
 /** 캔버스가 없어도 정상인 페이지 (파이썬 실습 강의 등) */

@@ -102,6 +102,104 @@
     }
   };
 
+  /**
+   * 대칭행렬의 고유분해 — 야코비 회전법.
+   * 브라우저에서 작은 이미지(수십×수십)의 SVD 를 돌리려고 넣었다.
+   * 큰 행렬에는 쓰지 말 것. 반환 {values:[...], vectors:[[열]...]} (내림차순)
+   */
+  M.jacobi = function (Sin, sweeps) {
+    var n = Sin.length;
+    var A = Sin.map(function (r) { return r.slice(); });
+    var Vm = [];
+    for (var i = 0; i < n; i++) {
+      Vm.push([]);
+      for (var j = 0; j < n; j++) Vm[i].push(i === j ? 1 : 0);
+    }
+    var N = sweeps || 12;
+    for (var sw = 0; sw < N; sw++) {
+      var off = 0;
+      for (var p = 0; p < n - 1; p++) for (var q = p + 1; q < n; q++) off += A[p][q] * A[p][q];
+      if (off < 1e-18) break;
+      for (p = 0; p < n - 1; p++) {
+        for (q = p + 1; q < n; q++) {
+          if (Math.abs(A[p][q]) < 1e-14) continue;
+          var theta = (A[q][q] - A[p][p]) / (2 * A[p][q]);
+          var t = Math.sign(theta || 1) / (Math.abs(theta) + Math.sqrt(theta * theta + 1));
+          var c = 1 / Math.sqrt(t * t + 1), sN = t * c;
+          for (var k = 0; k < n; k++) {
+            var akp = A[k][p], akq = A[k][q];
+            A[k][p] = c * akp - sN * akq;
+            A[k][q] = sN * akp + c * akq;
+          }
+          for (k = 0; k < n; k++) {
+            var apk = A[p][k], aqk = A[q][k];
+            A[p][k] = c * apk - sN * aqk;
+            A[q][k] = sN * apk + c * aqk;
+          }
+          for (k = 0; k < n; k++) {
+            var vkp = Vm[k][p], vkq = Vm[k][q];
+            Vm[k][p] = c * vkp - sN * vkq;
+            Vm[k][q] = sN * vkp + c * vkq;
+          }
+        }
+      }
+    }
+    var idx = [];
+    for (i = 0; i < n; i++) idx.push(i);
+    idx.sort(function (a, b) { return A[b][b] - A[a][a]; });
+    return {
+      values: idx.map(function (i) { return A[i][i]; }),
+      vectors: idx.map(function (i) {
+        return Vm.map(function (row) { return row[i]; });   // i번째 고유벡터(열)
+      })
+    };
+  };
+
+  /**
+   * 임의 행렬(작은 크기)의 SVD — AᵀA 를 야코비로 푼다.
+   * 교육용 데모 전용. 실제 계산은 numpy 를 쓰라고 강의에 적어두었다.
+   */
+  M.svdFull = function (A) {
+    var m = A.length, n = A[0].length;
+    var AtA = [];
+    for (var i = 0; i < n; i++) {
+      AtA.push([]);
+      for (var j = 0; j < n; j++) {
+        var s = 0;
+        for (var k = 0; k < m; k++) s += A[k][i] * A[k][j];
+        AtA[i].push(s);
+      }
+    }
+    var e = M.jacobi(AtA);
+    var sig = e.values.map(function (l) { return Math.sqrt(Math.max(0, l)); });
+    var Vc = e.vectors;                       // Vc[j] = j번째 오른쪽 특이벡터
+    var Uc = Vc.map(function (v, j) {
+      var u = [];
+      for (var r = 0; r < m; r++) {
+        var s2 = 0;
+        for (var c2 = 0; c2 < n; c2++) s2 += A[r][c2] * v[c2];
+        u.push(sig[j] > 1e-12 ? s2 / sig[j] : 0);
+      }
+      return u;
+    });
+    return { U: Uc, sigma: sig, V: Vc };
+  };
+
+  /** 상위 k개 특이값만 남긴 근사 행렬 */
+  M.lowRank = function (svd, k, m, n) {
+    var out = [];
+    for (var i = 0; i < m; i++) { out.push(new Array(n).fill(0)); }
+    for (var t = 0; t < k && t < svd.sigma.length; t++) {
+      var s = svd.sigma[t], u = svd.U[t], v = svd.V[t];
+      if (s < 1e-12) break;
+      for (i = 0; i < m; i++) {
+        var su = s * u[i];
+        for (var j = 0; j < n; j++) out[i][j] += su * v[j];
+      }
+    }
+    return out;
+  };
+
   /** (A − λI)x = 0 의 0 아닌 해 하나 */
   function eigVec(A, lam) {
     var a = A[0][0] - lam, b = A[0][1], c = A[1][0], d = A[1][1] - lam;

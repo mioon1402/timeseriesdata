@@ -1,0 +1,601 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Low-rank 근사와 이미지 압축 · 선형대수</title>
+<meta name="description" content="큰 특이값 몇 개만 남기면 어떻게 될까요? Eckart-Young 정리가 그게 최선임을 보장합니다.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%E2%9E%97%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css?v=b7dfb076b2">
+<link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">선형대수 17강 · 특이값 분해</p>
+    <h1>Low-rank 근사와 이미지 압축</h1>
+    <p class="lede">
+      16강에서 행렬을 <b>랭크 1짜리 조각들의 합</b>으로 쪼갰습니다.
+      각 조각에는 <b>중요도(σ)</b>가 붙어 있죠.
+      그렇다면 <b>중요한 것 몇 개만 남기고 나머지를 버리면?</b>
+      놀랍게도 그게 <b>수학적으로 증명된 최선의 근사</b>입니다.
+    </p>
+  </header>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 강의에서 배우는 것</b>
+      <ol>
+        <li><a href="#s0">기초 다지기 — 랭크 1 행렬이란</a></li>
+        <li><a href="#s1">SVD를 층으로 쌓기</a></li>
+        <li><a href="#s2">직접 압축해보기</a></li>
+        <li><a href="#s3">Eckart-Young 정리</a></li>
+        <li><a href="#s4">얼마나 이득인가</a></li>
+        <li><a href="#s5">잡음 제거 — 왜 되는가</a></li>
+        <li><a href="#s6">numpy 로 확인하기</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s0">0. 기초 다지기 — 랭크 1 행렬이란</h2>
+    <p>
+      <b>랭크가 1</b>인 행렬은 <b>모든 열이 같은 방향</b>인 행렬입니다.
+      그런 행렬은 벡터 두 개의 <b>외적</b>으로 항상 쓸 수 있습니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">외적 = 랭크 1</div>
+      <div class="eq">
+        u v<sup>T</sup> =
+        <span class="mat"><span>1</span><span>2</span><span>3</span></span>
+        <span class="mat" style="--cols:2"><span>4</span><span>5</span></span>
+        =
+        <span class="mat" style="--cols:2">
+          <span>4</span><span>5</span>
+          <span>8</span><span>10</span>
+          <span>12</span><span>15</span>
+        </span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">저장 비용</span><span class="desc">3×2 = <b>6개</b> 대신
+            <span class="m">u</span>(3) + <span class="m">v</span>(2) = <b>5개</b>만 있으면 복원됩니다.
+            행렬이 커질수록 이득이 커집니다</span></li>
+        <li><span class="sym">패턴</span><span class="desc">모든 행이 <span class="m">v</span> 의 배수,
+            모든 열이 <span class="m">u</span> 의 배수. <b>단 하나의 패턴</b>만 담고 있습니다</span></li>
+      </ul>
+    </div>
+
+    <h2 id="s1">1. SVD를 층으로 쌓기</h2>
+
+    <div class="formula">
+      <div class="name">SVD 를 외적 합으로</div>
+      <div class="eq" style="font-size:15px">
+        A = σ<sub>1</sub> u<sub>1</sub>v<sub>1</sub><sup>T</sup>
+        + σ<sub>2</sub> u<sub>2</sub>v<sub>2</sub><sup>T</sup> + ⋯
+        + σ<sub>r</sub> u<sub>r</sub>v<sub>r</sub><sup>T</sup>
+      </div>
+      <ul class="where">
+        <li><span class="sym">각 항</span><span class="desc"><b>랭크 1 행렬</b>. "패턴 하나"</span></li>
+        <li><span class="sym">σ<sub>i</sub></span><span class="desc">그 패턴의 <b>세기</b>.
+            내림차순이라 <b>앞쪽이 가장 중요</b>합니다</span></li>
+        <li><span class="sym">r</span><span class="desc">랭크. 이 개수만큼의 패턴으로 A 가 <b>완전히</b> 표현됩니다</span></li>
+      </ul>
+    </div>
+
+    <div class="formula">
+      <div class="name">앞의 k개만 남기면 — 랭크 k 근사</div>
+      <div class="eq" style="font-size:15px">
+        A<sub>k</sub> = σ<sub>1</sub> u<sub>1</sub>v<sub>1</sub><sup>T</sup> + ⋯
+        + σ<sub>k</sub> u<sub>k</sub>v<sub>k</sub><sup>T</sup>
+        &nbsp;&nbsp;<span class="small">(k ≪ r)</span>
+      </div>
+    </div>
+
+    <h2 id="s2">2. 직접 압축해보기</h2>
+    <p>
+      아래는 <b>브라우저에서 실제로 SVD 를 돌린 결과</b>입니다.
+      슬라이더로 <b>남길 층의 개수 k</b> 를 조절해보세요.
+    </p>
+
+    <div class="panel">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px">
+        <div>
+          <p class="panel-title" style="text-align:center">원본</p>
+          <div class="canvas-wrap"><canvas id="cv-orig"></canvas></div>
+        </div>
+        <div>
+          <p class="panel-title" style="text-align:center">랭크 k 근사</p>
+          <div class="canvas-wrap"><canvas id="cv-approx"></canvas></div>
+        </div>
+        <div>
+          <p class="panel-title" style="text-align:center">차이 (버린 것)</p>
+          <div class="canvas-wrap"><canvas id="cv-diff"></canvas></div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">남길 층 개수 k</span><span class="val" id="k-val">4</span></span>
+          <input type="range" id="k" min="1" max="40" step="1" value="4">
+        </label>
+      </div>
+
+      <div class="controls">
+        <label class="toggle"><input type="checkbox" id="noise"> 잡음 섞기</label>
+        <button class="btn" id="p1">패턴 그림</button>
+        <button class="btn" id="p2">가로줄 그림</button>
+        <button class="btn" id="p3">복잡한 그림</button>
+      </div>
+
+      <p class="panel-title" style="margin:14px 0 6px">특이값 스펙트럼 (얼마나 빨리 작아지는가)</p>
+      <div class="canvas-wrap"><canvas id="cv-spec"></canvas></div>
+
+      <div class="readout">
+        <div class="stat accent"><span class="k">랭크 k</span><span class="v" id="r-k">–</span></div>
+        <div class="stat warn"><span class="k">상대 오차</span><span class="v" id="r-err">–</span></div>
+        <div class="stat pos"><span class="k">저장 용량</span><span class="v" id="r-size">–</span></div>
+        <div class="stat"><span class="k">σ₁ / σₖ</span><span class="v" id="r-ratio">–</span></div>
+        <div class="stat purple"><span class="k">담긴 에너지</span><span class="v" id="r-energy">–</span></div>
+      </div>
+    </div>
+
+    <div class="takeaway">
+      <b>세 그림을 함께 보세요 ·</b> <b>[가로줄 그림]</b> 은 <b>k=1~2</b> 만으로 거의 완벽합니다 —
+      패턴이 단순하니까요. <b>[복잡한 그림]</b> 은 훨씬 많은 층이 필요합니다.
+      <br><br>
+      <b>스펙트럼 그래프가 얼마나 빨리 떨어지는가</b>가
+      "이 데이터가 압축 가능한가"를 그대로 알려줍니다.
+    </div>
+
+    <h2 id="s3">3. Eckart-Young 정리</h2>
+    <p>
+      "앞의 k개만 남긴다"는 <b>그럴듯한 휴리스틱</b>처럼 보입니다.
+      그런데 이게 <b>증명된 최적해</b>입니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">Eckart–Young–Mirsky 정리</div>
+      <div class="eq" style="font-size:15px;line-height:2.1">
+        랭크가 k 이하인 <b>모든</b> 행렬 B 에 대해<br>
+        <b>‖ A − A<sub>k</sub> ‖ ≤ ‖ A − B ‖</b>
+      </div>
+      <ul class="where">
+        <li><span class="sym">뜻</span><span class="desc">랭크 k로 근사하는 <b>어떤 방법을 써도</b>
+            SVD 절단보다 <b>잘할 수 없습니다</b></span></li>
+        <li><span class="sym">오차의 크기</span><span class="desc">프로베니우스 노름 기준
+            <span class="m">‖A − A<sub>k</sub>‖<sub>F</sub> = √(σ<sub>k+1</sub>² + ⋯ + σ<sub>r</sub>²)</span> —
+            <b>버린 σ 들만으로 정확히 계산</b>됩니다</span></li>
+        <li><span class="sym">2-노름 기준</span><span class="desc">= <b>σ<sub>k+1</sub></b>.
+            "가장 큰 버린 값"이 곧 최대 오차입니다</span></li>
+      </ul>
+    </div>
+
+    <div class="takeaway">
+      <b>이게 왜 대단한가 ·</b> 보통 최적화 문제는 <b>답을 찾기 어렵습니다.</b>
+      그런데 "랭크 k 로 가장 잘 근사하라"는 문제는
+      <b>SVD 한 번 돌리고 잘라내면 끝</b>입니다.
+      게다가 <b>오차를 미리 정확히 알 수 있습니다</b> — 버릴 σ 들만 보면 되니까요.
+      "5% 오차 안에서 최대한 압축" 같은 요구를 <b>정확히</b> 맞출 수 있습니다.
+    </div>
+
+    <h2 id="s4">4. 얼마나 이득인가</h2>
+
+    <div class="formula">
+      <div class="name">저장 용량</div>
+      <div class="eq" style="font-size:15px">
+        원본 <b>m × n</b> &nbsp;→&nbsp; 랭크 k <b>k(m + n + 1)</b>
+      </div>
+      <ul class="where">
+        <li><span class="sym">왜</span><span class="desc">u 벡터 k개(각 m개) + v 벡터 k개(각 n개) + σ k개</span></li>
+        <li><span class="sym">예</span><span class="desc">1000×1000 이미지(100만)에서 k=50 이면
+            <span class="m">50 × 2001 ≈ 10만</span> — <b>약 1/10</b></span></li>
+      </ul>
+    </div>
+
+    <div class="pitfall">
+      <b>JPEG 는 SVD 를 쓰지 않습니다</b>
+      실제 이미지 압축 표준(JPEG, WebP)은 <b>이산 코사인 변환(DCT)</b> 을 씁니다.
+      <b>고정된 기저</b>를 쓰므로 <b>기저를 저장할 필요가 없고</b> 훨씬 빠르거든요.
+      SVD 는 이미지마다 <b>U 와 V 를 통째로 저장</b>해야 합니다.
+      <br><br>
+      SVD 저랭크 근사가 진짜 힘을 발휘하는 곳은 <b>이미지가 아니라</b>
+      <b>추천 시스템·잠재 의미 분석·차원 축소</b>입니다(18·20강).
+      "숨은 구조를 찾는" 게 목적일 때죠.
+    </div>
+
+    <h2 id="s5">5. 잡음 제거 — 왜 되는가</h2>
+    <p>
+      실제 데이터에는 <b>구조</b>와 <b>잡음</b>이 섞여 있습니다.
+      이 둘은 특이값에서 <b>다르게 나타납니다.</b>
+    </p>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th></th><th>특이값에서</th><th>이유</th></tr></thead>
+        <tbody>
+          <tr><td><b>구조</b> (신호)</td><td><b>큰 σ 몇 개</b>에 집중</td>
+              <td>반복되는 패턴이라 <b>낮은 랭크</b>로 표현됨</td></tr>
+          <tr><td><b>잡음</b></td><td><b>작은 σ 에 고르게</b> 퍼짐</td>
+              <td>무작위라 특정 패턴이 없음 → <b>모든 방향에 조금씩</b></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="takeaway">
+      <b>그래서 꼬리를 자르면 ·</b> 잡음이 주로 제거되고 구조는 남습니다.
+      위에서 <b>[잡음 섞기]</b> 를 켜고 k 를 조절해보세요.
+      <b>k를 너무 크게 하면 잡음까지 되살아납니다</b> —
+      적당한 지점이 있습니다.
+      <br><br>
+      이건 머신러닝의 <b>과적합</b>과 정확히 같은 구조입니다.
+      "모델을 복잡하게 할수록 잡음까지 학습한다"는 이야기죠.
+    </div>
+
+    <h2 id="s6">6. numpy 로 확인하기</h2>
+
+    <div class="pycell" data-packages="numpy" data-title="17-1. 이미지 만들고 SVD">
+    import numpy as np
+    np.set_printoptions(precision=4, suppress=True)
+
+    def 그림(n=64):
+        y, x = np.mgrid[0:n, 0:n] / n
+        img = 0.5 + 0.4 * np.sin(6 * np.pi * x) * np.cos(4 * np.pi * y)
+        img += 0.35 * ((x - 0.3) ** 2 + (y - 0.65) ** 2 < 0.03)     # 동그라미
+        img[int(.2 * n):int(.3 * n), int(.1 * n):int(.9 * n)] = 0.05  # 가로 막대
+        return np.clip(img, 0, 1)
+
+    img = 그림()
+    U, σ, Vt = np.linalg.svd(img)
+
+    print("이미지 크기:", img.shape, " 랭크:", np.linalg.matrix_rank(img))
+    print("특이값 상위 8개:", np.round(σ[:8], 3))
+    print("특이값 하위 8개:", np.round(σ[-8:], 6))
+    print()
+    누적 = np.cumsum(σ ** 2) / np.sum(σ ** 2)
+    for k in [1, 3, 5, 10, 20]:
+        print(f"  상위 {k:2d}개가 담은 에너지: {누적[k-1]:.2%}")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="17-2. 랭크 k 근사와 오차">
+    def 근사(U, σ, Vt, k):
+        return U[:, :k] @ np.diag(σ[:k]) @ Vt[:k]
+
+    m, n = img.shape
+    원본크기 = m * n
+
+    print(f"{'k':>4} {'상대오차':>10} {'이론값':>10} {'저장':>8} {'압축률':>8}")
+    for k in [1, 2, 3, 5, 10, 20, 40]:
+        Ak = 근사(U, σ, Vt, k)
+        실제 = np.linalg.norm(img - Ak) / np.linalg.norm(img)
+        이론 = np.sqrt((σ[k:] ** 2).sum()) / np.linalg.norm(img)   # 버린 σ 들만으로
+        저장 = k * (m + n + 1)
+        print(f"{k:>4} {실제:>10.2%} {이론:>10.2%} {저장:>8} {저장/원본크기:>8.1%}")
+
+    print()
+    print("→ '실제 오차' 와 '버린 σ 로 계산한 이론값' 이 정확히 일치한다.")
+    print("   Eckart-Young 정리 덕분에 오차를 미리 알 수 있다.")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="17-3. 정말 최선인가 — 무작위 랭크 k 와 비교">
+    rng = np.random.default_rng(0)
+    k = 5
+    svd_근사 = 근사(U, σ, Vt, k)
+    svd_오차 = np.linalg.norm(img - svd_근사)
+
+    print(f"SVD 랭크 {k} 근사 오차: {svd_오차:.4f}")
+    print()
+    print("무작위 랭크 5 행렬 중 가장 좋았던 것:")
+    최선 = np.inf
+    for _ in range(2000):
+        Bu = rng.normal(size=(64, k))
+        Bv = rng.normal(size=(k, 64))
+        B = Bu @ Bv
+        B = B * (np.sum(img * B) / np.sum(B * B))     # 크기만 최적으로 맞춰줌
+        최선 = min(최선, np.linalg.norm(img - B))
+    print(f"  {최선:.4f}   ← SVD 보다 {최선/svd_오차:.1f}배 나쁘다")
+    print()
+    print("→ 어떤 랭크 5 행렬도 SVD 절단을 이길 수 없다 (Eckart-Young)")
+    </div>
+
+    <div class="pycell" data-packages="numpy,matplotlib" data-title="17-4. 눈으로 보기">
+    import matplotlib.pyplot as plt
+
+    fig, axes = plt.subplots(1, 5, figsize=(13, 3))
+    for ax, k in zip(axes, [1, 3, 5, 15, None]):
+        보여줄 = img if k is None else 근사(U, σ, Vt, k)
+        ax.imshow(보여줄, cmap="gray", vmin=0, vmax=1)
+        오차 = 0 if k is None else np.linalg.norm(img - 보여줄) / np.linalg.norm(img)
+        ax.set_title("원본" if k is None else f"k={k}\n오차 {오차:.1%}", fontsize=10)
+        ax.axis("off")
+    plt.tight_layout()
+    plt.show()
+    </div>
+
+    <div class="pycell" data-packages="numpy,matplotlib" data-title="17-5. 특이값 스펙트럼">
+    fig, axes = plt.subplots(1, 2, figsize=(11, 3.6))
+
+    axes[0].plot(σ, "o-", ms=3)
+    axes[0].set_yscale("log")
+    axes[0].set_title("특이값 (로그 눈금)")
+    axes[0].set_xlabel("번호")
+
+    누적 = np.cumsum(σ ** 2) / np.sum(σ ** 2)
+    axes[1].plot(np.arange(1, len(σ) + 1), 누적, "o-", ms=3)
+    axes[1].axhline(0.99, ls="--", c="red", lw=1)
+    axes[1].set_title("누적 에너지 비율")
+    axes[1].set_xlabel("남긴 개수 k")
+    axes[1].set_xlim(0, 30)
+
+    plt.tight_layout()
+    plt.show()
+
+    k99 = int(np.searchsorted(누적, 0.99)) + 1
+    print(f"에너지의 99% 를 담으려면 k = {k99} 개면 충분하다")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="17-6. 잡음 제거 — 적당한 k 가 최선">
+    rng = np.random.default_rng(0)
+    잡음본 = img + rng.normal(0, 0.12, img.shape)
+
+    Un, σn, Vtn = np.linalg.svd(잡음본)
+    기준 = np.linalg.norm(img - 잡음본) / np.linalg.norm(img)
+
+    print(f"잡음본 자체의 오차: {기준:.3f}")
+    print()
+    print(f"{'k':>4} {'원본과의 오차':>14}")
+    for k in [2, 5, 8, 12, 20, 40, 64]:
+        복원 = Un[:, :k] @ np.diag(σn[:k]) @ Vtn[:k]
+        오차 = np.linalg.norm(img - 복원) / np.linalg.norm(img)
+        표시 = "  ← 가장 좋음" if 오차 < 기준 * 0.55 else ""
+        print(f"{k:>4} {오차:>14.3f}{표시}")
+
+    print()
+    print("→ k 가 작으면 구조까지 잃고, 크면 잡음까지 되살아난다.")
+    print("   중간 어딘가가 최선 — 머신러닝의 과적합과 같은 구조다.")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="17-7. 연습문제">
+    # 문제 1. 랭크가 정확히 3인 행렬을 만들고, k=3 근사의 오차가 0인지 확인하세요.
+    #         (힌트: 랭크1 세 개를 더하면 됩니다)
+
+    # 문제 2. 위 그림에서 오차를 5% 이하로 하려면 k 가 몇이어야 할까요?
+    #         σ 만 보고 미리 계산해보세요.
+
+    # 문제 3. 무작위 행렬(구조가 없는)의 특이값은 어떤 모양일까요?
+    #         압축이 잘 될까요?
+
+    # 아래에 직접 써보세요
+    </div>
+
+    <details style="margin:18px 0">
+      <summary style="cursor:pointer;font-weight:600;color:var(--accent)">모범 답안 보기</summary>
+      <div class="pycell" data-packages="numpy" data-title="모범 답안">
+      rng2 = np.random.default_rng(7)
+
+      # 문제 1
+      R = sum(np.outer(rng2.normal(size=20), rng2.normal(size=30)) for _ in range(3))
+      U1, s1, V1 = np.linalg.svd(R)
+      print("문제 1: 랭크 =", np.linalg.matrix_rank(R))
+      print("        σ =", np.round(s1[:5], 6), " ← 4번째부터 0")
+      A3 = U1[:, :3] @ np.diag(s1[:3]) @ V1[:3]
+      print("        k=3 오차 =", np.linalg.norm(R - A3))
+
+      # 문제 2 — 버린 σ 로 미리 계산
+      전체 = np.linalg.norm(σ)
+      for k in range(1, 30):
+          if np.sqrt((σ[k:]**2).sum()) / 전체 <= 0.05:
+              print(f"\n문제 2: k = {k} 면 오차 {np.sqrt((σ[k:]**2).sum())/전체:.2%}")
+              break
+
+      # 문제 3 — 무작위는 σ 가 완만하게 떨어져 압축이 안 된다
+      노이즈 = rng2.normal(size=(64, 64))
+      sn2 = np.linalg.svd(노이즈, compute_uv=False)
+      누적n = np.cumsum(sn2**2) / np.sum(sn2**2)
+      print(f"\n문제 3: 무작위 행렬 — 에너지 99% 에 필요한 k = {int(np.searchsorted(누적n, 0.99))+1} / 64")
+      print(f"        그림 — 필요한 k = {int(np.searchsorted(np.cumsum(σ**2)/np.sum(σ**2), 0.99))+1} / 64")
+      print("→ 구조가 없으면 압축할 게 없다. 압축률이 곧 '구조의 양' 이다.")
+      </div>
+    </details>
+
+    <div class="practice">
+      <b>실무에서 저랭크 근사</b>
+      <ul>
+        <li><b>추천 시스템</b> — 사용자×아이템 행렬을 저랭크로. "취향 몇 가지"로 설명(18강).</li>
+        <li><b>잠재 의미 분석(LSA)</b> — 문서×단어 행렬을 저랭크로 → <b>주제</b>가 드러납니다.</li>
+        <li><b>모델 압축</b> — 딥러닝 가중치 행렬을 저랭크로 쪼개 <b>파라미터를 줄입니다</b>.
+            <b>LoRA</b> 가 정확히 이 아이디어입니다.</li>
+        <li><b>이상 탐지</b> — 저랭크로 복원한 뒤 <b>잔차가 큰 지점</b>을 이상치로 봅니다.</li>
+        <li><b>주의</b> — 데이터가 <b>비선형 구조</b>면 저랭크 근사가 잘 안 됩니다.
+            그럴 땐 커널 방법이나 오토인코더로 갑니다.</li>
+      </ul>
+    </div>
+
+    <div class="summary">
+      <h3>17강 요약</h3>
+      <ul>
+        <li>SVD 는 행렬을 <b>랭크 1 층들의 가중합</b>으로 쪼갭니다. 가중치가 σ 죠.</li>
+        <li><b>앞의 k층만 남기면 랭크 k 근사</b>. <b>Eckart-Young 정리</b>가 이게 <b>최적</b>임을 보장합니다.</li>
+        <li>오차를 <b>미리 정확히 계산</b>할 수 있습니다 — <span class="m">√(Σ 버린 σ²)</span>.</li>
+        <li>저장 용량: <span class="m">mn → k(m+n+1)</span>.</li>
+        <li><b>구조는 큰 σ 에, 잡음은 작은 σ 에 퍼집니다</b> → 꼬리를 자르면 잡음이 걸러집니다.</li>
+        <li>k 가 너무 크면 <b>잡음까지 되살아납니다</b> — 과적합과 같은 구조.</li>
+        <li>이미지 압축의 실제 표준은 DCT 입니다. SVD 의 진짜 무대는 <b>숨은 구조 찾기</b>입니다.</li>
+      </ul>
+    </div>
+
+    <div class="colab-cta">
+      <div class="colab-text">
+        <b>더 자유롭게 실험하고 싶다면</b><br>
+        이 강의의 실습만 모은 노트북을 Colab에서 열 수 있습니다.
+      </div>
+      <a class="btn" id="colab-link" href="#" target="_blank" rel="noopener">Colab에서 열기</a>
+    </div>
+
+    <p class="next-up">
+      다음 → <b>18강 · 의사역행렬과 추천 시스템</b><br>
+      역행렬이 없어도 <b>가장 합리적인 해</b>를 찾아주는 연산자.
+      그리고 넷플릭스가 빈칸을 채우는 원리.
+    </p>
+
+  </section>
+
+</div>
+
+<script src="../assets/viz.js?v=312b9476b0"></script>
+<script src="../assets/linalg.js?v=8351c85811"></script>
+<script src="../assets/pylab.js?v=cb27f20364"></script>
+<script src="../assets/pycell.js?v=6dacc4c6ce"></script>
+<script>
+(function () {
+  'use strict';
+  var M = LA.M, num = LA.num;
+
+  var N = 48;                        // 이미지 크기 (브라우저에서 SVD 를 돌리므로 작게)
+  var kind = 'p1', addNoise = false, kk = 4;
+  var img = null, svd = null;
+
+  /* ---------- 이미지 만들기 ---------- */
+  function makeImage() {
+    var a = [];
+    var rng = new V.Rng(42);
+    for (var i = 0; i < N; i++) {
+      a.push([]);
+      for (var j = 0; j < N; j++) {
+        var y = i / N, x = j / N, v;
+        if (kind === 'p1') {
+          v = 0.5 + 0.4 * Math.sin(6 * Math.PI * x) * Math.cos(4 * Math.PI * y);
+          if ((x - 0.3) * (x - 0.3) + (y - 0.65) * (y - 0.65) < 0.03) v += 0.35;
+          if (y > 0.2 && y < 0.3 && x > 0.1 && x < 0.9) v = 0.05;
+        } else if (kind === 'p2') {
+          v = 0.25 + 0.6 * (Math.floor(y * 6) % 2);          // 가로줄 = 랭크가 아주 낮다
+          if (x > 0.6) v = 1 - v;
+        } else {
+          v = 0.5 + 0.3 * Math.sin(11 * x + 7 * y)
+                  + 0.2 * Math.cos(17 * x - 5 * y)
+                  + 0.15 * Math.sin(23 * y) * Math.cos(19 * x);
+        }
+        a[i].push(Math.max(0, Math.min(1, v)));
+      }
+    }
+    if (addNoise) {
+      for (i = 0; i < N; i++) for (var j2 = 0; j2 < N; j2++) {
+        a[i][j2] = Math.max(0, Math.min(1, a[i][j2] + rng.normal() * 0.13));
+      }
+    }
+    return a;
+  }
+
+  function rebuild() {
+    img = makeImage();
+    svd = M.svdFull(img);
+    draw();
+  }
+
+  /* ---------- 그리기 ---------- */
+  function paint(canvas, mat, mode) {
+    var f = V.fitCanvas(canvas, function (w) { return w; });
+    var c = f.ctx, W = f.w;
+    var cell = W / N;
+    for (var i = 0; i < N; i++) {
+      for (var j = 0; j < N; j++) {
+        var v = mat[i][j];
+        var g;
+        if (mode === 'diff') {
+          // 차이는 0을 회색으로, ±를 파랑/빨강으로
+          var t = Math.max(-0.35, Math.min(0.35, v)) / 0.35;
+          var r = t > 0 ? 220 : 60 + 160 * (1 + t);
+          var b = t < 0 ? 220 : 60 + 160 * (1 - t);
+          g = 'rgb(' + Math.round(r) + ',' + Math.round(110 + 60 * (1 - Math.abs(t))) + ',' + Math.round(b) + ')';
+        } else {
+          var q = Math.round(Math.max(0, Math.min(1, v)) * 255);
+          g = 'rgb(' + q + ',' + q + ',' + q + ')';
+        }
+        c.fillStyle = g;
+        c.fillRect(j * cell, i * cell, cell + 0.6, cell + 0.6);
+      }
+    }
+  }
+
+  function drawSpectrum() {
+    var canvas = document.getElementById('cv-spec');
+    var f = V.fitCanvas(canvas, function (w) { return Math.max(120, Math.min(w * 0.28, 170)); });
+    var c = f.ctx, W = f.w, H = f.h;
+    var pad = { l: 40, r: 10, t: 10, b: 22 };
+    var pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
+
+    var sig = svd.sigma;
+    var maxS = sig[0] || 1;
+
+    c.strokeStyle = V.css('--border');
+    c.lineWidth = 1;
+    c.beginPath();
+    c.moveTo(pad.l, pad.t); c.lineTo(pad.l, pad.t + ph); c.lineTo(pad.l + pw, pad.t + ph);
+    c.stroke();
+
+    var show = Math.min(sig.length, 40);
+    var bw = pw / show;
+    for (var i = 0; i < show; i++) {
+      var h = (sig[i] / maxS) * ph;
+      c.fillStyle = i < kk ? V.css('--accent') : V.css('--border');
+      c.fillRect(pad.l + i * bw + 1, pad.t + ph - h, Math.max(1, bw - 2), h);
+    }
+
+    c.font = '500 10px ' + V.FONT;
+    c.fillStyle = V.css('--text-dim');
+    c.textAlign = 'right'; c.textBaseline = 'middle';
+    c.fillText(num(maxS, 1), pad.l - 5, pad.t + 2);
+    c.fillText('0', pad.l - 5, pad.t + ph);
+    c.textAlign = 'center'; c.textBaseline = 'top';
+    c.fillText('← 파란 막대 ' + kk + '개만 사용', pad.l + pw / 2, pad.t + ph + 5);
+  }
+
+  function draw() {
+    var k = Math.min(kk, N);
+    var Ak = M.lowRank(svd, k, N, N);
+    var diff = [];
+    var num2 = 0, den = 0;
+    for (var i = 0; i < N; i++) {
+      diff.push([]);
+      for (var j = 0; j < N; j++) {
+        var d = img[i][j] - Ak[i][j];
+        diff[i].push(d);
+        num2 += d * d;
+        den += img[i][j] * img[i][j];
+      }
+    }
+
+    paint(document.getElementById('cv-orig'), img, 'gray');
+    paint(document.getElementById('cv-approx'), Ak, 'gray');
+    paint(document.getElementById('cv-diff'), diff, 'diff');
+    drawSpectrum();
+
+    var 저장 = k * (N + N + 1), 원본 = N * N;
+    var 총에너지 = svd.sigma.reduce(function (s, x) { return s + x * x; }, 0);
+    var 담김 = svd.sigma.slice(0, k).reduce(function (s, x) { return s + x * x; }, 0);
+
+    V.setText('#r-k', String(k));
+    V.setText('#r-err', (Math.sqrt(num2 / den) * 100).toFixed(2) + '%');
+    V.setText('#r-size', 저장 + ' / ' + 원본 + ' (' + (저장 / 원본 * 100).toFixed(0) + '%)');
+    V.setText('#r-ratio', svd.sigma[k - 1] > 1e-9
+      ? num(svd.sigma[0] / svd.sigma[k - 1], 1) : '∞');
+    V.setText('#r-energy', (담김 / 총에너지 * 100).toFixed(2) + '%');
+  }
+
+  V.range('k', function (v) { kk = v; if (svd) draw(); });
+  V.check('noise', function (on) { addNoise = on; rebuild(); });
+  V.click('p1', function () { kind = 'p1'; rebuild(); });
+  V.click('p2', function () { kind = 'p2'; rebuild(); });
+  V.click('p3', function () { kind = 'p3'; rebuild(); });
+
+  V.onRedraw(function () { if (svd) draw(); });
+  rebuild();
+
+  var a2 = document.getElementById('colab-link');
+  if (a2) a2.href = 'https://colab.research.google.com/github/mioon1402/timeseriesdata/blob/main/notebooks/L17-lowrank.ipynb';
+})();
+</script>
+</body>
+</html>

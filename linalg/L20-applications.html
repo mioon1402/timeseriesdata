@@ -1,0 +1,1041 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>복소 벡터공간과 응용 · 선형대수</title>
+<meta name="description" content="회전의 복소 고윳값, 에르미트·유니터리 행렬, 그리고 PCA·페이지랭크·푸리에·희소행렬. 선형대수 20강의 마지막.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%E2%9E%97%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css?v=b7dfb076b2">
+<link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">선형대수 20강 · 응용 <span class="small">(마지막 강의)</span></p>
+    <h1>복소 벡터공간과 응용</h1>
+    <p class="lede">
+      13강에서 회전 행렬의 고윳값을 구하다 <b>루트 안이 음수</b>가 되어 멈췄었죠.
+      이번엔 그걸 끝까지 갑니다. 그리고 <b>복소수가 나오는 게 이상한 일이 아니라
+      "회전하고 있다"는 신호</b>라는 걸 보게 됩니다.
+      마지막으로 지금까지 배운 것들이 <b>PCA · 페이지랭크 · 푸리에 변환</b>에서
+      어떻게 한꺼번에 쓰이는지 확인하며 20강을 마칩니다.
+    </p>
+  </header>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 강의에서 배우는 것</b>
+      <ol>
+        <li><a href="#s0">기초 다지기 — 복소수 3분 요약</a></li>
+        <li><a href="#s1">왜 복소 고윳값이 나오는가</a></li>
+        <li><a href="#s2">복소 고윳값 = 회전 + 확대 (직접 보기)</a></li>
+        <li><a href="#s3">켤레전치와 에르미트 행렬</a></li>
+        <li><a href="#s4">유니터리 행렬과 푸리에 변환</a></li>
+        <li><a href="#s5">PCA — 배운 것의 총집합</a></li>
+        <li><a href="#s6">페이지랭크 (직접 보기)</a></li>
+        <li><a href="#s7">희소행렬 — 진짜 큰 문제</a></li>
+        <li><a href="#s8">numpy 로 확인하기</a></li>
+        <li><a href="#s9">20강 전체를 한 장으로</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s0">0. 기초 다지기 — 복소수 3분 요약</h2>
+    <p>
+      복소수를 몰라도 괜찮습니다. <b>이 강의에 필요한 건 딱 세 가지</b>뿐입니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">① i 는 "제곱하면 −1"</div>
+      <div class="eq" style="font-size:15px">
+        i² = −1, &nbsp; z = a + bi
+      </div>
+      <ul class="where">
+        <li><span class="sym">그림으로</span><span class="desc">복소수는 <b>평면 위의 점</b>입니다.
+            가로가 실수부 a, 세로가 허수부 b. 그냥 <b>2차원 벡터</b>라고 봐도 됩니다</span></li>
+      </ul>
+    </div>
+
+    <div class="formula">
+      <div class="name">② 곱셈은 "회전 + 확대"</div>
+      <div class="eq" style="font-size:15px">
+        z = r·e<sup>iθ</sup> &nbsp;=&nbsp; r(cos θ + i sin θ)
+      </div>
+      <ul class="where">
+        <li><span class="sym">r = |z|</span><span class="desc"><b>크기</b>(원점에서의 거리) = √(a²+b²)</span></li>
+        <li><span class="sym">θ</span><span class="desc"><b>각도</b>. z 를 곱한다는 건
+            <b>θ만큼 돌리고 r배 늘리는 것</b>입니다.
+            <b>이 한 줄이 이 강의의 핵심</b>입니다</span></li>
+        <li><span class="sym">i 를 곱하면</span><span class="desc">r=1, θ=90°.
+            <b>딱 90° 회전</b>입니다. i² = −1 은 "90° 두 번 = 180° = 뒤집기"라는 뜻이죠</span></li>
+      </ul>
+    </div>
+
+    <div class="formula">
+      <div class="name">③ 켤레 — 허수부의 부호를 뒤집기</div>
+      <div class="eq" style="font-size:15px">
+        z̄ = a − bi, &nbsp;&nbsp; z z̄ = a² + b² = |z|²
+      </div>
+      <ul class="where">
+        <li><span class="sym">왜 필요한가</span><span class="desc">복소수에서는
+            <span class="m">z²</span> 이 음수가 될 수 있어 <b>길이 재기가 망가집니다</b>.
+            <span class="m">z z̄</span> 를 쓰면 <b>항상 0 이상</b>이 되죠.
+            3절에서 이게 그대로 벡터로 확장됩니다</span></li>
+      </ul>
+    </div>
+
+    <h2 id="s1">1. 왜 복소 고윳값이 나오는가</h2>
+    <p>
+      13강에서 회전 행렬의 특성방정식을 풀다 막혔었죠. 다시 봅시다.
+    </p>
+
+    <div class="formula">
+      <div class="name">90° 회전의 고윳값</div>
+      <div class="eq" style="font-size:14.5px;line-height:2.1;text-align:left;padding-left:20px">
+        A =
+        <span class="mat" style="--cols:2"><span>0</span><span>−1</span><span>1</span><span>0</span></span>
+        &nbsp;&nbsp;
+        det(A − λI) = λ² + 1 = 0<br>
+        ⇒ λ = <b>i, −i</b>
+      </div>
+      <ul class="where">
+        <li><span class="sym">기하학적 의미</span><span class="desc"><b>당연합니다.</b>
+            90° 돌렸을 때 <b>방향이 안 변하는 실수 벡터는 없으니까요.</b>
+            실수 고유벡터가 없는 게 정상입니다</span></li>
+        <li><span class="sym">그럼 λ = i 는</span><span class="desc">|i| = 1 이니 <b>크기는 안 변하고</b>,
+            arg(i) = 90° 이니 <b>90° 돌린다</b>는 뜻.
+            <b>고윳값이 변환을 정확히 설명하고 있습니다</b></span></li>
+      </ul>
+    </div>
+
+    <div class="callout">
+      <b>복소 고윳값을 읽는 법 — 이 두 줄이면 끝</b><br><br>
+      실수 2×2 행렬의 고윳값이 <span class="m">λ = ρ e<sup>iθ</sup></span> 로 나왔다면:
+      <br><br>
+      <b>|λ| = ρ</b> → 한 번 적용할 때마다 <b>ρ배 커진다</b><br>
+      <b>arg λ = θ</b> → 한 번 적용할 때마다 <b>θ 만큼 돈다</b>
+      <br><br>
+      그래서 점을 계속 찍으면 <b>나선</b>이 그려집니다.
+      <b>ρ &lt; 1 이면 안으로 감기고(안정), ρ &gt; 1 이면 밖으로 퍼지고(불안정),
+      ρ = 1 이면 동그란 궤도</b>를 돕니다.
+    </div>
+
+    <h2 id="s2">2. 복소 고윳값 = 회전 + 확대</h2>
+    <p>
+      말로만 하면 와닿지 않으니 <b>직접 보세요</b>.
+      왼쪽은 점 하나에 A 를 반복해서 곱한 <b>궤도</b>,
+      오른쪽은 그 고윳값을 <b>복소평면</b>에 찍은 것입니다.
+    </p>
+
+    <div class="panel">
+      <p class="panel-title">A 를 반복해서 곱하면 — 궤도와 고윳값</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px">
+        <div>
+          <p class="panel-title" style="text-align:center;font-size:12px">궤도 x, Ax, A²x, …</p>
+          <div class="canvas-wrap"><canvas id="cv-orb"></canvas></div>
+        </div>
+        <div>
+          <p class="panel-title" style="text-align:center;font-size:12px">복소평면 위의 고윳값</p>
+          <div class="canvas-wrap"><canvas id="cv-cx"></canvas></div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">|λ| — 한 걸음마다 몇 배</span><span class="val" id="rho-val">0.95</span></span>
+          <input type="range" id="rho" min="0.6" max="1.25" step="0.01" value="0.95">
+        </label>
+        <label class="ctrl">
+          <span class="label-row"><span class="name">arg λ — 한 걸음마다 몇 도</span><span class="val" id="ang-val">32</span></span>
+          <input type="range" id="ang" min="0" max="120" step="1" value="32">
+        </label>
+        <label class="ctrl">
+          <span class="label-row"><span class="name">찌그러뜨리기 <span class="small">(회전처럼 안 보이게)</span></span><span class="val" id="skw-val">1.6</span></span>
+          <input type="range" id="skw" min="1" max="3" step="0.1" value="1.6">
+        </label>
+        <label class="ctrl">
+          <span class="label-row"><span class="name">몇 걸음까지</span><span class="val" id="stp-val">40</span></span>
+          <input type="range" id="stp" min="1" max="80" step="1" value="40">
+        </label>
+      </div>
+
+      <div class="readout">
+        <div class="stat accent"><span class="k">행렬 A</span><span class="v" id="c-A">–</span></div>
+        <div class="stat purple"><span class="k">고윳값 λ</span><span class="v" id="c-lam">–</span></div>
+        <div class="stat pos"><span class="k">|λ| = √det</span><span class="v" id="c-abs">–</span></div>
+        <div class="stat warn"><span class="k">한 걸음 회전각</span><span class="v" id="c-arg">–</span></div>
+        <div class="stat neg"><span class="k">실수 고유벡터</span><span class="v" id="c-real">–</span></div>
+        <div class="stat"><span class="k">장기적으로</span><span class="v" id="c-fate">–</span></div>
+      </div>
+    </div>
+
+    <div class="takeaway">
+      <b>찌그러뜨리기 슬라이더를 올려보세요.</b> 행렬 A 의 숫자는 회전 행렬과
+      전혀 달라 보이는데도 <b>궤도는 여전히 (찌그러진) 나선</b>이고,
+      <b>고윳값은 그대로</b>입니다.
+      <br><br>
+      숫자만 봐서는 절대 모를 "이 변환은 사실 회전이다"를
+      <b>복소 고윳값 하나가 알려줍니다</b>.
+      <br><br>
+      <b>|λ| 를 1보다 크게 해보세요.</b> 나선이 밖으로 폭주합니다.
+      제어공학·경제 모형·신경망 학습이 <b>발산하느냐 수렴하느냐</b>가
+      정확히 이 <span class="m">|λ|</span> 하나로 결정됩니다.
+    </div>
+
+    <div class="formula">
+      <div class="name">스펙트럼 반지름 — 안정성의 판정 기준</div>
+      <div class="eq" style="font-size:15px">
+        ρ(A) = max |λ<sub>i</sub>|
+        &nbsp;&nbsp;
+        A<sup>k</sup> → 0 &nbsp;⟺&nbsp; <b>ρ(A) &lt; 1</b>
+      </div>
+      <ul class="where">
+        <li><span class="sym">쓰임</span><span class="desc"><b>마르코프 연쇄</b>가 수렴하는가,
+            <b>순환신경망</b>이 폭주하는가, <b>수치해법</b>이 발산하는가 —
+            전부 이 한 숫자로 판정합니다</span></li>
+        <li><span class="sym">주의</span><span class="desc">ρ &lt; 1 이어도 <b>초반에는 크게 튈 수 있습니다</b>.
+            대각화가 안 되는 행렬(19강 전단)에서 특히 그렇습니다.
+            "결국 0으로 간다"와 "가는 길이 얌전하다"는 다른 이야기입니다</span></li>
+      </ul>
+    </div>
+
+    <h2 id="s3">3. 켤레전치와 에르미트 행렬</h2>
+    <p>
+      복소 벡터에서는 <b>내적의 정의를 손봐야</b> 합니다.
+      안 그러면 <b>길이가 0이 아닌데 0으로 나오는</b> 황당한 일이 생깁니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">그냥 전치를 쓰면 생기는 사고</div>
+      <div class="eq" style="font-size:14.5px;line-height:2">
+        z =
+        <span class="mat"><span>1+i</span><span>1−i</span></span>
+        &nbsp;⇒&nbsp;
+        z<sup>T</sup>z = (1+i)² + (1−i)² = 2i + (−2i) = <b>0</b>
+        &nbsp;<span class="small">← 영벡터가 아닌데!</span>
+      </div>
+    </div>
+
+    <div class="formula">
+      <div class="name">켤레전치 (에르미트 전치)</div>
+      <div class="eq" style="font-size:15.5px">
+        A<sup>H</sup> = Ā<sup>T</sup>
+        &nbsp;&nbsp;&nbsp;
+        ⟨z, w⟩ = z<sup>H</sup>w
+        &nbsp;&nbsp;&nbsp;
+        ‖z‖² = z<sup>H</sup>z
+      </div>
+      <ul class="where">
+        <li><span class="sym">하는 일</span><span class="desc"><b>전치한 뒤 모든 성분의 켤레</b>를 취합니다.
+            numpy 로는 <span class="m">A.conj().T</span>, 또는 <span class="m">A.T.conj()</span></span></li>
+        <li><span class="sym">고쳐진다</span><span class="desc">위의 z 로 계산하면
+            <span class="m">z<sup>H</sup>z = |1+i|² + |1−i|² = 2 + 2 = 4</span>,
+            <b>‖z‖ = 2</b>. 제대로 나옵니다</span></li>
+        <li><span class="sym">실수라면</span><span class="desc">켤레가 자기 자신이니
+            <span class="m">A<sup>H</sup> = A<sup>T</sup></span>.
+            <b>지금까지 배운 게 특수한 경우였던</b> 셈입니다</span></li>
+      </ul>
+    </div>
+
+    <div class="formula">
+      <div class="name">에르미트 행렬 = 복소판 대칭행렬</div>
+      <div class="eq" style="font-size:15.5px">
+        A<sup>H</sup> = A
+      </div>
+      <ul class="where">
+        <li><span class="sym">15강이 그대로</span><span class="desc"><b>고윳값이 전부 실수</b>이고,
+            <b>고유벡터가 서로 직교</b>합니다.
+            스펙트럼 정리가 <span class="m">A = UΛU<sup>H</sup></span> 로 확장됩니다</span></li>
+        <li><span class="sym">대각 성분</span><span class="desc">자기 켤레와 같아야 하므로
+            <b>반드시 실수</b>입니다</span></li>
+        <li><span class="sym">쓰이는 곳</span><span class="desc"><b>양자역학</b>의 관측량은
+            전부 에르미트 연산자입니다 — "측정값(고윳값)이 실수여야 하니까"가
+            그 이유입니다. 신호처리의 <b>공분산 행렬</b>도 에르미트죠</span></li>
+      </ul>
+    </div>
+
+    <h2 id="s4">4. 유니터리 행렬과 푸리에 변환</h2>
+
+    <div class="formula">
+      <div class="name">유니터리 = 복소판 직교행렬</div>
+      <div class="eq" style="font-size:15.5px">
+        U<sup>H</sup>U = I
+        &nbsp;&nbsp;⇒&nbsp;&nbsp;
+        ‖Ux‖ = ‖x‖
+      </div>
+      <ul class="where">
+        <li><span class="sym">뜻</span><span class="desc"><b>길이와 각도를 보존</b>합니다.
+            복소공간에서의 "회전"이죠. 모든 고윳값의 <b>크기가 정확히 1</b>입니다</span></li>
+        <li><span class="sym">왜 좋은가</span><span class="desc">역행렬이 <b>그냥 켤레전치</b>입니다.
+            계산이 공짜이고, <b>수치적으로 절대 안정</b>합니다(11강 QR 과 같은 이유)</span></li>
+      </ul>
+    </div>
+
+    <div class="formula">
+      <div class="name">이산 푸리에 변환 (DFT) 도 유니터리 행렬이다</div>
+      <div class="eq" style="font-size:14.5px;line-height:2">
+        F<sub>jk</sub> = <sup>1</sup>⁄<sub>√N</sub> e<sup>−2πi jk / N</sup>
+        &nbsp;&nbsp;&nbsp; F<sup>H</sup>F = I
+      </div>
+      <ul class="where">
+        <li><span class="sym">놀라운 사실</span><span class="desc"><b>푸리에 변환은 그냥 행렬 곱셈</b>입니다.
+            신호를 <b>"주파수 기저"로 갈아타는 좌표 변환</b>(19강 6절)일 뿐이죠</span></li>
+        <li><span class="sym">기저벡터</span><span class="desc">F 의 각 행이
+            <b>특정 주파수의 사인/코사인 파</b>입니다.
+            그 파들과의 <b>내적</b>이 곧 "그 주파수가 얼마나 들어있나"입니다(5강)</span></li>
+        <li><span class="sym">FFT 란</span><span class="desc">이 행렬 곱셈은 O(N²) 입니다.
+            <b>고속 푸리에 변환</b>은 F 의 규칙적인 구조를 이용해
+            <b>O(N log N)</b> 으로 줄인 알고리즘입니다. 결과는 완전히 같습니다</span></li>
+        <li><span class="sym">왜 유니터리가 중요한가</span><span class="desc">에너지가 보존됩니다 —
+            <b>파스발 정리</b>. 시간 영역의 에너지 = 주파수 영역의 에너지</span></li>
+      </ul>
+    </div>
+
+    <h2 id="s5">5. PCA — 배운 것의 총집합</h2>
+    <p>
+      <b>주성분 분석</b>은 이 강의 20개를 한 번에 쓰는 응용입니다.
+      각 단계가 어느 강의에서 왔는지 표시해 두었습니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">PCA 절차</div>
+      <div class="eq" style="font-size:14px;line-height:2.2;text-align:left;padding-left:18px">
+        ① 각 열에서 <b>평균을 뺀다</b> &nbsp;<span class="small">(중심 이동)</span><br>
+        ② <b>공분산 행렬</b> <span class="m">C = X<sup>T</sup>X/(n−1)</span>
+           &nbsp;<span class="small">(대칭! → 15강)</span><br>
+        ③ C 의 <b>고유분해</b> <span class="m">C = QΛQ<sup>T</sup></span>
+           &nbsp;<span class="small">(직교 고유벡터 → 15강)</span><br>
+        ④ <b>큰 λ 순으로</b> 축을 고른다 &nbsp;<span class="small">(저랭크 근사 → 17강)</span><br>
+        ⑤ 데이터를 그 축에 <b>정사영</b> &nbsp;<span class="small">(9강)</span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">λ 의 뜻</span><span class="desc">그 방향으로의 <b>분산</b>입니다.
+            "가장 많이 퍼진 방향"이 <b>제1주성분</b>이죠</span></li>
+        <li><span class="sym">실무에서는</span><span class="desc"><b>C 를 만들지 않고
+            X 의 SVD 를 직접</b> 씁니다. <span class="m">X = UΣV<sup>T</sup></span> 이면
+            V 가 주성분이고 <span class="m">σ²/(n−1)</span> 이 분산입니다(16강)</span></li>
+      </ul>
+    </div>
+
+    <div class="pitfall">
+      <b>왜 공분산 행렬을 만들면 안 되는가</b><br>
+      <span class="m">X<sup>T</sup>X</span> 를 만드는 순간 <b>조건수가 제곱</b>이 됩니다(16강).
+      X 의 조건수가 10<sup>5</sup> 면 <span class="m">X<sup>T</sup>X</span> 는 10<sup>10</sup> —
+      double 정밀도(약 10<sup>16</sup>)를 상당히 잡아먹죠.
+      <b>SVD 를 직접 쓰면 이 손실이 없습니다.</b>
+      <span class="m">sklearn.decomposition.PCA</span> 도 내부에서 SVD 를 씁니다.
+      <br><br>
+      그리고 <b>스케일을 반드시 맞추세요</b>. 키(cm)와 몸무게(kg)를 그대로 넣으면
+      단위가 큰 쪽이 <b>제1주성분을 독차지</b>합니다.
+    </div>
+
+    <h2 id="s6">6. 페이지랭크 — 고유벡터로 검색 순위 매기기</h2>
+    <p>
+      구글을 만든 알고리즘입니다. 원리는 딱 한 문장입니다.
+      <b>"중요한 페이지가 링크한 페이지는 중요하다."</b>
+      순환 정의처럼 보이지만, <b>이건 고유벡터 문제</b>입니다.
+    </p>
+
+    <div class="panel">
+      <p class="panel-title">링크 구조에서 순위 뽑기 — 원의 크기가 페이지랭크</p>
+      <div class="canvas-wrap"><canvas id="cv-pr"></canvas></div>
+
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">반복 횟수 (거듭제곱법)</span><span class="val" id="it-val">1</span></span>
+          <input type="range" id="it" min="0" max="40" step="1" value="1">
+        </label>
+        <label class="ctrl">
+          <span class="label-row"><span class="name">감쇠 계수 d <span class="small">(딴 데로 샐 확률 1−d)</span></span><span class="val" id="dp-val">0.85</span></span>
+          <input type="range" id="dp" min="0.5" max="1" step="0.01" value="0.85">
+        </label>
+      </div>
+
+      <div class="controls">
+        <button class="btn" id="pg-a">기본 구조</button>
+        <button class="btn" id="pg-b">스타형 (한 곳으로 집중)</button>
+        <button class="btn" id="pg-c">고리형 (모두 평등)</button>
+      </div>
+
+      <div class="readout">
+        <div class="stat accent"><span class="k">현재 순위</span><span class="v" id="p-r">–</span></div>
+        <div class="stat pos"><span class="k">1위</span><span class="v" id="p-top">–</span></div>
+        <div class="stat purple"><span class="k">합 (확률이므로 1)</span><span class="v" id="p-sum">–</span></div>
+        <div class="stat warn"><span class="k">수렴값과의 차이</span><span class="v" id="p-gap">–</span></div>
+        <div class="stat neg"><span class="k">Gr = r 인가 (λ=1)</span><span class="v" id="p-fix">–</span></div>
+        <div class="stat"><span class="k">2번째 고윳값 크기</span><span class="v" id="p-l2">–</span></div>
+      </div>
+    </div>
+
+    <div class="takeaway">
+      <b>반복 횟수를 0에서부터 올려보세요.</b>
+      처음엔 모두 똑같은 값에서 시작하는데, 몇 번만 곱해도 <b>순위가 자리를 잡습니다</b>.
+      <br><br>
+      이게 <b>거듭제곱법</b>(13강)입니다.
+      웹 전체(수십억 페이지)에서도 <b>행렬 곱셈 몇십 번</b>이면 끝나죠.
+      고유벡터를 정직하게 구하는 건 불가능하지만, <b>필요한 건 λ=1 짜리 하나</b>뿐이라
+      거듭제곱법이 완벽하게 맞아떨어집니다.
+    </div>
+
+    <div class="formula">
+      <div class="name">페이지랭크 방정식</div>
+      <div class="eq" style="font-size:15.5px;line-height:2">
+        G = d·A + <sup>(1−d)</sup>⁄<sub>n</sub> J
+        &nbsp;&nbsp;&nbsp;
+        <b>G r = r</b>
+        &nbsp;<span class="small">← λ = 1 인 고유벡터!</span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">A</span><span class="desc"><b>링크 행렬</b>.
+            페이지 j 가 내보내는 링크에 <b>자기 점수를 똑같이 나눠줍니다</b>.
+            열의 합이 1 이 되죠(확률행렬)</span></li>
+        <li><span class="sym">d = 0.85</span><span class="desc"><b>감쇠 계수</b>.
+            서퍼가 85% 확률로 링크를 따라가고,
+            15% 확률로 <b>아무 페이지나 새로 엽니다</b></span></li>
+        <li><span class="sym">J</span><span class="desc">전부 1인 행렬.
+            "아무 데나 점프"를 담당합니다</span></li>
+        <li><span class="sym">왜 감쇠가 필요한가</span><span class="desc">나가는 링크가 없는 페이지는
+            <b>점수를 먹고 사라집니다</b>. 서로만 링크하는 무리는
+            <b>점수를 독식</b>하고요. 점프가 이 두 문제를 한 번에 없앱니다.
+            그리고 <b>λ=1 고유벡터가 유일함을 보장</b>합니다(페론-프로베니우스 정리)</span></li>
+        <li><span class="sym">수렴 속도</span><span class="desc">두 번째로 큰 고윳값의 크기가
+            <b>정확히 d</b> 입니다. d=0.85 면 한 번 곱할 때마다 오차가 <b>0.85배</b>씩
+            줄어듭니다. 위 도구의 마지막 칸을 보세요</span></li>
+      </ul>
+    </div>
+
+    <h2 id="s7">7. 희소행렬 — 진짜 큰 문제</h2>
+    <p>
+      웹 링크 행렬은 수십억 × 수십억입니다.
+      <b>다 저장하면 우주의 원자보다 많은 숫자</b>가 필요하죠. 어떻게 할까요?
+    </p>
+
+    <div class="formula">
+      <div class="name">희소행렬 — 0이 아닌 것만 저장한다</div>
+      <div class="eq" style="font-size:14.5px;line-height:2;text-align:left;padding-left:18px">
+        1,000,000 × 1,000,000 <b>밀집</b> → 8 TB<br>
+        같은 크기, 행마다 10개만 0이 아니면 → 약 <b>120 MB</b>
+      </div>
+      <ul class="where">
+        <li><span class="sym">저장 방식</span><span class="desc"><b>(행, 열, 값)</b> 세 쌍만 적습니다.
+            scipy 의 <span class="m">csr_matrix</span> 가 표준이죠</span></li>
+        <li><span class="sym">할 수 있는 것</span><span class="desc"><b>행렬 × 벡터</b>는 아주 빠릅니다.
+            그래서 <b>거듭제곱법·켤레기울기법</b> 같은 <b>반복법</b>이 가능합니다</span></li>
+        <li><span class="sym">할 수 없는 것</span><span class="desc"><b>역행렬</b>과 <b>LU 분해</b>는 피하세요.
+            0 이던 자리가 계산 중에 <b>0이 아니게 되면서</b>(fill-in)
+            메모리가 폭발합니다</span></li>
+        <li><span class="sym">교훈</span><span class="desc"><b>큰 문제에서는
+            "A 를 분해한다"가 아니라 "Ax 를 계산한다"만 허용됩니다.</b>
+            현대 수치선형대수의 갈림길이 여기입니다</span></li>
+      </ul>
+    </div>
+
+    <h2 id="s8">8. numpy 로 확인하기</h2>
+
+    <p class="cell-note">① 복소 고윳값은 회전각을 알려준다</p>
+    <div class="pycell">
+    import numpy as np
+    np.set_printoptions(precision=4, suppress=True)
+
+    def 회전(도):
+        t = np.radians(도)
+        return np.array([[np.cos(t), -np.sin(t)], [np.sin(t), np.cos(t)]])
+
+    for 도 in (90, 30, 180):
+        λ = np.linalg.eigvals(회전(도))
+        크기 = np.abs(λ[0])
+        각도 = np.degrees(np.angle(λ[0]))
+        print(f"{도:3d}° 회전 → λ = {np.round(λ, 4)}"
+              f"   |λ| = {크기:.4f}   arg λ = {abs(각도):.1f}°")
+    print("\n→ |λ| 는 확대율, arg λ 는 회전각. 고윳값이 변환을 그대로 설명한다.")
+    </div>
+
+    <p class="cell-note">② 회전처럼 안 보이는 행렬도 사실은 회전</p>
+    <div class="pycell">
+    import numpy as np
+    np.set_printoptions(precision=4, suppress=True)
+
+    t = np.radians(32)
+    R = 0.95 * np.array([[np.cos(t), -np.sin(t)], [np.sin(t), np.cos(t)]])
+    B = np.array([[1.6, 0.], [0., 1.]])     # 가로로 늘려서 찌그러뜨린다
+    A = B @ R @ np.linalg.inv(B)
+
+    print("A =\n", A, "  ← 회전 행렬처럼 안 보인다")
+    λ = np.linalg.eigvals(A)
+    print("\nλ =", np.round(λ, 4))
+    print("|λ| =", round(float(np.abs(λ[0])), 4), " ← 0.95, 한 걸음마다 5% 줄어든다")
+    print("arg λ =", round(float(np.degrees(np.angle(λ[0]))), 2), "° ← 한 걸음마다 32도 회전")
+
+    x = np.array([3., 0.])
+    for k in (0, 10, 40):
+        print(f"  A^{k:2d} x = {np.round(np.linalg.matrix_power(A, k) @ x, 4)}"
+              f"   길이 {np.linalg.norm(np.linalg.matrix_power(A, k) @ x):.4f}")
+    </div>
+
+    <p class="cell-note">③ 켤레전치가 왜 필요한가</p>
+    <div class="pycell">
+    import numpy as np
+
+    z = np.array([1 + 1j, 1 - 1j])
+
+    print("z    =", z)
+    print("zᵀz  =", z @ z, "  ← 영벡터가 아닌데 0 이다!")
+    print("zᴴz  =", np.vdot(z, z), "  ← 켤레전치를 쓰면 제대로 나온다")
+    print("‖z‖  =", np.linalg.norm(z))
+    print()
+    print("np.vdot 은 첫 인자를 자동으로 켤레 취한다:",
+          np.allclose(np.vdot(z, z), z.conj() @ z))
+    </div>
+
+    <p class="cell-note">④ 에르미트 행렬 — 고윳값이 전부 실수</p>
+    <div class="pycell">
+    import numpy as np
+    np.set_printoptions(precision=4, suppress=True)
+
+    H = np.array([[2 + 0j, 1 - 1j],
+                  [1 + 1j, 3 + 0j]])
+
+    print("Hᴴ = H 인가:", np.allclose(H, H.conj().T))
+    λ, U = np.linalg.eigh(H)                # eigh 는 에르미트 전용
+    print("고윳값 =", λ, "  ← 전부 실수")
+    print("\n고유벡터가 직교하는가 (UᴴU = I):", np.allclose(U.conj().T @ U, np.eye(2)))
+    print("복원 UΛUᴴ = H:", np.allclose(U @ np.diag(λ) @ U.conj().T, H))
+    print("\n대각 성분은 반드시 실수:", H[0, 0], H[1, 1])
+    </div>
+
+    <p class="cell-note">⑤ 푸리에 변환은 유니터리 행렬 곱셈이다</p>
+    <div class="pycell">
+    import numpy as np
+    np.set_printoptions(precision=4, suppress=True)
+
+    N = 4
+    j, k = np.meshgrid(np.arange(N), np.arange(N), indexing="ij")
+    F = np.exp(-2j * np.pi * j * k / N) / np.sqrt(N)
+
+    print("F =\n", np.round(F, 3))
+    print("\n유니터리인가 (FᴴF = I):", np.allclose(F.conj().T @ F, np.eye(N)))
+    print("고윳값의 크기 (전부 1):", np.round(np.abs(np.linalg.eigvals(F)), 4))
+
+    x = np.array([1., 2., 3., 4.])
+    print("\nF x       =", np.round(F @ x, 4))
+    print("np.fft/√N =", np.round(np.fft.fft(x) / np.sqrt(N), 4))
+    print("\n에너지 보존 (파스발):  ‖x‖ =", round(float(np.linalg.norm(x)), 6),
+          "  ‖Fx‖ =", round(float(np.linalg.norm(F @ x)), 6))
+    </div>
+
+    <p class="cell-note">⑥ PCA — 공분산 고유분해와 SVD 가 같다</p>
+    <div class="pycell">
+    import numpy as np
+    np.set_printoptions(precision=4, suppress=True)
+
+    rng = np.random.default_rng(3)
+    X = rng.normal(size=(200, 3)) @ np.array([[2., 1., 0.],
+                                              [0., 1., 0.],
+                                              [0., 0., 0.3]])
+    Xc = X - X.mean(axis=0)                  # ① 중심 이동
+
+    # 길 A — 공분산 행렬의 고유분해
+    C = Xc.T @ Xc / (len(X) - 1)             # ② 대칭행렬
+    λ = np.sort(np.linalg.eigvalsh(C))[::-1] # ③ 고유분해
+
+    # 길 B — X 의 SVD (실무에서 쓰는 길)
+    U, s, Vt = np.linalg.svd(Xc, full_matrices=False)
+    분산 = s ** 2 / (len(X) - 1)
+
+    print("공분산 고윳값 =", λ)
+    print("SVD 로 구한 분산 =", 분산)
+    print("같은가:", np.allclose(λ, 분산))
+    print()
+    print("설명 비율 =", np.round(분산 / 분산.sum() * 100, 2), "%")
+    print("→ 앞의 2개로", round(float((분산[:2].sum() / 분산.sum()) * 100), 1), "% 를 설명한다.")
+    </div>
+
+    <p class="cell-note">⑦ AᵀA 를 만들면 조건수가 제곱된다 (직접 측정)</p>
+    <div class="pycell">
+    import numpy as np
+
+    rng = np.random.default_rng(0)
+    U0, _ = np.linalg.qr(rng.normal(size=(50, 6)))
+    V0, _ = np.linalg.qr(rng.normal(size=(6, 6)))
+    X = U0 @ np.diag([1e3, 1e2, 10, 1, 0.1, 3.7e-3]) @ V0.T
+
+    cX = np.linalg.cond(X)
+    cC = np.linalg.cond(X.T @ X)
+    print(f"X 의 조건수      = {cX:.3e}")
+    print(f"XᵀX 의 조건수    = {cC:.3e}")
+    print(f"비율            = {cC / cX:.3e}   ← 대략 조건수만큼 나빠졌다 (제곱)")
+    print(f"\ndouble 정밀도 여유 ≈ 1e16 이므로 XᵀX 는 유효숫자를 크게 잃는다.")
+    print("→ PCA·최소제곱은 공분산을 만들지 말고 SVD/QR 을 직접 쓴다.")
+    </div>
+
+    <p class="cell-note">⑧ 페이지랭크 — 거듭제곱법과 고유벡터가 일치</p>
+    <div class="pycell">
+    import numpy as np
+    np.set_printoptions(precision=4, suppress=True)
+
+    이름 = ["A", "B", "C", "D"]
+    링크 = {0: [1, 2], 1: [2], 2: [0], 3: [2]}     # 페이지 j → 어디로
+
+    n = 4
+    A = np.zeros((n, n))
+    for j, outs in 링크.items():
+        if outs:
+            for i in outs:
+                A[i, j] = 1 / len(outs)
+        else:
+            A[:, j] = 1 / n                        # 막다른 페이지는 균등 분배
+    d = 0.85
+    G = d * A + (1 - d) / n * np.ones((n, n))
+
+    r = np.ones(n) / n                             # ① 거듭제곱법
+    for k in range(1, 41):
+        r = G @ r
+        if k in (1, 3, 10, 40):
+            print(f"  {k:2d}회 반복: {np.round(r, 4)}")
+
+    λ, V = np.linalg.eig(G)                        # ② 고유벡터로 직접
+    i = int(np.argmin(np.abs(λ - 1)))
+    직접 = np.real(V[:, i]); 직접 = 직접 / 직접.sum()
+    print("\nλ = 1 고유벡터:", np.round(직접, 4))
+    print("두 방법이 같은가:", np.allclose(r, 직접))
+    print("\n순위:", " > ".join(이름[i] for i in np.argsort(-r)))
+    print("두 번째 고윳값 크기 =", round(float(np.sort(np.abs(λ))[-2]), 4), " ← 감쇠계수 d 와 같다")
+    </div>
+
+    <p class="cell-note">⑨ 희소행렬 — 메모리 차이를 실제로 재보기</p>
+    <div class="pycell">
+    import numpy as np
+    from scipy import sparse
+
+    n = 4000
+    rng = np.random.default_rng(1)
+    밀집 = np.zeros((n, n))
+    행 = rng.integers(0, n, 20000)
+    열 = rng.integers(0, n, 20000)
+    밀집[행, 열] = 1.0                      # 0.125% 만 채운다
+
+    희소 = sparse.csr_matrix(밀집)
+
+    print(f"밀집 행렬 : {밀집.nbytes / 1e6:8.2f} MB")
+    print(f"희소 행렬 : {(희소.data.nbytes + 희소.indices.nbytes + 희소.indptr.nbytes) / 1e6:8.2f} MB")
+    print(f"0 이 아닌 비율 : {희소.nnz / n**2 * 100:.3f}%")
+
+    x = rng.normal(size=n)
+    print("\n행렬 × 벡터 결과가 같은가:", np.allclose(밀집 @ x, 희소 @ x))
+    print("→ 거듭제곱법은 '행렬 × 벡터' 만 쓰므로 희소행렬로 그대로 돌아간다.")
+    </div>
+
+    <div class="quiz">
+      <b>연습문제</b>
+      <ol>
+        <li><span class="m">A = [[0.6, −0.8], [0.8, 0.6]]</span> 의 고윳값을 구하고,
+            <span class="m">A<sup>100</sup></span> 이 어떻게 될지 <b>계산 전에</b> 예측해보세요.</li>
+        <li>유니터리 행렬의 <b>행렬식</b>은 어떤 값일까요? (힌트: <span class="m">|det|</span> 을 생각해보세요)</li>
+        <li>페이지랭크에서 <span class="m">d = 1</span> 로 두면 어떤 문제가 생길까요?
+            위 도구에서 감쇠 계수를 1로 놓고 확인해보세요.</li>
+      </ol>
+    </div>
+
+    <details class="answer">
+      <summary>모범 답안 보기</summary>
+      <div class="pycell">
+      import numpy as np
+      np.set_printoptions(precision=4, suppress=True)
+
+      # 문제 1 — 0.6²+0.8²=1 이므로 순수 회전. |λ|=1 → 영원히 돌기만 한다
+      A1 = np.array([[0.6, -0.8], [0.8, 0.6]])
+      λ1 = np.linalg.eigvals(A1)
+      print("문제 1: λ =", np.round(λ1, 4), " |λ| =", round(float(np.abs(λ1[0])), 6))
+      print("        arg λ =", round(float(np.degrees(np.angle(λ1[0]))), 2), "°")
+      print("        → |λ|=1 인 순수 회전. 커지지도 작아지지도 않고 계속 돈다.")
+      A100 = np.linalg.matrix_power(A1, 100)
+      print("        A¹⁰⁰ =\n", A100)
+      print("        누적 회전각 =", round(float(np.degrees(np.arctan2(A100[1, 0], A100[0, 0])) % 360), 2), "°")
+
+      # 문제 2 — |det U| = 1 (복소수이므로 단위원 위의 아무 값)
+      N = 4
+      j, k = np.meshgrid(np.arange(N), np.arange(N), indexing="ij")
+      F = np.exp(-2j * np.pi * j * k / N) / np.sqrt(N)
+      print("\n문제 2: det F =", np.round(np.linalg.det(F), 4),
+            "  |det F| =", round(float(np.abs(np.linalg.det(F))), 6))
+      print("        → 항상 |det| = 1. UᴴU=I 의 양변에 det 를 취하면 |det U|²=1 이 나온다.")
+      print("        실수 직교행렬이면 det = ±1 (회전 +1, 반사 −1 — 19강).")
+
+      # 문제 3 — d=1 이면 막다른 페이지·독점 무리 문제가 살아난다
+      링크 = {0: [1, 2], 1: [2], 2: [0], 3: [2]}
+      n = 4
+      A = np.zeros((n, n))
+      for jj, outs in 링크.items():
+          for i in outs:
+              A[i, jj] = 1 / len(outs)
+      r = np.ones(n) / n
+      for _ in range(200):
+          r = A @ r
+      print("\n문제 3: d=1 일 때 r =", np.round(r, 4))
+      print("        → D 는 들어오는 링크가 없어 점수가 정확히 0 이 된다.")
+      print("        A·B·C 끼리만 점수를 돌려 D 는 영원히 소외된다.")
+      λA = np.linalg.eigvals(A)
+      print("        두 번째 고윳값 크기 =", round(float(np.sort(np.abs(λA))[-2]), 4),
+            "← 1 에 가까워 수렴이 느려진다")
+      print("        감쇠(1−d)는 '아무 데나 점프' 를 넣어 이 두 문제를 한 번에 없앤다.")
+      </div>
+    </details>
+
+    <div class="practice">
+      <b>실무에서</b>
+      <ul>
+        <li><b>안정성 판정</b> — 제어·시계열·RNN 에서
+            <span class="m">max|λ|</span> 이 1을 넘는지가 발산 여부를 가릅니다.</li>
+        <li><b>신호처리</b> — <span class="m">np.fft</span>, <span class="m">scipy.signal</span>.
+            스펙트로그램·필터 설계가 전부 유니터리 기저 변환입니다.</li>
+        <li><b>차원 축소</b> — <span class="m">sklearn.decomposition.PCA</span>,
+            <span class="m">TruncatedSVD</span>(희소행렬용).
+            시각화·잡음 제거·전처리에 씁니다.</li>
+        <li><b>그래프 분석</b> — <span class="m">networkx.pagerank</span>,
+            스펙트럴 클러스터링(라플라시안 행렬의 고유벡터).</li>
+        <li><b>대규모 계산</b> — <span class="m">scipy.sparse.linalg.eigsh / svds / cg</span>.
+            <b>행렬 × 벡터만</b> 쓰는 반복법들입니다.</li>
+      </ul>
+    </div>
+
+    <div class="summary">
+      <h3>20강 요약</h3>
+      <ul>
+        <li><b>복소 고윳값 = 회전</b>. <span class="m">|λ|</span> 이 확대율,
+            <span class="m">arg λ</span> 가 회전각입니다.</li>
+        <li><b>스펙트럼 반지름</b> <span class="m">ρ(A) = max|λ|</span> 이 1보다 작으면
+            <span class="m">A<sup>k</sup> → 0</span>. <b>안정성의 판정 기준</b>입니다.</li>
+        <li>복소공간에서는 전치 대신 <b>켤레전치</b> <span class="m">A<sup>H</sup></span> 를 씁니다.
+            안 그러면 길이가 망가집니다.</li>
+        <li><b>에르미트</b>(<span class="m">A<sup>H</sup>=A</span>) = 복소판 대칭행렬 → 고윳값 실수, 고유벡터 직교.</li>
+        <li><b>유니터리</b>(<span class="m">U<sup>H</sup>U=I</span>) = 복소판 직교행렬 → 길이 보존.
+            <b>DFT 가 그 대표</b>입니다.</li>
+        <li><b>PCA</b> = 공분산의 고유분해 = X 의 SVD. 실무에서는 <b>SVD 를 직접</b> 쓰세요.</li>
+        <li><b>페이지랭크</b> = <span class="m">λ=1</span> 인 고유벡터를 거듭제곱법으로 구하기.</li>
+        <li>큰 문제에서는 <b>희소행렬 + 반복법</b>. 역행렬과 LU 는 쓰지 않습니다.</li>
+      </ul>
+    </div>
+
+    <h2 id="s9">9. 20강 전체를 한 장으로</h2>
+    <p>
+      여기까지 오셨습니다. 배운 것을 <b>하나의 흐름</b>으로 정리합니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">1부 — 벡터와 공간 (1~9강)</div>
+      <div class="eq" style="font-size:13.5px;line-height:2;text-align:left;padding-left:18px">
+        <b>벡터</b>는 화살표이자 데이터 한 줄. <b>내적</b>이 길이와 각도를 준다.<br>
+        <b>행렬 × 벡터</b> = 열들의 <b>선형결합</b>. 행렬은 <b>변환</b>이다.<br>
+        <b>연립방정식</b>은 소거로 푼다. 해는 <b>특수해 + 영공간</b>.<br>
+        <b>네 부분공간</b>이 행렬의 모든 것을 설명한다. <b>정사영</b>은 가장 가까운 점 찾기.
+      </div>
+    </div>
+
+    <div class="formula">
+      <div class="name">2부 — 분해 (10~17강)</div>
+      <div class="eq" style="font-size:13.5px;line-height:2;text-align:left;padding-left:18px">
+        해가 없으면 <b>최소제곱</b>. <b>QR</b> 로 안정적으로 푼다.<br>
+        <b>행렬식</b>은 부피 배율. <b>고윳값</b>은 방향이 안 변하는 축.<br>
+        <b>대각화</b> <span class="m">A=BΛB<sup>−1</sup></span> — 좌표계를 갈아타면 단순해진다.<br>
+        <b>대칭행렬</b>은 항상 직교 대각화된다. <b>SVD</b> 는 <b>모든</b> 행렬에 통한다.<br>
+        <b>저랭크 근사</b> — 큰 σ 몇 개면 충분하다.
+      </div>
+    </div>
+
+    <div class="formula">
+      <div class="name">3부 — 응용 (18~20강)</div>
+      <div class="eq" style="font-size:13.5px;line-height:2;text-align:left;padding-left:18px">
+        <b>의사역행렬</b> — 역행렬이 없어도 가장 합리적인 답.<br>
+        <b>선형변환의 기하학</b> — 행렬의 열은 기저벡터의 행선지.<br>
+        <b>복소 고윳값</b>은 회전. <b>PCA · 페이지랭크 · 푸리에</b> 는 전부 고유벡터 이야기.
+      </div>
+    </div>
+
+    <div class="callout">
+      <b>가장 중요한 한 가지를 고른다면</b><br><br>
+      <b>"어려운 문제는 좌표계를 잘못 골라서 어려운 것이다."</b>
+      <br><br>
+      대각화도, SVD 도, PCA 도, 푸리에 변환도 전부 같은 이야기입니다 —
+      <b>문제에 맞는 축을 찾아 갈아타면, 얽혀 있던 것이 따로따로 풀립니다.</b>
+      그 축을 찾는 방법이 <b>고유벡터와 특이벡터</b>였습니다.
+      <br><br>
+      선형대수를 한 문장으로 줄이면 이겁니다. 수고하셨습니다.
+    </div>
+
+    <div class="colab-cta">
+      <div class="colab-text">
+        <b>더 자유롭게 실험하고 싶다면</b><br>
+        이 강의의 실습만 모은 노트북을 Colab에서 열 수 있습니다.
+      </div>
+      <a class="btn" id="colab-link" href="#" target="_blank" rel="noopener">Colab에서 열기</a>
+    </div>
+
+    <p class="next-up">
+      <b>선형대수 20강 완주 🎉</b><br>
+      돌아가서 다시 만져볼 것이 있다면 <a href="../index.html">전체 목록</a>에서 고르세요.
+      <b>통계 12강</b>과 <b>파이썬 데이터 분석 16강</b>도 같은 방식으로 준비되어 있습니다.
+    </p>
+
+  </section>
+
+</div>
+
+<script src="../assets/viz.js?v=312b9476b0"></script>
+<script src="../assets/linalg.js?v=8351c85811"></script>
+<script src="../assets/pylab.js?v=cb27f20364"></script>
+<script src="../assets/pycell.js?v=6dacc4c6ce"></script>
+<script>
+(function () {
+  'use strict';
+  var M = LA.M, num = LA.num;
+
+  /* ================= 1. 복소 고윳값과 궤도 ================= */
+  var rho = 0.95, ang = 32, skw = 1.6, steps = 40;
+  var bOrb = new LA.Board(document.getElementById('cv-orb'), { range: 4 });
+  var bCx = new LA.Board(document.getElementById('cv-cx'), { range: 1.5 });
+
+  /* A = B (ρ·R(θ)) B⁻¹ — 고윳값은 그대로인데 회전처럼 안 보이게 찌그러뜨린다 */
+  function matA() {
+    var t = ang * Math.PI / 180;
+    var R = [[rho * Math.cos(t), -rho * Math.sin(t)],
+             [rho * Math.sin(t), rho * Math.cos(t)]];
+    var B = [[skw, 0], [0, 1]];
+    return M.mul(M.mul(B, R), M.inv(B));
+  }
+
+  function drawOrbit() {
+    var A = matA();
+    var t = ang * Math.PI / 180;
+
+    /* 궤도 계산 — |λ|>1 이면 폭주하므로 화면 밖으로 나가면 멈춘다 */
+    var LIMIT = 40;
+    var pts = [[2.6, 0]], escaped = false;
+    for (var i = 0; i < steps; i++) {
+      var nx = M.mv(A, pts[pts.length - 1]);
+      if (M.norm(nx) > LIMIT) { escaped = true; break; }
+      pts.push(nx);
+    }
+
+    /* 격자 간격을 범위에 맞춘다 — 안 그러면 선이 수만 개가 된다 */
+    bOrb.fit(pts, 1.15);
+    var span = bOrb.range;
+    var step = Math.pow(10, Math.floor(Math.log10(span / 4)));
+    if (span / step > 8) step *= 2.5;
+    if (span / step > 8) step *= 2;
+    bOrb.begin().grid({ step: step });
+
+    var p = bOrb.plot, c = bOrb.ctx;
+    c.save();
+    c.beginPath();
+    c.rect(p.margin.left, p.margin.top, p.pw, p.ph);
+    c.clip();
+    c.strokeStyle = V.css('--accent');
+    c.lineWidth = 1.6;
+    c.globalAlpha = 0.55;
+    c.beginPath();
+    pts.forEach(function (q, i) {
+      if (i === 0) c.moveTo(p.x(q[0]), p.y(q[1])); else c.lineTo(p.x(q[0]), p.y(q[1]));
+    });
+    c.stroke();
+    c.globalAlpha = 1;
+    pts.forEach(function (q, i) {
+      c.beginPath();
+      c.arc(p.x(q[0]), p.y(q[1]), i === 0 ? 5 : 2.6, 0, Math.PI * 2);
+      c.fillStyle = i === 0 ? V.css('--neg') : V.css('--accent');
+      c.fill();
+    });
+    c.restore();
+
+    bOrb.arrow(pts[0], { color: V.css('--neg'), width: 2.4, label: 'x' });
+    if (pts.length > 1) {
+      bOrb.arrow(pts[1], { color: V.css('--purple'), width: 2.4, label: 'Ax' });
+    }
+
+    /* --- 복소평면 --- */
+    var lam = [rho * Math.cos(t), rho * Math.sin(t)];
+    bCx.range = Math.max(1.4, Math.ceil(rho * 10 + 3) / 10 + 0.2);
+    bCx.begin().grid({ step: 0.5 });
+    bCx.ellipse(null, { color: V.css('--text-dim'), width: 1.6, alpha: 0.8 });
+    bCx.arrow(lam, { color: V.css('--purple'), width: 3, label: 'λ', labelOff: 16 });
+    bCx.point([lam[0], -lam[1]], { color: V.css('--purple'), r: 5, label: 'λ̄' });
+
+    var pc = bCx.plot, cc = bCx.ctx;
+    cc.save();
+    cc.font = '600 10.5px ' + V.FONT;
+    cc.fillStyle = V.css('--text-dim');
+    cc.textAlign = 'left'; cc.textBaseline = 'bottom';
+    cc.fillText('단위원 |λ|=1', pc.x(0) + 6, pc.y(1) - 4);
+    cc.restore();
+
+    /* 읽기 */
+    function mstr(X) {
+      return '[' + num(X[0][0], 2) + ' ' + num(X[0][1], 2) + '; ' +
+                   num(X[1][0], 2) + ' ' + num(X[1][1], 2) + ']';
+    }
+    V.setText('#c-A', mstr(A));
+    V.setText('#c-lam', ang < 0.5
+      ? num(rho, 3) + ' (실수 중근)'
+      : num(lam[0], 3) + ' ± ' + num(Math.abs(lam[1]), 3) + 'i');
+    V.setText('#c-abs', num(rho, 3) + ' (det=' + num(rho * rho, 3) + ')');
+    V.setText('#c-arg', num(ang, 0) + '°');
+    V.setText('#c-real', ang < 0.5 ? '있음 (회전 아님)' : '없음 (돌고 있으므로)');
+    V.setText('#c-fate', rho < 0.999 ? '0 으로 수렴 (안정)'
+      : rho > 1.001 ? (escaped ? '발산 — 화면 밖 (불안정)' : '무한대로 발산 (불안정)')
+      : '같은 궤도 반복 (경계)');
+  }
+
+  V.range('rho', function (v) { rho = v; drawOrbit(); });
+  V.range('ang', function (v) { ang = v; drawOrbit(); });
+  V.range('skw', function (v) { skw = v; drawOrbit(); });
+  V.range('stp', function (v) { steps = v; drawOrbit(); });
+
+  /* ================= 2. 페이지랭크 ================= */
+  var GRAPHS = {
+    a: { name: ['A', 'B', 'C', 'D', 'E'],
+         pos: [[0.12, 0.62], [0.42, 0.96], [0.46, 0.40], [0.88, 0.72], [0.84, 0.06]],
+         out: [[1, 2], [2], [0, 3], [2], [2]] },
+    b: { name: ['A', 'B', 'C', 'D', 'E'],
+         pos: [[0.10, 0.94], [0.10, 0.10], [0.50, 0.52], [0.90, 0.94], [0.90, 0.10]],
+         out: [[2], [2], [], [2], [2]] },
+    c: { name: ['A', 'B', 'C', 'D', 'E'],
+         pos: [[0.50, 0.98], [0.97, 0.62], [0.79, 0.04], [0.21, 0.04], [0.03, 0.62]],
+         out: [[1], [2], [3], [4], [0]] }
+  };
+  var gkey = 'a', iters = 1, damp = 0.85;
+
+  var plotPr = new V.Plot(document.getElementById('cv-pr'), {
+    height: function (w) { return Math.round(Math.max(300, Math.min(w * 0.66, 420))); },
+    margin: { top: 8, right: 8, bottom: 8, left: 8 }
+  });
+
+  function transition(g) {
+    var n = g.name.length;
+    var A = [];
+    for (var i = 0; i < n; i++) A.push(new Array(n).fill(0));
+    for (var j = 0; j < n; j++) {
+      var outs = g.out[j];
+      if (outs.length === 0) {
+        for (i = 0; i < n; i++) A[i][j] = 1 / n;      // 막다른 페이지
+      } else {
+        outs.forEach(function (i2) { A[i2][j] += 1 / outs.length; });
+      }
+    }
+    return A;
+  }
+
+  function iterate(A, k, d) {
+    var n = A.length;
+    var r = new Array(n).fill(1 / n);
+    for (var s = 0; s < k; s++) {
+      var nr = new Array(n).fill(0);
+      for (var i = 0; i < n; i++) {
+        var acc = 0;
+        for (var j = 0; j < n; j++) acc += A[i][j] * r[j];
+        nr[i] = d * acc + (1 - d) / n;
+      }
+      r = nr;
+    }
+    return r;
+  }
+
+  function drawPr() {
+    var g = GRAPHS[gkey], n = g.name.length;
+    var A = transition(g);
+    var r = iterate(A, iters, damp);
+    var conv = iterate(A, 400, damp);
+
+    plotPr.begin();
+    var c = plotPr.ctx, W = plotPr.w, H = plotPr.h;
+    var pad = 46;
+    function X(u) { return pad + u * (W - 2 * pad); }
+    function Y(v) { return H - pad - v * (H - 2 * pad); }
+
+    /* 화살표 */
+    c.save();
+    g.out.forEach(function (outs, j) {
+      outs.forEach(function (i) {
+        if (i === j) return;
+        var x0 = X(g.pos[j][0]), y0 = Y(g.pos[j][1]);
+        var x1 = X(g.pos[i][0]), y1 = Y(g.pos[i][1]);
+        var dx = x1 - x0, dy = y1 - y0, L = Math.hypot(dx, dy) || 1;
+        var ux = dx / L, uy = dy / L;
+        var r0 = 16 + 46 * Math.sqrt(r[j]), r1 = 16 + 46 * Math.sqrt(r[i]);
+        x0 += ux * r0; y0 += uy * r0; x1 -= ux * r1; y1 -= uy * r1;
+        c.strokeStyle = V.css('--text-dim');
+        c.globalAlpha = 0.55; c.lineWidth = 1.8;
+        c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke();
+        c.globalAlpha = 0.75;
+        c.beginPath();
+        c.moveTo(x1, y1);
+        c.lineTo(x1 - ux * 10 - uy * 4.5, y1 - uy * 10 + ux * 4.5);
+        c.lineTo(x1 - ux * 10 + uy * 4.5, y1 - uy * 10 - ux * 4.5);
+        c.closePath();
+        c.fillStyle = V.css('--text-dim'); c.fill();
+      });
+    });
+    c.restore();
+
+    /* 노드 */
+    var top = 0;
+    for (var i = 1; i < n; i++) if (r[i] > r[top]) top = i;
+    c.save();
+    for (i = 0; i < n; i++) {
+      var cx = X(g.pos[i][0]), cy = Y(g.pos[i][1]);
+      var rad = 16 + 46 * Math.sqrt(r[i]);
+      c.beginPath(); c.arc(cx, cy, rad, 0, Math.PI * 2);
+      c.fillStyle = i === top ? V.css('--accent') : V.css('--accent-soft');
+      c.fill();
+      c.strokeStyle = V.css('--accent'); c.lineWidth = 2; c.stroke();
+
+      c.font = '800 15px ' + V.FONT;
+      c.fillStyle = i === top ? '#fff' : V.css('--text');
+      c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText(g.name[i], cx, cy - 6);
+      c.font = '700 11.5px ' + V.FONT;
+      c.fillText(r[i].toFixed(3), cx, cy + 10);
+    }
+    c.restore();
+
+    /* 읽기 */
+    var gap = 0;
+    for (i = 0; i < n; i++) gap = Math.max(gap, Math.abs(r[i] - conv[i]));
+    var sum = r.reduce(function (a, b) { return a + b; }, 0);
+    var Gr = new Array(n).fill(0);
+    for (i = 0; i < n; i++) {
+      var acc = 0;
+      for (var j = 0; j < n; j++) acc += A[i][j] * r[j];
+      Gr[i] = damp * acc + (1 - damp) / n;
+    }
+    var fix = 0;
+    for (i = 0; i < n; i++) fix = Math.max(fix, Math.abs(Gr[i] - r[i]));
+
+    var order = g.name.map(function (nm, i) { return i; })
+      .sort(function (x, y) { return r[y] - r[x]; })
+      .map(function (i) { return g.name[i]; });
+    V.setText('#p-r', order.join(' > '));
+    V.setText('#p-top', g.name[top] + ' (' + r[top].toFixed(3) + ')');
+    V.setText('#p-sum', sum.toFixed(6));
+    V.setText('#p-gap', gap < 1e-6 ? '수렴 완료' : gap.toExponential(1));
+    V.setText('#p-fix', fix < 1e-6 ? '예 (고정점)' : '아직 ' + fix.toExponential(1));
+    V.setText('#p-l2', num(damp, 2) + ' (= d)');
+  }
+
+  V.range('it', function (v) { iters = v; drawPr(); });
+  V.range('dp', function (v) { damp = v; drawPr(); });
+  V.click('pg-a', function () { gkey = 'a'; drawPr(); });
+  V.click('pg-b', function () { gkey = 'b'; drawPr(); });
+  V.click('pg-c', function () { gkey = 'c'; drawPr(); });
+
+  V.onRedraw(function () { drawOrbit(); drawPr(); });
+  drawOrbit(); drawPr();
+
+  var a5 = document.getElementById('colab-link');
+  if (a5) a5.href = 'https://colab.research.google.com/github/mioon1402/timeseriesdata/blob/main/notebooks/L20-applications.ipynb';
+})();
+</script>
+</body>
+</html>

@@ -1,9 +1,15 @@
 # 눈으로 보는 통계
 
-공식보다 그림이 먼저인 **인터랙티브 통계 교육 모듈 8종**.
+공식보다 그림이 먼저인 **인터랙티브 교육 자료 44강**.
 빌드 도구 없이 브라우저에서 바로 열리고, **티스토리 등 블로그에 iframe 한 줄로 임베드**됩니다.
 
-각 모듈은 같은 구조로 되어 있습니다.
+| 부 | 내용 | 분량 |
+| --- | --- | --- |
+| **1부** | [눈으로 보는 통계](#모듈) — 점을 끌고 슬라이더를 돌리며 배우는 통계 | 8강 |
+| **2부** | [파이썬으로 직접 해보기](#2부--파이썬으로-직접-해보기) — 브라우저 안에서 진짜 pandas가 도는 실습 | 16강 |
+| **3부** | [눈으로 보는 선형대수](#3부--눈으로-보는-선형대수) — 벡터를 끌고 변환을 돌려보는 선형대수 | 20강 |
+
+각 강의는 같은 구조로 되어 있습니다.
 
 > **직접 만져보기 → 직관 → 수식(기호 풀이 포함) → 실무 적용 → 흔한 실수 → 요약**
 
@@ -109,6 +115,56 @@ python3 scripts/make_notebooks.py  # notebooks/*.ipynb 생성
 
 ---
 
+## 3부 · 눈으로 보는 선형대수
+
+**벡터를 끌고 변환을 돌려보며 배우는 선형대수 20강.**
+각 강의는 `0절 기초 다지기 → 인터랙티브 시각화 → 수식(기호 풀이) → numpy 실습 →
+실무 적용 → 흔한 함정 → 연습문제와 모범 답안 → 요약` 순서로 되어 있습니다.
+
+수학 배경이 없어도 따라올 수 있도록 **모든 강의가 0절에서 필요한 개념부터 다시 시작**합니다.
+캔버스는 전부 **등축(equal aspect)** 으로 그립니다 — 선형대수에서는 각도와 길이 자체가 내용이기 때문입니다.
+
+| 부 | 회차 | 무엇을 만지나 | 다루는 개념 |
+| --- | --- | --- | --- |
+| **벡터와 공간** | L01 [벡터라는 화살표](linalg/L01-vectors.html) | 벡터를 끌면 합·차·스칼라배가 따라 움직임 | 벡터 · 덧셈의 평행사변형 · 스칼라배 |
+| | L02 [행렬 × 벡터의 두 그림](linalg/L02-two-pictures.html) | 행 관점(직선의 교점) ↔ 열 관점(선형결합) 전환 | 행 그림 · **열 그림** · Ax = b |
+| | L03 [소거법](linalg/L03-elimination.html) | 소거 단계마다 직선이 어떻게 움직이는지 | 가우스 소거 · 피벗 · LU · **부분 피벗팅** |
+| | L04 [행렬 연산](linalg/L04-matrix-ops.html) | 두 변환을 이어 붙이면 격자가 두 번 휨 | 곱셈 4가지 관점 · 전치 · 역행렬 |
+| | L05 [부분공간과 Span](linalg/L05-subspace.html) | 벡터 두 개가 평면을 채우는지 선에 갇히는지 | 부분공간 · Span · 일차독립 · 기저 |
+| | L06 [영공간](linalg/L06-nullspace.html) | 뭉개져 0이 되는 방향을 직접 찾기 | 영공간 · 특수해 + 영공간 · 자유변수 |
+| | L07 [랭크와 네 부분공간](linalg/L07-rank.html) | 랭크를 떨어뜨리면 공간이 무너짐 | 랭크 · 열공간/영공간/행공간/좌영공간 |
+| | L08 [직교성](linalg/L08-orthogonality.html) | 내적이 0이 되는 순간을 눈으로 | 내적 · 직교 · 코시-슈바르츠 · 직교여공간 |
+| | L09 [정사영](linalg/L09-projection.html) | 그림자를 끌어보며 최단거리 확인 | 정사영 행렬 · 멱등 · 대칭 |
+| **분해** | L10 [최소제곱](linalg/L10-least-squares.html) | 잔차를 직접 줄여봄 | 정규방정식 · 열공간으로의 투영 |
+| | L11 [QR 분해](linalg/L11-qr.html) | 그람-슈미트가 축을 세우는 과정 | 그람-슈미트 · QR · 하우스홀더 · 수치 안정성 |
+| | L12 [행렬식](linalg/L12-determinant.html) | 평행사변형 넓이가 곧 det | 행렬식 = 부피 배율 · 부호 = 방향 |
+| | L13 [고윳값과 고유벡터](linalg/L13-eigen.html) | 방향이 안 변하는 축을 찾아보기 | 특성방정식 · 거듭제곱법 |
+| | L14 [대각화](linalg/L14-diagonalization.html) | 좌표계를 갈아타면 격자가 안 휨 | A = BΛB⁻¹ · 거듭제곱 · **대각화 불가** |
+| | L15 [대칭행렬](linalg/L15-symmetric.html) | 고유벡터가 항상 직교하는 모습 | 스펙트럼 정리 · 양의 정부호 · 이차형식 |
+| | L16 [SVD](linalg/L16-svd.html) | 단위원이 타원으로 변하는 그림 | A = UΣVᵀ · 특이값 · 회전-늘림-회전 |
+| | L17 [Low-rank 근사](linalg/L17-lowrank.html) | **브라우저에서 실제 SVD로 이미지 압축** | Eckart-Young · 압축 · 잡음 제거 |
+| **응용** | L18 [의사역행렬과 추천 시스템](linalg/L18-pseudoinverse.html) | 해 직선 위에서 가장 짧은 해 찾기 · 별점표 빈칸 채우기 | A⁺ · 최소노름해 · 무어-펜로즈 · 협업 필터링 · 극분해 |
+| | L19 [선형변환의 기하학](linalg/L19-transform.html) | 회전·반사·투영·전단 버튼으로 격자 변형 | 열 = 기저의 행선지 · det 부호 · **기저 변환** · 동차좌표 |
+| | L20 [복소 벡터공간과 응용](linalg/L20-applications.html) | 복소 고윳값이 만드는 나선 · 페이지랭크 수렴 과정 | 에르미트 · 유니터리 · DFT · PCA · **PageRank** · 희소행렬 |
+
+**20강 전부 완성**되어 있습니다. `assets/linalg.js` 가 시각화를 담당하고,
+각 강의의 numpy 실습은 브라우저에서 바로 돌리거나 Colab에서 열 수 있습니다.
+
+### `assets/linalg.js`
+
+`viz.js` 위에 얹은 **선형대수 전용 그리기 계층**입니다.
+
+- **`LA.Board`** — 등축 좌표판. `fit()` 으로 범위 자동 조절, `begin()` 이 두 축의 픽셀/단위 배율을 일치시킵니다
+- **`grid` · `transformedGrid`** — 원래 격자와 A로 휜 격자
+- **`arrow` · `parallelogram` · `span` · `fillPlane` · `ellipse` · `rightAngle` · `lineEq`** — 선형대수 도형들
+- **`LA.drag`** — 벡터 끝점을 마우스·터치로 끌기
+- **`LA.M`** — 2×2 행렬 계산 (`det` `inv` `eig` `svd` `solve` …) 과
+  **작은 행렬용 야코비 SVD**(`jacobi` · `svdFull` · `lowRank`) — L17·L18이 브라우저에서 실제 SVD를 돌립니다
+
+수식은 CSS만으로 괄호를 그립니다 (`.mat` 클래스). 내용 높이에 따라 괄호가 같이 늘어납니다.
+
+---
+
 ## 바로 보기
 
 로컬에서 열려면 정적 서버가 필요합니다 (`file://`로 열면 공용 CSS/JS가 안 붙습니다).
@@ -161,12 +217,26 @@ index.html                  허브 + 임베드 코드 생성기
 assets/
   viz.css                   공용 스타일 (라이트/다크 토큰, 수식·실무·함정 블록)
   viz.js                    공용 라이브러리 — 외부 의존성 없음
+  linalg.js                 선형대수 전용 그리기 계층 (등축 좌표판, 2×2 행렬 계산)
+  pylab.js / pycell.js      브라우저 안 파이썬 (Pyodide)
+  fonts/                    matplotlib 한글 폰트 서브셋
 modules/
-  01-center-spread.html     … 08-simpson.html
+  01-center-spread.html     … 08-simpson.html          (1부 · 통계 8강)
+python/
+  p01-first-look.html       … p16-forecast.html        (2부 · 파이썬 16강)
+linalg/
+  L01-vectors.html          … L20-applications.html    (3부 · 선형대수 20강)
+notebooks/                  강의 HTML에서 자동 생성된 Colab 노트북
+data/                       gen_data.py 가 만드는 예시 데이터
 docs/
   tistory-embed.md          배포·임베드 가이드
 scripts/
-  check-modules.mjs         스모크 테스트
+  check-modules.mjs         렌더링·링크·Colab 링크 스모크 테스트
+  check_cells.py            실습 셀 파이썬 문법 검사
+  register_lessons.py       강의 목록을 테스트 스크립트에 자동 등록
+  make_notebooks.py         강의 HTML → Colab 노트북
+  bump_assets.py            공용 자원 캐시 무효화 (?v=해시)
+  gen_data.py               예시 데이터 생성
 ```
 
 ### `assets/viz.js`
@@ -190,22 +260,40 @@ scripts/
 3. `npm run measure` 로 임베드 권장 높이를 구해 `vizHeight`/`fullHeight`에 넣습니다.
 4. `scripts/check-modules.mjs` 의 `PAGES` 에 경로를 추가합니다.
 
+### 강의 추가하기 (2부 · 3부)
+
+`python/pNN-*.html` 또는 `linalg/LNN-*.html` 을 만든 뒤 아래를 순서대로 돌립니다.
+`PAGES` 목록과 Colab 링크는 스크립트가 알아서 채웁니다.
+
+```bash
+python3 scripts/register_lessons.py   # check-modules.mjs 의 PAGES 갱신
+python3 scripts/make_notebooks.py     # notebooks/*.ipynb 재생성
+python3 scripts/bump_assets.py        # 공용 자원 ?v= 해시 갱신
+npm test
+```
+
+`index.html` 의 `PY_LESSONS` / `LA_LESSONS` 배열에도 항목을 추가하고 `done: true` 로 두세요.
+
 ---
 
 ## 테스트
 
 ```bash
 npm install     # playwright-core (크로미움은 환경에 이미 있으면 재사용)
-npm test        # 링크 검사 + 전 모듈 렌더링/인터랙션 검사
+npm test        # 자원 버전 + 셀 문법 + 링크 + 렌더링/인터랙션 검사
 npm run measure # 위 검사 + 임베드 권장 높이 측정
 ```
 
 검사 내용:
 
+- 공용 자원의 **`?v=` 해시가 최신인지** (캐시된 옛 CSS/JS 방지)
+- 모든 실습 셀의 **파이썬 문법이 유효한지** (AST 파싱, 337개)
 - 페이지 안의 **로컬 링크·자원 경로**가 실제로 존재하는지
+- **Colab 링크의 ref 가 `main` 인지, 노트북 파일이 실제로 있는지**
 - 모든 페이지에 **JS 오류가 없는지** (`pageerror` / console error)
 - **캔버스에 실제로 뭔가 그려졌는지** (빈 화면 방지)
 - 버튼·슬라이더·라디오를 **눌러봐도 오류가 안 나는지**
+  (슬라이더를 중앙값·양 끝으로 밀어 극단 상태까지 확인)
 
 크로미움을 못 찾으면 렌더링 검사를 건너뛰고 링크 검사만 수행합니다.
 경로를 직접 지정하려면 `CHROME_PATH` 환경변수를 쓰세요.

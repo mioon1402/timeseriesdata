@@ -1,0 +1,901 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>의사역행렬과 추천 시스템 · 선형대수</title>
+<meta name="description" content="역행렬이 없어도 가장 합리적인 해를 돌려주는 연산자 A⁺. 최소노름해·최소제곱해·극분해, 그리고 넷플릭스가 빈칸을 채우는 원리.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%E2%9E%97%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css?v=b7dfb076b2">
+<link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">선형대수 18강 · 특이값 분해</p>
+    <h1>의사역행렬과 추천 시스템</h1>
+    <p class="lede">
+      <span class="m">Ax = b</span> 를 풀 때 세상은 세 가지뿐입니다.
+      <b>해가 하나</b>, <b>해가 없음</b>, <b>해가 무한히 많음</b>.
+      역행렬은 첫 번째 경우에만 답합니다.
+      그런데 <b>나머지 두 경우에도 "가장 합리적인 답"을 돌려주는 연산자</b>가 있습니다.
+      이름은 <b>의사역행렬</b> <span class="m">A<sup>+</sup></span> 입니다.
+    </p>
+  </header>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 강의에서 배우는 것</b>
+      <ol>
+        <li><a href="#s0">기초 다지기 — 역행렬이 없다는 것</a></li>
+        <li><a href="#s1">해가 무한히 많을 때 — 최소노름해</a></li>
+        <li><a href="#s2">SVD 로 A⁺ 를 만든다</a></li>
+        <li><a href="#s3">해가 없을 때 — 최소제곱해</a></li>
+        <li><a href="#s4">A⁺ 의 정의 — 무어-펜로즈 네 조건</a></li>
+        <li><a href="#s5">추천 시스템 — 빈칸 채우기</a></li>
+        <li><a href="#s6">극분해 — 회전 × 늘림</a></li>
+        <li><a href="#s7">numpy 로 확인하기</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s0">0. 기초 다지기 — 역행렬이 없다는 것</h2>
+    <p>
+      <b>역행렬</b> <span class="m">A<sup>−1</sup></span> 은
+      "A 가 한 일을 <b>정확히 되돌리는</b> 행렬"입니다.
+      <span class="m">A<sup>−1</sup>A = I</span> 죠.
+      그런데 이게 존재하려면 조건이 꽤 빡빡합니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">역행렬이 존재할 조건</div>
+      <div class="eq" style="font-size:14.5px;line-height:2.1;text-align:left;padding-left:20px">
+        ① <b>정사각</b>이어야 한다 (m = n)<br>
+        ② <b>랭크가 꽉 차야</b> 한다 (det ≠ 0)
+      </div>
+      <ul class="where">
+        <li><span class="sym">현실</span><span class="desc">데이터 행렬은 <b>거의 항상</b> 이 조건을 어깁니다.
+            측정이 미지수보다 많거나(세로로 긴 행렬), 적거나(가로로 긴 행렬),
+            열끼리 겹쳐서 랭크가 모자라거나</span></li>
+      </ul>
+    </div>
+
+    <div class="callout">
+      <b>왜 되돌릴 수 없는가 — 두 가지 고장</b><br><br>
+      <b>① 뭉갰다 (정보 손실).</b> A 가 평면을 직선으로 눌러버리면,
+      직선 위의 한 점이 어디서 왔는지 <b>알 방법이 없습니다</b>.
+      후보가 무한히 많죠. → <b>해가 무한히 많음</b><br><br>
+      <b>② 못 닿는다 (도달 불가).</b> A 의 출력은 열공간 안에만 있습니다.
+      <span class="m">b</span> 가 열공간 <b>밖</b>에 있으면
+      <span class="m">Ax = b</span> 를 만족하는 x 는 <b>아예 없습니다</b>. → <b>해가 없음</b>
+      <br><br>
+      <span class="m">A<sup>+</sup></span> 는 이 두 고장을 각각
+      <b>"가장 짧은 답을 고른다"</b>, <b>"가장 가까이 간다"</b> 로 해결합니다.
+    </div>
+
+    <h2 id="s1">1. 해가 무한히 많을 때 — 최소노름해</h2>
+    <p>
+      미지수 2개, 식 1개짜리 시스템을 봅시다.
+      <span class="m">a x₁ + b x₂ = c</span>.
+      이걸 만족하는 점 <span class="m">(x₁, x₂)</span> 는 <b>직선 전체</b>입니다 — 무한히 많죠.
+      그중 <b>어느 걸 고를 것인가?</b>
+    </p>
+
+    <div class="panel">
+      <p class="panel-title">해 직선 위에서 원점에 가장 가까운 점 = 최소노름해</p>
+      <div class="board"><div class="canvas-wrap"><canvas id="cv-min"></canvas></div></div>
+
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">a</span><span class="val" id="ca-val">1</span></span>
+          <input type="range" id="ca" min="-3" max="3" step="0.25" value="1">
+        </label>
+        <label class="ctrl">
+          <span class="label-row"><span class="name">b</span><span class="val" id="cb-val">2</span></span>
+          <input type="range" id="cb" min="-3" max="3" step="0.25" value="2">
+        </label>
+        <label class="ctrl">
+          <span class="label-row"><span class="name">c</span><span class="val" id="cc-val">3</span></span>
+          <input type="range" id="cc" min="-6" max="6" step="0.5" value="3">
+        </label>
+        <label class="ctrl">
+          <span class="label-row"><span class="name">내가 고른 다른 해 (직선 위 위치)</span><span class="val" id="tt-val">2</span></span>
+          <input type="range" id="tt" min="-4" max="4" step="0.1" value="2">
+        </label>
+      </div>
+
+      <div class="readout">
+        <div class="stat accent"><span class="k">A⁺b (최소노름해)</span><span class="v" id="r-pin">–</span></div>
+        <div class="stat pos"><span class="k">그 길이 ‖x‖</span><span class="v" id="r-pinn">–</span></div>
+        <div class="stat purple"><span class="k">내가 고른 해</span><span class="v" id="r-alt">–</span></div>
+        <div class="stat neg"><span class="k">그 길이 ‖x‖</span><span class="v" id="r-altn">–</span></div>
+        <div class="stat"><span class="k">둘 다 식을 만족?</span><span class="v" id="r-both">–</span></div>
+        <div class="stat warn"><span class="k">A⁺b 가 짧은 만큼</span><span class="v" id="r-gap">–</span></div>
+      </div>
+    </div>
+
+    <div class="takeaway">
+      <b>슬라이더를 어떻게 움직여도</b> 파란 점(A⁺b)이 <b>항상 제일 짧습니다</b>.
+      그리고 파란 점은 언제나 <b>원점에서 직선에 내린 수선의 발</b>이고,
+      <span class="m">A<sup>+</sup>b</span> 는 항상 <b>행공간 위</b>에 있습니다
+      (여기서는 직선의 법선 방향 <span class="m">(a, b)</span> 위).
+    </div>
+
+    <div class="formula">
+      <div class="name">최소노름해가 뜻하는 것</div>
+      <div class="eq" style="font-size:15px">
+        x<sup>+</sup> = A<sup>+</sup>b = &nbsp;해 중에서&nbsp;
+        <b>‖x‖ 가 가장 작은 것</b>
+      </div>
+      <ul class="where">
+        <li><span class="sym">왜 짧은 게 좋은가</span><span class="desc">"근거 없이 크게 주장하지 않는다"는 뜻입니다.
+            데이터가 강제하지 않는 성분은 <b>0으로 둡니다</b>.
+            머신러닝의 <b>정규화</b>와 정확히 같은 철학이죠</span></li>
+        <li><span class="sym">기하학</span><span class="desc">해집합은 <b>특수해 + 영공간</b>(7강)입니다.
+            그 평평한 집합에서 <b>원점에 가장 가까운 점</b>은 유일하고,
+            그건 <b>영공간에 수직</b>인 점 — 즉 <b>행공간 위의 점</b>입니다</span></li>
+      </ul>
+    </div>
+
+    <h2 id="s2">2. SVD 로 A⁺ 를 만든다</h2>
+    <p>
+      16강에서 <span class="m">A = UΣV<sup>T</sup></span> 였습니다.
+      "돌리고 → 늘이고 → 돌리기"였죠.
+      <b>되돌리려면 순서를 뒤집고 각 단계를 뒤집으면 됩니다.</b>
+      회전은 <b>전치</b>로 되돌리고, 늘림은 <b>나눗셈</b>으로 되돌리고.
+    </p>
+
+    <div class="formula">
+      <div class="name">의사역행렬의 정의</div>
+      <div class="eq" style="font-size:18px">
+        A<sup>+</sup> = V Σ<sup>+</sup> U<sup>T</sup>
+      </div>
+      <ul class="where">
+        <li><span class="sym">Σ<sup>+</sup></span><span class="desc">Σ 를 <b>전치</b>한 뒤,
+            <b>0이 아닌 σ 는 1/σ 로 바꾸고 0 은 그대로 0</b> 으로 둡니다.
+            이 "0은 0으로 둔다"가 전부입니다</span></li>
+        <li><span class="sym">왜 0을 0으로</span><span class="desc">σ = 0 인 방향은 A 가 <b>완전히 뭉갠 방향</b>입니다.
+            정보가 없으니 <b>되돌리려 하지 않고 그냥 포기</b>합니다.
+            1/0 = ∞ 로 두면 잡음이 무한대로 증폭되죠</span></li>
+        <li><span class="sym">A 가 가역이면</span><span class="desc">σ 가 전부 0이 아니므로
+            <span class="m">A<sup>+</sup> = A<sup>−1</sup></span> 이 됩니다.
+            <b>의사역행렬은 역행렬의 확장</b>입니다</span></li>
+      </ul>
+    </div>
+
+    <div class="formula">
+      <div class="name">크기 확인 — 항상 A 를 뒤집은 모양</div>
+      <div class="eq" style="font-size:14.5px">
+        A 가 <b>m×n</b> &nbsp;⇒&nbsp; A<sup>+</sup> 는 <b>n×m</b>
+      </div>
+      <ul class="where">
+        <li><span class="sym">그래서</span><span class="desc"><span class="m">A<sup>+</sup>b</span> 는
+            항상 <b>n차원 벡터</b> — 미지수 개수와 맞습니다. 계산이 언제나 성립하죠</span></li>
+      </ul>
+    </div>
+
+    <div class="pitfall">
+      <b>A⁺A = I 가 아닙니다</b><br>
+      역행렬처럼 보이지만 <b>양쪽 모두 항등행렬이 되지는 않습니다</b>.
+      <span class="m">A<sup>+</sup>A</span> 는 <b>행공간으로의 정사영</b>,
+      <span class="m">AA<sup>+</sup></span> 는 <b>열공간으로의 정사영</b>입니다.
+      (둘 다 대칭이고 제곱하면 자기 자신 — 9강의 정사영 행렬이죠.)
+      A 가 가역일 때만 두 정사영이 <b>전체 공간</b>이 되어 I 가 됩니다.
+    </div>
+
+    <h2 id="s3">3. 해가 없을 때 — 최소제곱해</h2>
+    <p>
+      이번엔 반대입니다. 식이 미지수보다 많아서 <b>정확한 해가 없습니다</b>.
+      10강에서 풀었던 <span class="m">A<sup>T</sup>Ax̂ = A<sup>T</sup>b</span> 기억나시나요?
+      <b>그 답이 바로 <span class="m">A<sup>+</sup>b</span> 입니다.</b>
+    </p>
+
+    <div class="formula">
+      <div class="name">A⁺ 는 두 경우를 한 공식으로 삼킨다</div>
+      <div class="eq" style="font-size:14.5px;line-height:2.2;text-align:left;padding-left:20px">
+        열이 독립 (세로로 긴 A) &nbsp;⇒&nbsp;
+        A<sup>+</sup> = (A<sup>T</sup>A)<sup>−1</sup>A<sup>T</sup>
+        &nbsp;<span class="small">← 최소제곱</span><br>
+        행이 독립 (가로로 긴 A) &nbsp;⇒&nbsp;
+        A<sup>+</sup> = A<sup>T</sup>(AA<sup>T</sup>)<sup>−1</sup>
+        &nbsp;<span class="small">← 최소노름</span><br>
+        <b>둘 다 아니어도</b> &nbsp;⇒&nbsp;
+        A<sup>+</sup> = VΣ<sup>+</sup>U<sup>T</sup>
+        &nbsp;<span class="small">← 언제나 통함</span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">그리고 동시에</span><span class="desc">랭크가 모자라 <b>최소제곱해조차 무한히 많을 때</b>,
+            <span class="m">A<sup>+</sup>b</span> 는 그중에서도 <b>가장 짧은 것</b>을 줍니다.
+            <b>"가장 가까이 가되, 가장 겸손하게"</b> 입니다</span></li>
+      </ul>
+    </div>
+
+    <div class="callout">
+      <b>한 문장 정의</b><br><br>
+      <span class="m">A<sup>+</sup>b</span> 는
+      <b>‖Ax − b‖ 를 최소로 만드는 x 들 중에서, ‖x‖ 가 최소인 것</b>입니다.
+      <br><br>
+      해가 있으면 첫 번째 조건이 0이 되어 <b>정확한 해들 중 가장 짧은 것</b>,
+      해가 유일하면 그냥 <b>그 해</b>가 됩니다.
+      세 경우가 하나의 문장으로 통합됩니다.
+    </div>
+
+    <h2 id="s4">4. A⁺ 의 정의 — 무어-펜로즈 네 조건</h2>
+    <p>
+      사실 <span class="m">A<sup>+</sup></span> 의 <b>공식적인 정의</b>는 SVD 가 아니라
+      아래 <b>네 개의 등식</b>입니다. 이걸 모두 만족하는 행렬은
+      <b>정확히 하나뿐</b>이라는 게 정리의 내용입니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">무어-펜로즈 조건</div>
+      <div class="eq" style="font-size:15px;line-height:2.2;text-align:left;padding-left:20px">
+        ① A A<sup>+</sup> A = A &nbsp;&nbsp;<span class="small">A 를 망가뜨리지 않는다</span><br>
+        ② A<sup>+</sup> A A<sup>+</sup> = A<sup>+</sup> &nbsp;&nbsp;<span class="small">A⁺ 도 망가뜨리지 않는다</span><br>
+        ③ (A A<sup>+</sup>)<sup>T</sup> = A A<sup>+</sup> &nbsp;&nbsp;<span class="small">열공간 정사영이다</span><br>
+        ④ (A<sup>+</sup> A)<sup>T</sup> = A<sup>+</sup> A &nbsp;&nbsp;<span class="small">행공간 정사영이다</span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">읽는 법</span><span class="desc">①② 는 "약한 의미의 역"이고,
+            ③④ 가 <b>"직교"</b> 정사영이 되게 못 박습니다.
+            ③④ 가 없으면 조건을 만족하는 행렬이 여러 개 생겨버립니다</span></li>
+        <li><span class="sym">유일성</span><span class="desc">네 조건을 모두 만족하는 행렬은
+            <b>유일</b>합니다. 그래서 "the" pseudoinverse 라고 부릅니다</span></li>
+      </ul>
+    </div>
+
+    <h2 id="s5">5. 추천 시스템 — 빈칸 채우기</h2>
+    <p>
+      여기까지가 도구입니다. 이제 <b>진짜 응용</b>을 봅시다.
+      사용자 5명이 영화 4편에 매긴 별점 표가 있는데, <b>아직 안 본 칸이 있습니다</b>.
+      그 칸을 어떻게 채울까요?
+    </p>
+
+    <div class="panel">
+      <p class="panel-title">사용자 × 영화 별점표 — 랭크 k 로 복원하기</p>
+      <div class="canvas-wrap"><canvas id="cv-rec"></canvas></div>
+
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">쓸 패턴(취향 축)의 개수 k</span><span class="val" id="rk-val">2</span></span>
+          <input type="range" id="rk" min="1" max="4" step="1" value="2">
+        </label>
+        <label class="toggle"><input type="checkbox" id="showU"> 사용자별 취향 좌표 보기</label>
+      </div>
+
+      <div class="readout">
+        <div class="stat warn"><span class="k">특이값 σ</span><span class="v" id="r-sig">–</span></div>
+        <div class="stat accent"><span class="k">복원 오차</span><span class="v" id="r-err">–</span></div>
+        <div class="stat pos"><span class="k">A(1행4열) 예측</span><span class="v" id="r-p1">–</span></div>
+        <div class="stat purple"><span class="k">D(4행2열) 예측</span><span class="v" id="r-p2">–</span></div>
+        <div class="stat neg"><span class="k">E(5행3열) 예측</span><span class="v" id="r-p3">–</span></div>
+        <div class="stat"><span class="k">담긴 에너지</span><span class="v" id="r-en">–</span></div>
+      </div>
+    </div>
+
+    <div class="takeaway">
+      <b>k=2 로 충분합니다.</b> 특이값이 12.2, 8.3 다음에 1.4 로 뚝 떨어지죠.
+      <b>설명에 필요한 축이 사실상 두 개</b>라는 뜻입니다.
+      <br><br>
+      <b>'취향 좌표 보기'를 켜보세요.</b> 다섯 명이 <b>두 무리로 갈라집니다</b> —
+      A·B·E 와 C·D. 아무도 "장르"를 알려준 적이 없는데
+      <b>SVD 가 별점만 보고 스스로 찾아냈습니다</b>.
+      가로축(축1)은 <b>별점을 얼마나 후하게 주는가</b>,
+      세로축(축2)이 <b>액션이냐 로맨스냐</b>를 가릅니다.
+      <br><br>
+      그리고 <b>빈칸이 저절로 채워집니다</b>.
+      비슷한 취향의 다른 사람이 매긴 점수가, <b>랭크가 낮다는 제약</b>을 통해
+      그 칸으로 흘러들어옵니다. 이게 <b>협업 필터링</b>입니다.
+      <br><br>
+      <b>k=4 로 끝까지 올려보세요.</b> 오차가 0% 가 되면서
+      <b>빈칸 예측도 0점으로 돌아옵니다</b> — 원본을 그대로 복사했으니까요.
+      <b>예측을 만들어내는 것은 "랭크를 낮춘다"는 제약 그 자체</b>입니다.
+    </div>
+
+    <div class="pitfall">
+      <b>부호는 아무 의미가 없습니다</b><br>
+      <span class="m">u<sub>i</sub></span> 와 <span class="m">v<sub>i</sub></span> 의 부호를
+      <b>둘 다 동시에 뒤집어도</b> <span class="m">σu v<sup>T</sup></span> 는 그대로입니다.
+      그래서 라이브러리마다, 실행할 때마다 축의 방향이 뒤집혀 나올 수 있습니다.
+      실제로 이 페이지의 그림과 아래 numpy 셀의 결과는 <b>부호가 반대</b>입니다.
+      <b>의미가 있는 건 "누가 어느 쪽에 모이는가"</b>이지 부호 자체가 아닙니다.
+    </div>
+
+    <div class="formula">
+      <div class="name">왜 채워지는가</div>
+      <div class="eq" style="font-size:14.5px;line-height:2.1;text-align:left;padding-left:20px">
+        R ≈ U<sub>k</sub> Σ<sub>k</sub> V<sub>k</sub><sup>T</sup>
+        = (사용자 취향) × (영화 성격)
+      </div>
+      <ul class="where">
+        <li><span class="sym">U<sub>k</sub> 의 i번째 행</span><span class="desc">사용자 i 의 <b>취향 좌표</b> (k개 숫자)</span></li>
+        <li><span class="sym">V<sub>k</sub> 의 j번째 행</span><span class="desc">영화 j 의 <b>성격 좌표</b> (k개 숫자)</span></li>
+        <li><span class="sym">예측 별점</span><span class="desc">두 좌표의 <b>내적</b>.
+            취향과 성격이 <b>같은 방향</b>이면 높은 점수가 나옵니다(5강의 내적!)</span></li>
+        <li><span class="sym">핵심</span><span class="desc">5×4 = 20개 숫자를
+            <b>5×2 + 2 + 2×4 = 20 → 사실상 몇 개의 축</b>으로 설명한 것.
+            <b>설명이 압축되면 빈칸이 예측됩니다</b></span></li>
+      </ul>
+    </div>
+
+    <div class="pitfall">
+      <b>실제 추천 시스템은 이렇게 단순하지 않습니다</b><br>
+      진짜 데이터는 <b>99% 이상이 빈칸</b>입니다. 여기처럼 0으로 채우고 SVD 를 돌리면
+      "안 본 영화 = 0점"으로 오해해 <b>결과가 망가집니다</b>.
+      실무에서는 <b>관측된 칸에서만</b> 오차를 재는 방식(행렬 완성, ALS, 암묵적 피드백)을 씁니다.
+      다만 <b>"낮은 랭크로 설명한다"</b>는 아이디어는 그대로입니다.
+    </div>
+
+    <h2 id="s6">6. 극분해 — 회전 × 늘림</h2>
+    <p>
+      SVD 를 조금만 다르게 묶으면 <b>또 하나의 유명한 분해</b>가 나옵니다.
+      복소수를 <span class="m">re<sup>iθ</sup></span> 로 쓰는 것과 완전히 같은 발상이라
+      <b>극분해</b>라고 부릅니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">극분해</div>
+      <div class="eq" style="font-size:15px;line-height:2.1">
+        A = UΣV<sup>T</sup>
+        = (U V<sup>T</sup>)(V Σ V<sup>T</sup>)
+        = <b>Q S</b>
+      </div>
+      <ul class="where">
+        <li><span class="sym">Q = UV<sup>T</sup></span><span class="desc"><b>직교행렬</b>
+            (회전/반사). 모양은 안 바꾸고 <b>방향만</b> 바꿉니다</span></li>
+        <li><span class="sym">S = VΣV<sup>T</sup></span><span class="desc"><b>대칭 · 양의 준정부호</b>(15강).
+            방향은 안 바꾸고 <b>늘리기만</b> 합니다</span></li>
+        <li><span class="sym">복소수 비유</span><span class="desc"><span class="m">z = r·e<sup>iθ</sup></span> 에서
+            <span class="m">e<sup>iθ</sup></span>가 Q(회전), <span class="m">r</span>이 S(크기)</span></li>
+        <li><span class="sym">쓰임</span><span class="desc"><b>컴퓨터 그래픽스</b>에서
+            찌그러진 변환에서 "순수한 회전"만 뽑아낼 때,
+            <b>연속체 역학</b>에서 변형을 회전과 변형률로 나눌 때</span></li>
+      </ul>
+    </div>
+
+    <h2 id="s7">7. numpy 로 확인하기</h2>
+    <p>여기까지 말한 것을 전부 코드로 확인합니다.</p>
+
+    <p class="cell-note">① 최소노름해 — 해가 무한히 많은 경우</p>
+    <div class="pycell">
+    import numpy as np
+    np.set_printoptions(precision=4, suppress=True)
+
+    A = np.array([[1., 2.]])          # 식 1개, 미지수 2개
+    b = np.array([3.])
+
+    x_plus = np.linalg.pinv(A) @ b
+    x_alt  = np.array([3., 0.])       # 눈으로 찾은 다른 해
+
+    print("A⁺b   =", x_plus, " 길이 =", round(float(np.linalg.norm(x_plus)), 4))
+    print("다른 해 =", x_alt,   " 길이 =", round(float(np.linalg.norm(x_alt)), 4))
+    print()
+    print("둘 다 식을 만족하는가:", A @ x_plus, A @ x_alt)
+    print("A⁺b 는 행공간 (1,2) 의 배수인가:", x_plus / np.array([1., 2.]))
+    </div>
+
+    <p class="cell-note">② A⁺ 를 SVD 로 직접 조립해보기</p>
+    <div class="pycell">
+    import numpy as np
+    np.set_printoptions(precision=4, suppress=True)
+
+    A = np.array([[3., 1., 4.],
+                  [1., 0., 1.],
+                  [4., 1., 5.]])      # 3열 = 1열 + 2열 → 랭크 2 (특이!)
+
+    U, s, Vt = np.linalg.svd(A)
+    print("특이값 =", s)               # 마지막이 사실상 0
+    print("랭크  =", np.linalg.matrix_rank(A))
+
+    # Σ⁺ : 0 이 아닌 σ 만 뒤집는다
+    tol = s.max() * 1e-10
+    s_plus = np.array([1/x if x > tol else 0.0 for x in s])
+    A_plus = Vt.T @ np.diag(s_plus) @ U.T
+
+    print("\n수동 A⁺ 와 np.linalg.pinv 가 같은가:",
+          np.allclose(A_plus, np.linalg.pinv(A)))
+    print("A⁻¹ 는? →", end=" ")
+    try:
+        np.linalg.inv(A)
+    except np.linalg.LinAlgError as e:
+        print("불가능:", e)
+    </div>
+
+    <p class="cell-note">③ A⁺A 와 AA⁺ 는 항등행렬이 아니라 '정사영'</p>
+    <div class="pycell">
+    import numpy as np
+    np.set_printoptions(precision=4, suppress=True)
+
+    A = np.array([[1., 0.],
+                  [1., 1.],
+                  [1., 2.],
+                  [1., 3.]])          # 4×2, 세로로 긴 행렬
+    Ap = np.linalg.pinv(A)
+
+    print("A⁺A (2×2) =\n", Ap @ A)     # ← 이건 I 가 맞다 (열이 독립)
+    print("\nAA⁺ (4×4) =\n", A @ Ap)   # ← 이건 I 가 아니다
+    print("\nAA⁺ 는 대칭인가:", np.allclose((A@Ap).T, A@Ap))
+    print("AA⁺ 를 제곱하면 자기 자신인가:", np.allclose((A@Ap) @ (A@Ap), A@Ap))
+    print("→ 대칭 + 멱등 = 정사영 행렬 (9강)")
+    print("AA⁺ 의 대각합(=랭크) =", round(float(np.trace(A@Ap)), 4))
+    </div>
+
+    <p class="cell-note">④ 최소제곱해와 완전히 같은 답</p>
+    <div class="pycell">
+    import numpy as np
+    np.set_printoptions(precision=4, suppress=True)
+
+    A = np.array([[1., 0.], [1., 1.], [1., 2.], [1., 3.]])
+    b = np.array([1., 3., 4., 6.])     # 한 직선 위에 없는 점 4개
+
+    x1 = np.linalg.pinv(A) @ b
+    x2 = np.linalg.lstsq(A, b, rcond=None)[0]
+    x3 = np.linalg.solve(A.T @ A, A.T @ b)     # 정규방정식 (10강)
+
+    print("pinv      =", x1)
+    print("lstsq     =", x2)
+    print("정규방정식 =", x3)
+    print("셋이 같은가:", np.allclose(x1, x2) and np.allclose(x1, x3))
+    print("\n잔차 ‖Ax−b‖ =", round(float(np.linalg.norm(A@x1 - b)), 4), " ← 0 이 아니다(해가 없으니)")
+    </div>
+
+    <p class="cell-note">⑤ 무어-펜로즈 네 조건 검증</p>
+    <div class="pycell">
+    import numpy as np
+
+    rng = np.random.default_rng(0)
+    A = rng.normal(size=(5, 3)) @ rng.normal(size=(3, 4))   # 5×4, 랭크 3
+    Ap = np.linalg.pinv(A)
+
+    조건 = {
+        "① A A⁺ A = A":     np.allclose(A @ Ap @ A, A),
+        "② A⁺ A A⁺ = A⁺":   np.allclose(Ap @ A @ Ap, Ap),
+        "③ (A A⁺)ᵀ = A A⁺": np.allclose((A @ Ap).T, A @ Ap),
+        "④ (A⁺ A)ᵀ = A⁺ A": np.allclose((Ap @ A).T, Ap @ A),
+    }
+    for k, v in 조건.items():
+        print(k, "→", v)
+    print("\nA 의 랭크 =", np.linalg.matrix_rank(A), " (정사각도 아니고 꽉 차지도 않음)")
+    </div>
+
+    <p class="cell-note">⑥ 추천 시스템 — 화면 위 별점표와 같은 데이터</p>
+    <div class="pycell">
+    import numpy as np
+    np.set_printoptions(precision=2, suppress=True)
+
+    영화 = ["액션1", "액션2", "로맨스1", "로맨스2"]
+    사람 = list("ABCDE")
+    R = np.array([[5., 4., 1., 0.],    # 0 = 아직 안 봄
+                  [4., 5., 1., 1.],
+                  [1., 1., 5., 4.],
+                  [1., 0., 4., 5.],
+                  [5., 5., 0., 1.]])
+
+    U, s, Vt = np.linalg.svd(R, full_matrices=False)
+    print("특이값 =", s)
+    print("→ 2개 다음에 뚝 떨어진다. 취향 축은 사실상 2개")
+
+    k = 2
+    R2 = U[:, :k] @ np.diag(s[:k]) @ Vt[:k]
+    print("\n랭크 2 복원:")
+    print(R2)
+    print("\n빈칸 예측:")
+    for i, j in [(0, 3), (3, 1), (4, 2)]:
+        print(f"  {사람[i]} 의 '{영화[j]}' → {R2[i, j]:.2f} 점")
+    </div>
+
+    <p class="cell-note">⑦ 취향 좌표를 직접 들여다보기</p>
+    <div class="pycell">
+    import numpy as np
+    import pandas as pd
+    pd.set_option("display.unicode.east_asian_width", True)
+
+    R = np.array([[5., 4., 1., 0.], [4., 5., 1., 1.], [1., 1., 5., 4.],
+                  [1., 0., 4., 5.], [5., 5., 0., 1.]])
+    U, s, Vt = np.linalg.svd(R, full_matrices=False)
+
+    사람좌표 = pd.DataFrame(np.round(U[:, :2] * s[:2], 2),
+                            index=list("ABCDE"), columns=["축1", "축2"])
+    영화좌표 = pd.DataFrame(np.round(Vt[:2].T, 2),
+                            index=["액션1", "액션2", "로맨스1", "로맨스2"],
+                            columns=["축1", "축2"])
+    print("사람의 취향 좌표"); print(사람좌표)
+    print("\n영화의 성격 좌표"); print(영화좌표)
+    print("\n두 좌표의 내적이 예측 별점 — A × 액션1 =",
+          round(float(사람좌표.loc["A"] @ 영화좌표.loc["액션1"]), 2))
+    </div>
+
+    <p class="cell-note">⑧ 극분해 A = QS</p>
+    <div class="pycell">
+    import numpy as np
+    np.set_printoptions(precision=4, suppress=True)
+
+    A = np.array([[2., 1.],
+                  [0., 3.]])
+
+    U, s, Vt = np.linalg.svd(A)
+    Q = U @ Vt                       # 회전(또는 반사)
+    S = Vt.T @ np.diag(s) @ Vt       # 대칭 · 양의 정부호
+
+    print("Q =\n", Q)
+    print("S =\n", S)
+    print()
+    print("QS = A 인가:", np.allclose(Q @ S, A))
+    print("Q 가 직교인가:", np.allclose(Q.T @ Q, np.eye(2)))
+    print("det Q =", round(float(np.linalg.det(Q)), 4), " → +1 이면 순수 회전")
+    print("S 가 대칭인가:", np.allclose(S, S.T))
+    print("S 의 고윳값 =", np.linalg.eigvalsh(S), " → 전부 양수 = 양의 정부호")
+    print("S 의 고윳값 = A 의 특이값:", np.allclose(np.sort(np.linalg.eigvalsh(S)), np.sort(s)))
+    </div>
+
+    <p class="cell-note">⑨ 왜 1/0 을 0 으로 두는가 — 잡음 증폭 실험</p>
+    <div class="pycell">
+    import numpy as np
+
+    rng = np.random.default_rng(7)
+    U0, _ = np.linalg.qr(rng.normal(size=(6, 6)))
+    V0, _ = np.linalg.qr(rng.normal(size=(6, 6)))
+    s = np.array([10., 5., 2., 0.5, 1e-6, 1e-9])      # 뒤 두 개가 거의 0
+    A = U0 @ np.diag(s) @ V0.T
+
+    b = A @ np.ones(6)
+    b_noisy = b + rng.normal(scale=1e-4, size=6)       # 아주 작은 잡음
+
+    x_inv  = np.linalg.inv(A) @ b_noisy                # 전부 뒤집는다
+    x_pinv = np.linalg.pinv(A, rcond=1e-3) @ b_noisy   # 작은 σ 는 버린다
+
+    print("정답 x = 전부 1")
+    print("inv  로 푼 x 의 최대 크기 =", f"{np.abs(x_inv).max():.3e}")
+    print("pinv 로 푼 x           =", np.round(x_pinv, 3))
+    print()
+    print("→ 작은 σ 를 뒤집으면 1e-4 짜리 잡음이", f"{np.abs(x_inv).max():.0e}", "배로 폭발한다.")
+    print("   버리는 편이 훨씬 정확하다. 이것이 A⁺ 의 rcond 이다.")
+    </div>
+
+    <div class="quiz">
+      <b>연습문제</b>
+      <ol>
+        <li><span class="m">A = [[2, 4]]</span> 일 때 <span class="m">Ax = 10</span> 의
+            최소노름해를 <b>손으로</b> 구해보세요. (힌트: 답은 <span class="m">(2,4)</span> 방향 위에 있습니다)</li>
+        <li>영행렬 <span class="m">O</span> 의 의사역행렬은 무엇일까요? 왜 그럴까요?</li>
+        <li>별점표에서 k = 1 로 두면 어떤 일이 벌어질까요?
+            그리고 k = 4 로 두면 빈칸 예측은 어떻게 될까요? 왜 그런지 설명해보세요.</li>
+      </ol>
+    </div>
+
+    <details class="answer">
+      <summary>모범 답안 보기</summary>
+      <div class="pycell">
+      import numpy as np
+      np.set_printoptions(precision=4, suppress=True)
+
+      # 문제 1 — 손 풀이: x = t(2,4) 로 두면 2(2t)+4(4t)=20t=10 → t=0.5
+      A1 = np.array([[2., 4.]])
+      print("문제 1: 손으로 t=1/2 →", 0.5 * np.array([2., 4.]))
+      print("        pinv         →", np.linalg.pinv(A1) @ np.array([10.]))
+
+      # 문제 2 — 영행렬의 의사역행렬은 영행렬 (모든 σ 가 0 → 전부 0 으로 둔다)
+      O = np.zeros((3, 2))
+      print("\n문제 2: O⁺ =\n", np.linalg.pinv(O), " (모양은 2×3 으로 뒤집힘)")
+      print("        네 조건 만족:",
+            all([np.allclose(O@np.linalg.pinv(O)@O, O),
+                 np.allclose(np.linalg.pinv(O)@O@np.linalg.pinv(O), np.linalg.pinv(O))]))
+
+      # 문제 3 — k=1 이면 '취향 축 하나' 뿐, k=4 면 원본을 그대로 복원(빈칸=0)
+      R = np.array([[5., 4., 1., 0.], [4., 5., 1., 1.], [1., 1., 5., 4.],
+                    [1., 0., 4., 5.], [5., 5., 0., 1.]])
+      U, s, Vt = np.linalg.svd(R, full_matrices=False)
+      for k in (1, 2, 4):
+          Rk = U[:, :k] @ np.diag(s[:k]) @ Vt[:k]
+          print(f"\n문제 3: k={k}  오차 {np.linalg.norm(R-Rk)/np.linalg.norm(R):.1%}"
+                f"  A의 '로맨스2' 예측 {Rk[0,3]:.2f}")
+      print("\n→ k=1: 축이 하나뿐이라 '액션파/로맨스파' 구분만 남고 세부가 사라진다.")
+      print("→ k=4: 랭크가 꽉 차 원본을 그대로 복원 → 빈칸이 0 인 채로 돌아온다.")
+      print("   즉 예측을 만드는 것은 '랭크를 낮춘다'는 제약 그 자체다.")
+      </div>
+    </details>
+
+    <div class="practice">
+      <b>실무에서 의사역행렬</b>
+      <ul>
+        <li><b>회귀</b> — <span class="m">sklearn.linear_model.LinearRegression</span> 내부가
+            <span class="m">scipy.linalg.lstsq</span>, 즉 SVD 기반입니다.
+            열이 겹쳐도(다중공선성) <b>터지지 않는</b> 이유죠.</li>
+        <li><b>로봇 역기구학</b> — 관절이 필요보다 많을 때(여유 자유도)
+            <b>가장 적게 움직이는</b> 관절 조합을 A⁺ 로 고릅니다.</li>
+        <li><b>추천 · 행렬 완성</b> — 저랭크 가정으로 빈칸을 메웁니다(17강 + 이번 강).</li>
+        <li><b>주의 — rcond</b> — <span class="m">np.linalg.pinv(A, rcond=…)</span> 의
+            문턱값이 결과를 <b>크게</b> 바꿉니다. 너무 작으면 잡음 폭발,
+            너무 크면 진짜 신호까지 버립니다. ⑨번 셀이 그 실험입니다.</li>
+        <li><b>주의 — 크기</b> — pinv 는 <b>밀집 SVD</b> 를 돌립니다.
+            수만 차원이면 <span class="m">lsqr</span> 같은 반복법으로 가야 합니다.</li>
+      </ul>
+    </div>
+
+    <div class="summary">
+      <h3>18강 요약</h3>
+      <ul>
+        <li><span class="m">A<sup>+</sup> = VΣ<sup>+</sup>U<sup>T</sup></span>.
+            <b>0 이 아닌 σ 만 뒤집고, 0 은 0 으로 둡니다.</b></li>
+        <li><span class="m">A<sup>+</sup>b</span> 는
+            <b>‖Ax−b‖ 최소 → 그중 ‖x‖ 최소</b>. 세 경우를 한 문장으로 통합합니다.</li>
+        <li>해가 무한할 때는 <b>최소노름해</b>(원점에서 내린 수선의 발),
+            해가 없을 때는 <b>최소제곱해</b>(10강).</li>
+        <li><span class="m">A<sup>+</sup>A</span> 는 행공간 정사영,
+            <span class="m">AA<sup>+</sup></span> 는 열공간 정사영. <b>항등행렬이 아닙니다.</b></li>
+        <li>무어-펜로즈 <b>네 조건</b>을 만족하는 행렬은 <b>유일</b>합니다.</li>
+        <li><b>극분해</b> <span class="m">A = QS</span> — 회전 × 늘림. 복소수의 <span class="m">re<sup>iθ</sup></span>.</li>
+        <li>추천 시스템은 <b>저랭크 제약</b>으로 빈칸을 예측합니다.
+            사용자 좌표 · 아이템 좌표의 <b>내적</b>이 예측 별점이죠.</li>
+      </ul>
+    </div>
+
+    <div class="colab-cta">
+      <div class="colab-text">
+        <b>더 자유롭게 실험하고 싶다면</b><br>
+        이 강의의 실습만 모은 노트북을 Colab에서 열 수 있습니다.
+      </div>
+      <a class="btn" id="colab-link" href="#" target="_blank" rel="noopener">Colab에서 열기</a>
+    </div>
+
+    <p class="next-up">
+      다음 → <b>19강 · 선형변환의 기하학</b><br>
+      회전·반사·투영·전단을 <b>격자가 휘는 그림</b>으로 봅니다.
+      그리고 <b>기저를 바꾸면 왜 행렬이 단순해지는지</b>.
+    </p>
+
+  </section>
+
+</div>
+
+<script src="../assets/viz.js?v=312b9476b0"></script>
+<script src="../assets/linalg.js?v=8351c85811"></script>
+<script src="../assets/pylab.js?v=cb27f20364"></script>
+<script src="../assets/pycell.js?v=6dacc4c6ce"></script>
+<script>
+(function () {
+  'use strict';
+  var M = LA.M, num = LA.num;
+  function vs(v) { return '(' + num(v[0]) + ', ' + num(v[1]) + ')'; }
+
+  /* ================= 1. 최소노름해 ================= */
+  var ca = 1, cb = 2, cc = 3, tt = 2;
+  var bMin = new LA.Board(document.getElementById('cv-min'), { range: 5 });
+
+  function minNorm() {
+    var d = ca * ca + cb * cb;
+    if (d < 1e-9) return null;
+    return [ca * cc / d, cb * cc / d];        // A⁺b = Aᵀ(AAᵀ)⁻¹b
+  }
+
+  function drawMin() {
+    var xp = minNorm();
+    bMin.begin().grid({ step: 1 });
+
+    if (!xp) {
+      V.setText('#r-pin', 'a=b=0 이면 식이 없다');
+      V.setText('#r-pinn', '–'); V.setText('#r-alt', '–');
+      V.setText('#r-altn', '–'); V.setText('#r-both', '–'); V.setText('#r-gap', '–');
+      return;
+    }
+
+    /* 해 직선 ax₁ + bx₂ = c */
+    // 라벨은 붙이지 않는다 — 직선이 화면 밖으로 나가는 각도에서 잘린다
+    bMin.lineEq(ca, cb, cc, { color: V.css('--text-dim'), width: 2.2, dash: [6, 5] });
+
+    /* 직선 위의 다른 해: xp + t·(방향벡터) */
+    var dir = M.unit([-cb, ca]);
+    var xa = [xp[0] + dir[0] * tt, xp[1] + dir[1] * tt];
+
+    /* 원점에서 두 해까지 */
+    bMin.arrow(xa, { color: V.css('--purple'), width: 2.4, label: '내가 고른 해',
+                     labelMid: true, labelSide: -30 });
+    bMin.arrow(xp, { color: V.css('--accent'), width: 3.2, label: 'A⁺b',
+                     labelMid: true, labelSide: 16 });
+
+    /* 수직 표시 */
+    if (Math.abs(tt) > 0.2) {
+      bMin.rightAngle(xp, M.scale(xp, -1), dir, { size: 12, color: V.css('--accent') });
+    }
+    bMin.point(xa, { color: V.css('--purple'), r: 5 });
+    bMin.point(xp, { color: V.css('--accent'), r: 6, label: '최소노름' });
+    bMin.point([0, 0], { color: V.css('--text-dim'), r: 4 });
+
+    var np1 = M.norm(xp), np2 = M.norm(xa);
+    V.setText('#r-pin', vs(xp));
+    V.setText('#r-pinn', num(np1, 3));
+    V.setText('#r-alt', vs(xa));
+    V.setText('#r-altn', num(np2, 3));
+    var ok1 = Math.abs(ca * xp[0] + cb * xp[1] - cc) < 1e-6;
+    var ok2 = Math.abs(ca * xa[0] + cb * xa[1] - cc) < 1e-6;
+    V.setText('#r-both', ok1 && ok2 ? '예 (둘 다 정확)' : '아니오');
+    V.setText('#r-gap', np2 >= np1 - 1e-9 ? '+' + num(np2 - np1, 3) : '?');
+  }
+
+  V.range('ca', function (v) { ca = v; drawMin(); });
+  V.range('cb', function (v) { cb = v; drawMin(); });
+  V.range('cc', function (v) { cc = v; drawMin(); });
+  V.range('tt', function (v) { tt = v; drawMin(); });
+
+  /* ================= 2. 추천 시스템 ================= */
+  var R = [[5, 4, 1, 0],
+           [4, 5, 1, 1],
+           [1, 1, 5, 4],
+           [1, 0, 4, 5],
+           [5, 5, 0, 1]];
+  var 빈칸 = { '0,3': 1, '3,1': 1, '4,2': 1 };
+  var 사람 = ['A', 'B', 'C', 'D', 'E'];
+  var 영화 = ['액션1', '액션2', '로맨스1', '로맨스2'];
+  var rk = 2, showU = false;
+  var svdR = M.svdFull(R);
+
+  /* 캔버스 레이아웃 — 높이 계산과 그리기가 같은 식을 쓴다 */
+  function layout(W) {
+    var padL = 26, gap = 40, padT = 46;
+    var tableW = (W - padL * 2 - gap - 6) / 2;
+    var cw = tableW / 4;
+    var chh = Math.min(cw * 0.72, 62);
+    var bottom = padT + 5 * chh;
+    var scatterH = showU ? Math.max(210, Math.min(280, Math.round(W * 0.34))) : 0;
+    return {
+      padL: padL, gap: gap, padT: padT, tableW: tableW, cw: cw, chh: chh,
+      tableBottom: bottom, scatterH: scatterH,
+      H: Math.round(bottom + (showU ? scatterH + 16 : 10))
+    };
+  }
+
+  var cvRec = document.getElementById('cv-rec');
+  var plotRec = new V.Plot(cvRec, {
+    height: function (w) { return layout(w).H; },
+    margin: { top: 4, right: 4, bottom: 4, left: 4 }
+  });
+
+  function color(v) {
+    // 0(옅은 파랑) → 5(진한 파랑)
+    var t = Math.max(0, Math.min(1, v / 5));
+    return 'rgba(45, 108, 223,' + (0.10 + 0.72 * t) + ')';
+  }
+
+  function drawRec() {
+    var Rk = M.lowRank(svdR, rk, 5, 4);
+    plotRec.begin();
+    var c = plotRec.ctx;
+    var W = plotRec.w, H = plotRec.h;
+    var L = layout(W);
+    var padL = L.padL, padT = L.padT, cw = L.cw, chh = L.chh, tableW = L.tableW;
+
+    function table(x0, data, isApprox, title) {
+      c.save();
+      c.font = '700 12.5px ' + V.FONT;
+      c.fillStyle = V.css('--text');
+      c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText(title, x0 + tableW / 2, 13);
+
+      c.font = '600 10.5px ' + V.FONT;
+      for (var j = 0; j < 4; j++) {
+        c.fillStyle = V.css('--text-dim');
+        c.fillText(영화[j], x0 + cw * (j + 0.5), padT - 12);
+      }
+      for (var i = 0; i < 5; i++) {
+        var y = padT + i * chh;
+        c.fillStyle = V.css('--text-dim');
+        c.font = '700 11px ' + V.FONT;
+        c.textAlign = 'right';
+        c.fillText(사람[i], x0 - 6, y + chh / 2);
+        c.textAlign = 'center';
+        c.font = '600 10.5px ' + V.FONT;
+        for (j = 0; j < 4; j++) {
+          var x = x0 + j * cw;
+          var isBlank = 빈칸[i + ',' + j];
+          var v = data[i][j];
+          c.fillStyle = (isBlank && !isApprox) ? V.css('--surface-2') : color(v);
+          c.fillRect(x + 1, y + 1, cw - 2, chh - 2);
+          if (isBlank) {
+            c.strokeStyle = V.css('--warn');
+            c.lineWidth = 1.6;
+            c.setLineDash([3, 3]);
+            c.strokeRect(x + 1, y + 1, cw - 2, chh - 2);
+            c.setLineDash([]);
+          }
+          c.font = '700 11.5px ' + V.FONT;
+          if (isBlank && !isApprox) {
+            c.fillStyle = V.css('--text-dim');
+            c.fillText('?', x + cw / 2, y + chh / 2);
+          } else {
+            c.fillStyle = v > 2.6 ? '#fff' : V.css('--text');
+            c.fillText(isApprox ? v.toFixed(1) : String(v), x + cw / 2, y + chh / 2);
+          }
+        }
+      }
+      c.restore();
+    }
+
+    table(padL, R, false, '원본 별점표');
+    table(padL + tableW + L.gap, Rk, true, '랭크 ' + rk + ' 복원');
+
+    /* 사용자 취향 좌표 산점도 */
+    if (showU) {
+      var s1 = svdR.sigma[0], s2 = svdR.sigma[1];
+      var pts = [];
+      for (var i = 0; i < 5; i++) {
+        pts.push([svdR.U[0][i] * s1, svdR.U[1][i] * s2]);
+      }
+      // 원점이 항상 보이도록 0 을 범위에 포함시킨다
+      var xs = pts.map(function (p) { return p[0]; }).concat([0]);
+      var ys = pts.map(function (p) { return p[1]; }).concat([0]);
+      var xlo = Math.min.apply(null, xs), xhi = Math.max.apply(null, xs);
+      var ylo = Math.min.apply(null, ys), yhi = Math.max.apply(null, ys);
+      var mx = (xhi - xlo) * 0.18 + 0.3, my = (yhi - ylo) * 0.18 + 0.3;
+      xlo -= mx; xhi += mx; ylo -= my; yhi += my;
+
+      var bx0 = 40, bx1 = W - 20;
+      var by0 = L.tableBottom + 34, by1 = H - 14;
+      function sx(v) { return bx0 + (v - xlo) / (xhi - xlo) * (bx1 - bx0); }
+      function sy(v) { return by1 - (v - ylo) / (yhi - ylo) * (by1 - by0); }
+
+      c.save();
+      c.font = '700 12.5px ' + V.FONT;
+      c.fillStyle = V.css('--text');
+      c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText('사용자별 취향 좌표 — Uₖ Σₖ 의 각 행', W / 2, L.tableBottom + 16);
+
+      c.strokeStyle = V.css('--grid'); c.lineWidth = 1;
+      c.beginPath();
+      c.moveTo(bx0, sy(0)); c.lineTo(bx1, sy(0));
+      c.moveTo(sx(0), by0); c.lineTo(sx(0), by1);
+      c.stroke();
+
+      c.font = '600 10.5px ' + V.FONT;
+      c.fillStyle = V.css('--text-dim');
+      c.textAlign = 'right'; c.textBaseline = 'bottom';
+      c.fillText('축1 — 별점을 얼마나 후하게 주는가 →', bx1, sy(0) - 5);
+      c.textAlign = 'left'; c.textBaseline = 'top';
+      c.fillText('↑ 축2 — 액션 ↔ 로맨스', sx(0) + 5, by0);
+
+      for (i = 0; i < 5; i++) {
+        var px = sx(pts[i][0]), py = sy(pts[i][1]);
+        c.beginPath(); c.moveTo(sx(0), sy(0)); c.lineTo(px, py);
+        c.strokeStyle = V.css('--accent'); c.globalAlpha = 0.3;
+        c.lineWidth = 1.4; c.stroke(); c.globalAlpha = 1;
+        c.beginPath(); c.arc(px, py, 6, 0, Math.PI * 2);
+        c.fillStyle = V.css('--accent'); c.fill();
+        c.font = '700 12px ' + V.FONT;
+        c.fillStyle = V.css('--text');
+        c.textAlign = 'left'; c.textBaseline = 'middle';
+        c.fillText(사람[i], px + 11, py - 1);
+      }
+      c.restore();
+    }
+
+    /* 읽기 */
+    var num2 = 0, den = 0;
+    for (var a = 0; a < 5; a++) for (var b2 = 0; b2 < 4; b2++) {
+      var d2 = R[a][b2] - Rk[a][b2];
+      num2 += d2 * d2; den += R[a][b2] * R[a][b2];
+    }
+    var tot = svdR.sigma.reduce(function (s, x) { return s + x * x; }, 0);
+    var kept = svdR.sigma.slice(0, rk).reduce(function (s, x) { return s + x * x; }, 0);
+
+    V.setText('#r-sig', svdR.sigma.map(function (x) { return num(x, 1); }).join(', '));
+    V.setText('#r-err', (Math.sqrt(num2 / den) * 100).toFixed(1) + '%');
+    V.setText('#r-p1', Rk[0][3].toFixed(2) + ' 점');
+    V.setText('#r-p2', Rk[3][1].toFixed(2) + ' 점');
+    V.setText('#r-p3', Rk[4][2].toFixed(2) + ' 점');
+    V.setText('#r-en', (kept / tot * 100).toFixed(2) + '%');
+  }
+
+  V.range('rk', function (v) { rk = v; drawRec(); });
+  V.check('showU', function (on) { showU = on; drawRec(); });
+
+  V.onRedraw(function () { drawMin(); drawRec(); });
+  drawMin(); drawRec();
+
+  var a3 = document.getElementById('colab-link');
+  if (a3) a3.href = 'https://colab.research.google.com/github/mioon1402/timeseriesdata/blob/main/notebooks/L18-pseudoinverse.ipynb';
+})();
+</script>
+</body>
+</html>
