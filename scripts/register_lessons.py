@@ -7,6 +7,7 @@
 
   · python/pNN-*.html  파이썬 데이터 분석 (캔버스 없음)
   · linalg/LNN-*.html  선형대수 (캔버스 있음)
+  · calc/CNN-*.html    미적분 (캔버스 있음)
 
     python3 scripts/register_lessons.py
 """
@@ -21,6 +22,7 @@ HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SERIES = [
     ("python", r"p(\d\d)-", "P", False),
     ("linalg", r"L(\d\d)-", "L", True),
+    ("calc", r"C(\d\d)-", "C", True),
 ]
 
 
@@ -55,7 +57,7 @@ def update_index(lessons):
         return f"{{ no: '{no}', file: '{have[no]}', done: true,"
 
     pattern = re.compile(
-        r"\{ no: '(?P<no>[PL]\d\d)', file: '(?P<file>[^']*)', done: (?P<done>true|false),"
+        r"\{ no: '(?P<no>[PLC]\d\d)', file: '(?P<file>[^']*)', done: (?P<done>true|false),"
     )
     out = pattern.sub(repl, src)
     if out != src:
@@ -70,7 +72,7 @@ def update_checker(lessons):
 
     pages_block = "".join(f"  '{p}',\n" for p in paths)
     out = re.sub(
-        r"(  'modules/08-simpson\.html',\n)(?:  '(?:python|linalg)/[^']+',\n)*(\];)",
+        r"(  'modules/08-simpson\.html',\n)(?:  '(?:python|linalg|calc)/[^']+',\n)*(\];)",
         lambda m: m.group(1) + pages_block + m.group(2),
         src,
     )

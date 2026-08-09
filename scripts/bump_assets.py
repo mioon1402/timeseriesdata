@@ -26,7 +26,7 @@ import sys
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # 검사할 HTML 위치
-HTML_DIRS = ["", "modules", "python", "linalg"]
+HTML_DIRS = ["", "modules", "python", "linalg", "calc"]
 
 # href/src 안의 assets 경로를 찾는다. 이미 붙어 있는 ?v= 는 갈아끼운다.
 REF = re.compile(r'(?P<attr>href|src)="(?P<path>(?:\.\./)?assets/[^"?]+\.(?:css|js))(?:\?v=[^"]*)?"')

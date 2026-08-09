@@ -16,7 +16,7 @@ import re
 import sys
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DIRS = ["python", "linalg"]
+DIRS = ["python", "linalg", "calc"]
 CELL = re.compile(r'<div class="pycell"([^>]*)>([\s\S]*?)</div>')
 TITLE = re.compile(r'data-title="([^"]*)"')
 

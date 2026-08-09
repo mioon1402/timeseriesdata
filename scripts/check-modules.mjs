@@ -75,6 +75,7 @@ const PAGES = [
   'linalg/L18-pseudoinverse.html',
   'linalg/L19-transform.html',
   'linalg/L20-applications.html',
+  'calc/C01-circle-area.html',
 ];
 
 /** 캔버스가 없어도 정상인 페이지 (파이썬 실습 강의 등) */
@@ -142,12 +143,12 @@ const COLAB_REPO = 'mioon1402/timeseriesdata';
 const COLAB_REF = 'main';
 
 function checkColabTargets() {
-  return PAGES.filter((p) => p.startsWith('python/') || p.startsWith('linalg/'));
+  return PAGES.filter((p) => p.startsWith('python/') || p.startsWith('linalg/') || p.startsWith('calc/'));
 }
 
 function checkColab() {
   const problems = [];
-  const lessons = PAGES.filter((p) => p.startsWith('python/') || p.startsWith('linalg/'));
+  const lessons = PAGES.filter((p) => p.startsWith('python/') || p.startsWith('linalg/') || p.startsWith('calc/'));
 
   for (const page of lessons) {
     const raw = fs.readFileSync(path.join(ROOT, page), 'utf8');

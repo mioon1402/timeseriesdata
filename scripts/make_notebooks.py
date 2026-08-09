@@ -19,7 +19,7 @@ from html.parser import HTMLParser
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # 실습 셀이 들어 있는 강의 폴더들. 노트북은 전부 notebooks/ 하나에 모은다.
-SRC_DIRS = ["python", "linalg"]
+SRC_DIRS = ["python", "linalg", "calc"]
 OUT_DIR = os.path.join(HERE, "notebooks")
 
 REPO = "mioon1402/timeseriesdata"

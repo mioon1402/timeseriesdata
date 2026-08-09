@@ -47,6 +47,14 @@
   </p>
   <div class="hub-grid" id="lagrid"></div>
 
+  <h2 style="font-size:20px;margin:40px 0 6px;letter-spacing:-.02em">4부 · 미적분의 직관</h2>
+  <p style="margin:0 0 16px;font-size:14px;color:var(--text-dim)">
+    공식이 아니라 <b>그림</b>으로 배우는 미적분. 필요한 사전지식은 사칙연산과 아주 간단한 문자식뿐입니다.
+    <b>쪼개기 → 근사하기 → 합치기 → 극한 보내기</b> 네 박자가 12강 내내 반복됩니다.
+    책에 실린 23개의 그림을 <b>전부 직접 만질 수 있는 캔버스</b>로 바꿨습니다.
+  </p>
+  <div class="hub-grid" id="calcgrid"></div>
+
   <section class="embed-box" id="embedBox">
     <h2 style="margin:0 0 6px;font-size:17px;">티스토리·블로그에 붙여넣기</h2>
     <p style="margin:0 0 14px;font-size:13.5px;color:var(--text-dim)">
@@ -358,6 +366,58 @@
       tags: '에르미트 · 유니터리 · PCA · PageRank · DFT' }
   ];
 
+  /* 미적분 시리즈 */
+  var CALC_LESSONS = [
+    { no: 'C01', file: 'calc/C01-circle-area.html', done: true,
+      title: '원의 넓이 — 미적분의 네 박자',
+      desc: '왜 πR²인가. 원을 고리로 쪼개 펴서 삼각형을 만들면 미적분 전체가 한 장에 들어옵니다.',
+      tags: '쪼개기 · 근사 · 합치기 · 극한 · ∫2πr dr' },
+    { no: 'C02', file: 'calc/C02-limit.html', done: false,
+      title: "극한 — '도착'이 아니라 '접근'",
+      desc: '0.9, 0.99, 0.999… 도착하지 않아도 목적지는 확실합니다. 확대하면 곡선이 직선이 되는 이유.',
+      tags: 'lim · 수렴 · 국소 선형성 · 구멍' },
+    { no: 'C03', file: 'calc/C03-derivative.html', done: false,
+      title: '미분의 역설 — 순간을 측정하기',
+      desc: '순간 속도는 0/0입니다. 그런데 속도계는 돕니다. 할선을 접선으로 미끄러뜨려 봅니다.',
+      tags: '순간 속도 · 할선→접선 · dy/dx · 도함수' },
+    { no: 'C04', file: 'calc/C04-power-rule.html', done: false,
+      title: '기하학으로 보는 미분 공식',
+      desc: '(x²)′=2x를 정사각형이 자라는 그림으로. 왜 미분하면 차수가 하나 낮아지는지 눈으로 봅니다.',
+      tags: '멱함수 · 정사각형 · 정육면체 · 1/x · √x' },
+    { no: 'C05', file: 'calc/C05-product-chain.html', done: false,
+      title: '곱의 미분법과 연쇄법칙',
+      desc: '직사각형이 커질 때 붙는 두 개의 띠, 그리고 도미노처럼 이어지는 변화의 기어비.',
+      tags: '(gh)′ · 연쇄법칙 · 기어비 · 구조 분해' },
+    { no: 'C06', file: 'calc/C06-euler-e.html', done: false,
+      title: '오일러 상수 e — 자기 자신을 낳는 함수',
+      desc: '높이가 곧 기울기가 되는 밑을 찾으면 2.71828…이 나옵니다. 복리에서도 같은 수가 나옵니다.',
+      tags: 'eˣ · (aˣ)′=aˣ ln a · ln · (1+1/n)ⁿ' },
+    { no: 'C07', file: 'calc/C07-implicit.html', done: false,
+      title: '음함수 미분 — 제약 속의 변화율',
+      desc: 'y로 풀지 않고도 접선 기울기를 얻습니다. 등고선을 벗어나지 않는 균형 조건 하나면 됩니다.',
+      tags: '등고선 · 2x dx + 2y dy = 0 · 관련 변화율 · 사다리' },
+    { no: 'C08', file: 'calc/C08-lhopital.html', done: false,
+      title: '로피탈 정리와 입실론-델타',
+      desc: '0/0은 누가 더 빨리 0으로 가는가의 경주입니다. 그리고 극한을 공방 게임으로 못 박습니다.',
+      tags: 'sin x/x · 로피탈 · ε-δ · 구멍' },
+    { no: 'C09', file: 'calc/C09-integral.html', done: false,
+      title: '적분과 미적분학의 기본정리',
+      desc: '직사각형을 무한히 늘리면 넓이가 나오고, 그 넓이를 미분하면 원래 높이가 돌아옵니다.',
+      tags: '리만 합 · ∫ · A′(x)=f(x) · F(b)−F(a)' },
+    { no: 'C10', file: 'calc/C10-average.html', done: false,
+      title: '넓이와 기울기는 무슨 관계일까',
+      desc: '사인 곡선의 평균 높이는? 이 소박한 질문이 평균값 정리와 기본정리의 두 번째 증명이 됩니다.',
+      tags: '연속 평균 · 2/π · 평균값 정리 · 할선' },
+    { no: 'C11', file: 'calc/C11-taylor.html', done: false,
+      title: '테일러 급수 — 곡선을 다항식으로',
+      desc: '값·기울기·곡률을 차례로 맞추면 다항식이 곡선을 흉내 냅니다. 계산기가 sin을 구하는 법.',
+      tags: '테일러 · n! · 수렴 반경 · 선형화' },
+    { no: 'C12', file: 'calc/C12-dydx.html', done: false,
+      title: 'dy/dx는 왜 분수처럼 작동하나',
+      desc: '"분수가 아니다"라면서 왜 약분이 늘 맞을까요. 무한소의 유령과 20세기의 반전, 그리고 부분적분.',
+      tags: '무한소 · 접선 위의 좌표 · 미분형식 · 부분적분' }
+  ];
+
   /* ---------- 카드 ---------- */
   var grid = document.getElementById('grid');
   MODULES.forEach(function (m, i) {
@@ -410,6 +470,25 @@
       '<p>' + m.desc + '<br><span style="font-size:12px;opacity:.8">' + m.tags + '</span></p>' +
       '<div class="card-actions">' + action + '</div>';
     lagrid.appendChild(card);
+  });
+
+  /* ---------- 미적분 시리즈 카드 ---------- */
+  var calcgrid = document.getElementById('calcgrid');
+  CALC_LESSONS.forEach(function (m) {
+    var card = document.createElement('article');
+    card.className = 'card' + (m.done ? '' : ' card-soon');
+    var action = m.done
+      ? '<a class="btn primary" href="' + m.file + '">열기</a>'
+      : '<span class="btn" aria-disabled="true" style="opacity:.5;cursor:default">준비 중</span>';
+    var heading = m.done
+      ? '<a href="' + m.file + '">' + m.title + '</a>'
+      : m.title;
+    card.innerHTML =
+      '<div class="num">' + m.no + '</div>' +
+      '<h3>' + heading + '</h3>' +
+      '<p>' + m.desc + '<br><span style="font-size:12px;opacity:.8">' + m.tags + '</span></p>' +
+      '<div class="card-actions">' + action + '</div>';
+    calcgrid.appendChild(card);
   });
 
   grid.addEventListener('click', function (ev) {
