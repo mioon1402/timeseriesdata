@@ -1,0 +1,756 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>미분의 역설 — 순간을 측정하기 · 미적분의 직관</title>
+<meta name="description" content="순간 속도는 0 나누기 0입니다. 그런데 속도계는 멀쩡히 작동하죠. 할선을 접선으로 미끄러뜨려 이 역설을 풉니다.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%E2%88%AB%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css?v=b7dfb076b2">
+<link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">미적분 3강 · 미분</p>
+    <h1>미분의 역설 — 순간을 측정하기</h1>
+    <p class="lede">
+      고속도로를 달리는데 속도계가 <b>100km/h</b> 를 가리킵니다.
+      그런데 <b>"바로 이 순간의 속도"</b> 란 정확히 뭘까요?
+      속도는 <b>(간 거리) ÷ (걸린 시간)</b> 인데, '한 순간'은 시간 간격이 <b>0</b> 인 점입니다.
+      간 거리도 0, 걸린 시간도 0. <b>순간 속도 = 0/0</b> — 수학적으로 정의되지 않습니다.
+      <b>그런데도 속도계는 멀쩡히 작동합니다.</b> 어떻게요?
+    </p>
+  </header>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 강의에서 배우는 것</b>
+      <ol>
+        <li><a href="#s0">기초 다지기 — 0/0 이 왜 문제인가</a></li>
+        <li><a href="#s1">질문 바꾸기 — 순간 대신 짧은 구간</a></li>
+        <li><a href="#s2">대수로 확인하기 — 왜 하필 12인가</a></li>
+        <li><a href="#s3">그래프에서 보기 — 할선에서 접선으로</a></li>
+        <li><a href="#s4">미분의 공식적 정의</a></li>
+        <li><a href="#s5">한 점에서 함수 전체로 — 도함수</a></li>
+        <li><a href="#s6">위치 → 속도 → 가속도</a></li>
+        <li><a href="#s7">파이썬으로 확인하기</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s0">0. 기초 다지기 — 0/0 이 왜 문제인가</h2>
+    <p>
+      <span class="m">6 ÷ 2 = 3</span> 인 이유는 <b><span class="m">3 × 2 = 6</span> 이기 때문</b>입니다.
+      나눗셈은 <b>"뭘 곱하면 이게 되나"</b> 라는 질문의 답이죠.
+    </p>
+    <p>
+      그럼 <span class="m">0 ÷ 0</span> 은? <b>"뭘 곱하면 0이 되나"</b> —
+      <span class="m">5 × 0 = 0</span> 이니 5도 답이고,
+      <span class="m">100 × 0 = 0</span> 이니 100도 답입니다.
+      <b>모든 수가 답</b>입니다. 답이 <b>하나로 정해지지 않으니</b> 정의할 수 없습니다.
+    </p>
+
+    <div class="callout">
+      <b>그래서 0/0 을 '부정형(不定形)'이라 부릅니다</b><br>
+      "정해지지 않은 꼴"이라는 뜻입니다.
+      <b>답이 없다</b>는 게 아니라 <b>이 식만 봐서는 답을 알 수 없다</b>는 뜻이에요.
+      <br><br>
+      중요한 건 이겁니다 — <b>어떻게 0에 다가갔는지를 보면</b> 답이 정해집니다.
+      <span class="m">2x/x</span> 는 x→0 에서 <b>2</b> 로,
+      <span class="m">x²/x</span> 는 <b>0</b> 으로,
+      <span class="m">x/x²</span> 은 <b>무한대</b>로 갑니다. 전부 0/0 꼴인데도요.
+      <b>과정이 답을 결정합니다.</b>
+    </div>
+
+    <h2 id="s1">1. 질문 바꾸기 — 순간 대신 짧은 구간</h2>
+    <p>
+      자동차의 이동 거리가 <b><span class="m">s(t) = t³</span> 미터</b> 라고 합시다 (t는 초).
+      t=1에 1m, t=2에 8m, t=3에 27m 를 갔다는 뜻입니다. <b>점점 빨라지는 차</b>죠.
+      질문: <b>t = 2초 바로 그 순간의 속도는?</b>
+    </p>
+    <p>
+      직접 잴 수 없는 '<b>순간</b>'을 잴 수 있는 '<b>짧은 구간</b>'으로 바꿉시다.
+      "t=2 부터 t=2+dt 까지, 아주 짧은 시간 dt 동안의 <b>평균 속도</b>는?"
+    </p>
+
+    <div class="formula">
+      <div class="name">평균 속도</div>
+      <div class="eq" style="font-size:17px">
+        <span class="frac"><span>s(2+dt) − s(2)</span><span>dt</span></span>
+        &nbsp;=&nbsp; <span class="frac"><span>간 거리</span><span>걸린 시간</span></span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">dt ≠ 0</span><span class="desc">이건 <b>실제로 계산할 수 있는</b> 값입니다.
+            0/0 이 아니거든요</span></li>
+        <li><span class="sym">전략</span><span class="desc">dt 를 <b>점점 작게</b> 하면서 이 값이
+            <b>어디로 다가가는지</b> 봅니다 — 2강의 극한 그대로입니다</span></li>
+      </ul>
+    </div>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>dt (초)</th><th>간 거리 (m)</th><th>평균 속도 (m/s)</th></tr></thead>
+        <tbody>
+          <tr><td>0.1</td><td>1.261</td><td><b>12.61</b></td></tr>
+          <tr><td>0.01</td><td>0.120601</td><td><b>12.0601</b></td></tr>
+          <tr><td>0.001</td><td>0.012006001</td><td><b>12.006001</b></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      패턴이 보입니다. dt가 작아질수록 평균 속도가 <b>12</b> 를 향해 다가갑니다.
+      2강의 언어로 말하면, <b>dt→0 일 때 평균 속도의 극한이 12</b> 입니다.
+    </p>
+
+    <h2 id="s2">2. 대수로 확인하기 — 왜 하필 12인가</h2>
+    <p>
+      우연이 아님을 확인합시다. <span class="m">(2+dt)³</span> 을 전개하면
+      <span class="m">8 + 12·dt + 6·dt² + dt³</span> 입니다. 따라서 간 거리는:
+    </p>
+
+    <div class="formula">
+      <div class="name">전개하고 나누고 극한</div>
+      <div class="eq" style="font-size:15.5px;line-height:2.4">
+        ds = s(2+dt) − s(2) = <b>12·dt + 6·dt² + dt³</b>
+        <br>
+        <span class="small">dt 로 나누면 (dt ≠ 0 이니 나눗셈은 합법)</span><br>
+        <span class="frac"><span>ds</span><span>dt</span></span> = 12 + 6·dt + dt²
+        <br>
+        <span class="small">이제 dt 를 0 으로 보내면</span> &nbsp;⟹&nbsp; <b>12</b>
+      </div>
+      <ul class="where">
+        <li><span class="sym">12·dt</span><span class="desc"><b>한 번 작은</b> 항. dt 로 나누면 <b>12로 살아남습니다</b></span></li>
+        <li><span class="sym">6·dt², dt³</span><span class="desc"><b>두 번·세 번 작은</b> 항.
+            나눠도 dt 가 남아서 <b>극한에서 사라집니다</b> — 1강에서 본 그 규칙</span></li>
+        <li><span class="sym">순서가 전부</span><span class="desc"><b>먼저 나누고, 그 다음에 0으로 보낸다.</b>
+            0/0 을 직접 계산한 게 아니라 <b>0으로 다가가는 과정의 목적지를 읽은</b> 것입니다</span></li>
+      </ul>
+    </div>
+
+    <div class="myth">
+      <div class="bad"><b>⚠ 흔한 오해</b>
+        "결국 <b>dt = 0 을 대입</b>한 것 아닌가?"</div>
+      <div class="good"><b>아닙니다 — 순서가 핵심입니다</b>
+        dt = 0 을 <b>처음부터</b> 대입하면 <span class="m">0/0</span> 이 되어 아무것도 못 합니다.
+        <br>
+        우리가 한 건: ① <b>dt ≠ 0 인 채로</b> 나눗셈을 끝내 <span class="m">12 + 6dt + dt²</span> 을 얻고,
+        ② <b>그 다음에</b> dt 를 0으로 보냅니다.
+        <br>
+        <b>'나누고 나서 보낸다'</b> — 이 순서가 역설을 푸는 열쇠입니다.
+        그리고 <span class="m">12 + 6dt + dt²</span> 은 dt=0 에서도 <b>멀쩡히 계산되는 식</b>이라
+        극한을 읽는 데 아무 문제가 없습니다.</div>
+    </div>
+
+    <h2 id="s3">3. 그래프에서 보기 — 할선에서 접선으로</h2>
+    <p>
+      이 과정을 그래프 위에서 보면 <b>2강의 확대 비유</b>와 정확히 만납니다.
+      <b>t=2 인 점</b>과 <b>t=2+dt 인 점</b>을 잇는 직선(<b>할선</b>)의 기울기가 <b>평균 속도</b>입니다.
+      dt 를 줄이면 둘째 점이 첫째 점으로 <b>미끄러져</b> 다가오고,
+      할선은 극한에서 <b>접선</b>이 됩니다.
+    </p>
+
+    <div class="panel">
+      <div class="panel-title">① 두 번째 점을 미끄러뜨려 보세요</div>
+      <div class="canvas-wrap"><canvas id="cv-sec"></canvas></div>
+
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">두 점 사이의 간격 h</span><span class="val" id="sh-val">1</span></span>
+          <input type="range" id="sh" min="-3" max="0.3" step="0.01" value="0.3">
+        </label>
+        <label class="ctrl">
+          <span class="label-row"><span class="name">첫 번째 점 x₀</span><span class="val" id="sx-val">2</span></span>
+          <input type="range" id="sx" min="0.2" max="2.6" step="0.02" value="2">
+        </label>
+      </div>
+
+      <div class="seg" role="group" aria-label="함수 선택" style="margin-top:10px">
+        <label><input type="radio" name="sf" value="cube" checked><span>s(t) = t³</span></label>
+        <label><input type="radio" name="sf" value="sq"><span>t²</span></label>
+        <label><input type="radio" name="sf" value="sin"><span>sin t</span></label>
+      </div>
+
+      <div class="readout">
+        <div class="stat"><span class="k">간격 h</span><span class="v" id="d-h">–</span></div>
+        <div class="stat purple"><span class="k">할선 기울기 = 평균 속도</span><span class="v" id="d-avg">–</span></div>
+        <div class="stat pos"><span class="k">접선 기울기 = 순간 속도</span><span class="v" id="d-inst">–</span></div>
+        <div class="stat neg"><span class="k">둘의 차</span><span class="v" id="d-diff">–</span></div>
+      </div>
+      <p class="hint">
+        <b>h 슬라이더를 왼쪽으로 밀어보세요.</b>
+        보라색 할선이 <b>초록 접선 위로 포개집니다.</b>
+        그런데 <b>h 가 정확히 0이 되는 일은 없습니다</b> — 그러면 두 점이 하나가 되어
+        직선을 그을 수 없으니까요. <b>다가갈 뿐입니다.</b>
+      </p>
+    </div>
+
+    <h2 id="s4">4. 미분의 공식적 정의</h2>
+
+    <div class="formula">
+      <div class="name">도함수의 정의</div>
+      <div class="eq" style="font-size:19px">
+        f′(x) = lim<sub>&nbsp;h→0</sub>
+        <span class="frac"><span>f(x+h) − f(x)</span><span>h</span></span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">f(x+h) − f(x)</span><span class="desc"><b>세로 변화</b>(dy).
+            그림에서 직각삼각형의 <b>높이</b></span></li>
+        <li><span class="sym">h</span><span class="desc"><b>가로 변화</b>(dx). 직각삼각형의 <b>밑변</b></span></li>
+        <li><span class="sym">분수 전체</span><span class="desc"><b>세로 ÷ 가로 = 기울기</b>.
+            곡선에 붙인 <b>아주 작은 직각삼각형</b>의 모양입니다</span></li>
+        <li><span class="sym">lim</span><span class="desc">삼각형을 <b>한없이 작게</b> 줄일 때
+            기울기가 다가가는 <b>목적지</b></span></li>
+        <li><span class="sym">f′ 의 뜻</span><span class="desc">"에프 <b>프라임</b>". <b>도함수</b>라고 읽습니다.
+            <span class="m">dy/dx</span> 도 같은 뜻입니다(12강에서 이 표기의 비밀을 다룹니다)</span></li>
+      </ul>
+    </div>
+
+    <h2 id="s5">5. 한 점에서 함수 전체로 — 도함수</h2>
+    <p>
+      t=2 대신 <b>일반적인 t</b> 에서 같은 계산을 하면
+      <span class="m">s′(t) = 3t²</span> 이 나옵니다.
+      (전개하면 <span class="m">3t²·dt + 3t·dt² + dt³</span>, dt로 나누고 극한.)
+      t=2 를 넣으면 <span class="m">3 × 4 = 12</span> 로 앞의 결과와 일치합니다.
+    </p>
+    <p>
+      이렇게 얻은 <b>새 함수</b> <span class="m">s′(t)</span> 를 <b>도함수</b>라 부릅니다 —
+      <b>각 시점의 순간 속도를 통째로 담은 '기울기 지도'</b> 입니다.
+    </p>
+    <p>
+      아래에서 <b>위 그래프의 점을 좌우로 옮겨</b> 보세요.
+      그 점에서의 <b>접선 기울기</b>가 <b>아래 그래프의 점</b>으로 찍힙니다.
+      점을 쭉 훑으면 <b>아래에 새 곡선 하나</b>가 그려지죠. 그게 도함수입니다.
+    </p>
+
+    <div class="panel">
+      <div class="panel-title">② 기울기를 모으면 새 함수가 된다</div>
+      <div class="canvas-wrap"><canvas id="cv-map"></canvas></div>
+
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">지금 보고 있는 x</span><span class="val" id="mx-val">-1.6</span></span>
+          <input type="range" id="mx" min="-2.6" max="2.6" step="0.01" value="-1.6">
+        </label>
+        <label class="toggle"><input type="checkbox" id="m-reveal"> 도함수 곡선 전체 보이기</label>
+      </div>
+
+      <div class="seg" role="group" aria-label="함수 선택" style="margin-top:10px">
+        <label><input type="radio" name="mf" value="cube" checked><span>x³ − 3x</span></label>
+        <label><input type="radio" name="mf" value="sq"><span>x²</span></label>
+        <label><input type="radio" name="mf" value="sin"><span>sin x</span></label>
+      </div>
+
+      <div class="readout">
+        <div class="stat accent"><span class="k">x</span><span class="v" id="m-x">–</span></div>
+        <div class="stat purple"><span class="k">f(x) — 위 그래프의 높이</span><span class="v" id="m-y">–</span></div>
+        <div class="stat pos"><span class="k">f′(x) — 접선 기울기</span><span class="v" id="m-d">–</span></div>
+        <div class="stat warn"><span class="k">지금 곡선은</span><span class="v" id="m-mono">–</span></div>
+      </div>
+      <p class="hint">
+        슬라이더를 <b>천천히 끝까지</b> 밀어보세요. 초록 점이 지나간 자리가 <b>도함수 곡선</b>입니다.
+        다 그린 뒤에 <b>[도함수 곡선 전체 보이기]</b> 로 답을 맞춰보세요.
+      </p>
+    </div>
+
+    <div class="takeaway">
+      <b>도함수를 읽는 법 ·</b>
+      <b>f′ &gt; 0</b> 이면 f 는 <b>올라가는 중</b>, <b>f′ &lt; 0</b> 이면 <b>내려가는 중</b>,
+      <b>f′ = 0</b> 이면 <b>봉우리나 골짜기</b>(또는 평평한 곳)입니다.
+      위 그래프에서 <span class="m">x³−3x</span> 의 봉우리·골짜기 위치와
+      아래 그래프가 <b>0을 가로지르는 위치</b>가 정확히 맞아떨어지는지 확인해 보세요.
+      최적화(최댓값·최솟값 찾기)가 전부 이 관찰 위에 서 있습니다.
+    </div>
+
+    <h2 id="s6">6. 위치 → 속도 → 가속도</h2>
+    <p>
+      <b>위치를 미분하면 속도, 속도를 미분하면 가속도</b>입니다.
+      전부 같은 원리 — <b>"지금 이 순간 얼마나 빨리 변하고 있나"</b> 를 묻는 것뿐이죠.
+    </p>
+
+    <div class="panel">
+      <div class="panel-title">③ 같은 운동을 세 가지 눈으로</div>
+      <div class="canvas-wrap"><canvas id="cv-mot"></canvas></div>
+
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">시각 t</span><span class="val" id="mt-val">1</span></span>
+          <input type="range" id="mt" min="0" max="4" step="0.01" value="1">
+        </label>
+      </div>
+
+      <div class="seg" role="group" aria-label="운동 선택" style="margin-top:10px">
+        <label><input type="radio" name="mo" value="const" checked><span>등속 (s = 3t)</span></label>
+        <label><input type="radio" name="mo" value="accel"><span>등가속 (s = t²)</span></label>
+        <label><input type="radio" name="mo" value="cube"><span>점점 빨라짐 (s = t³/3)</span></label>
+        <label><input type="radio" name="mo" value="osc"><span>진동 (s = 2 sin t)</span></label>
+      </div>
+
+      <div class="readout">
+        <div class="stat accent"><span class="k">위치 s(t)</span><span class="v" id="o-s">–</span></div>
+        <div class="stat purple"><span class="k">속도 s′(t)</span><span class="v" id="o-v">–</span></div>
+        <div class="stat neg"><span class="k">가속도 s″(t)</span><span class="v" id="o-a">–</span></div>
+        <div class="stat pos"><span class="k">지금 상태</span><span class="v" id="o-st">–</span></div>
+      </div>
+      <p class="hint">
+        <b>등속</b>을 보면 속도가 <b>수평선</b>, 가속도가 <b>0</b> 입니다.
+        <b>진동</b>을 보면 가속도가 위치와 <b>정확히 반대 부호</b>죠 —
+        스프링이 항상 <b>제자리로 잡아당긴다</b>는 뜻이고, 이게 <span class="m">s″ = −s</span> 라는
+        미분방정식입니다.
+      </p>
+    </div>
+
+    <div class="callout">
+      <b>이 강의의 핵심 한 문장</b><br>
+      <b>순간 속도란 그 순간에 '존재하는' 물리량이 아니라,
+      점점 짧은 구간의 평균 속도들이 다가가는 목적지(극한값)입니다.</b>
+      <br><br>
+      직접 답할 수 없는 질문을 만나면 —
+      <b>접근 가능한 근사들의 행렬을 만들고 그 극한을 읽는다.</b>
+      이것이 미분의 사고방식이자 <b>과학의 사고방식</b>입니다.
+    </div>
+
+    <h2 id="s7">7. 파이썬으로 확인하기</h2>
+
+    <div class="pycell" data-packages="numpy" data-title="3-1. 평균 속도가 12로 다가간다">
+    def s(t): return t**3
+
+    print(f"{'dt':>10} {'간 거리':>16} {'평균 속도':>16}")
+    for dt in [1, 0.1, 0.01, 0.001, 0.0001, 0.00001]:
+        간거리 = s(2+dt) - s(2)
+        print(f"{dt:>10} {간거리:>16.10f} {간거리/dt:>16.10f}")
+
+    print("\n→ 12 로 다가간다.  s'(2) = 12")
+    print("  하지만 dt = 0 은 넣을 수 없다:")
+    try:
+        print((s(2+0) - s(2)) / 0)
+    except ZeroDivisionError as e:
+        print("  ZeroDivisionError —", e)
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="3-2. 12 + 6dt + dt² 와 정확히 같은가">
+    print(f"{'dt':>8} {'실제 평균 속도':>20} {'12 + 6dt + dt²':>20} {'차':>12}")
+    for dt in [1, 0.1, 0.01, 0.001]:
+        실제 = (s(2+dt) - s(2)) / dt
+        공식 = 12 + 6*dt + dt**2
+        print(f"{dt:>8} {실제:>20.12f} {공식:>20.12f} {실제-공식:>12.2e}")
+
+    print("\n→ 완전히 같다. (2+dt)³ = 8 + 12dt + 6dt² + dt³ 를 전개한 결과다.")
+    print("  dt 로 나누면 12 + 6dt + dt² 이고, 이 식은 dt=0 에서도 멀쩡히 12 다.")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="3-3. 도함수 s'(t) = 3t²">
+    import numpy as np
+
+    def 수치미분(f, x, h=1e-6):
+        return (f(x+h) - f(x-h)) / (2*h)      # 중앙차분 — 한쪽 차분보다 훨씬 정확하다
+
+    print(f"{'t':>5} {'수치미분':>16} {'3t²':>12} {'차':>12}")
+    for t in [0.5, 1, 2, 3, 5]:
+        print(f"{t:>5} {수치미분(s, t):>16.9f} {3*t**2:>12.6f} {수치미분(s,t)-3*t**2:>12.2e}")
+
+    print("\n→ 어느 t 에서도 3t² 과 일치한다. 도함수는 '기울기 지도' 다.")
+    </div>
+
+    <div class="pitfall">
+      <b><code>h</code> 를 무작정 작게 하면 오히려 나빠집니다</b>
+      수학에서는 h→0 이 정답이지만, <b>컴퓨터에서는 아닙니다.</b>
+      h가 너무 작으면 <span class="m">f(x+h)</span> 와 <span class="m">f(x)</span> 가
+      <b>거의 같은 수</b>가 되어, 빼는 순간 <b>유효숫자가 대량으로 날아갑니다</b>(자리 빠짐).
+      아래 셀에서 직접 확인해 보세요.
+      실무에서 <b><code>h ≈ 1e-6</code></b> 쯤을 쓰는 이유입니다.
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="3-4. h를 너무 줄이면 벌어지는 일">
+    참값 = 12.0
+    print(f"{'h':>10} {'중앙차분':>20} {'오차':>14}")
+    for k in range(1, 17):
+        h = 10.0**(-k)
+        값 = (s(2+h) - s(2-h)) / (2*h)
+        print(f"{h:>10.0e} {값:>20.12f} {abs(값-참값):>14.2e}")
+
+    print("\n→ h = 1e-5 ~ 1e-6 근처가 가장 정확하고, 더 줄이면 오히려 나빠진다.")
+    print("  수학의 극한과 컴퓨터의 뺄셈은 다르다.")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="3-5. 위치 · 속도 · 가속도">
+    import numpy as np
+
+    def d(f, h=1e-5):
+        return lambda x: (f(x+h) - f(x-h)) / (2*h)
+
+    운동 = {
+        "등속 3t":       lambda t: 3*t,
+        "등가속 t²":     lambda t: t**2,
+        "점점 빨라짐 t³/3": lambda t: t**3/3,
+        "진동 2sin t":   lambda t: 2*np.sin(t),
+    }
+
+    t = 1.0
+    print(f"t = {t} 일 때\n")
+    print(f"{'운동':>18} {'위치':>10} {'속도':>10} {'가속도':>10}")
+    for 이름, f in 운동.items():
+        v, a = d(f), d(d(f, 1e-4), 1e-4)
+        print(f"{이름:>18} {f(t):>10.4f} {v(t):>10.4f} {a(t):>10.4f}")
+
+    print("\n→ 등속은 가속도 0. 진동은 가속도가 위치와 반대 부호 (s'' = -s).")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="3-6. 연습문제">
+    # 문제 1. s(t) = t² 일 때 t=3 에서의 순간 속도를 3-1 셀의 방법으로 구하세요.
+    #         (전개로도 확인: (3+dt)² - 9 = 6dt + dt²)
+
+    # 문제 2. f(x) = 1/x 의 x=2 에서의 도함수를 수치로 구하고,
+    #         -1/x² 과 비교하세요. (4강에서 그림으로 유도합니다)
+
+    # 문제 3. f(x) = |x| 의 x=0 에서 수치미분을 해보면 0이 나옵니다.
+    #         그런데 2강에서 |x| 는 x=0 에서 미분 불가능이라고 했죠.
+    #         중앙차분이 왜 속는지 설명해보세요.
+
+    # 아래에 직접 써보세요
+    </div>
+
+    <details style="margin:18px 0">
+      <summary style="cursor:pointer;font-weight:600;color:var(--accent)">모범 답안 보기</summary>
+      <div class="pycell" data-packages="numpy" data-title="모범 답안">
+      # 문제 1 — 6
+      g = lambda t: t**2
+      print("문제 1")
+      for dt in [0.1, 0.01, 0.001]:
+          print(f"  dt={dt:<7} 평균 속도 = {(g(3+dt)-g(3))/dt:.6f}   6+dt = {6+dt}")
+      print("  → 6\n")
+
+      # 문제 2 — -1/4
+      h = lambda x: 1/x
+      print("문제 2")
+      print(f"  수치미분 = {수치미분(h, 2.0):.8f}")
+      print(f"  -1/x²    = {-1/2.0**2:.8f}\n")
+
+      # 문제 3 — 중앙차분은 좌우 대칭이라 꺾임을 못 본다
+      print("문제 3")
+      f = np.abs
+      x, hh = 0.0, 1e-6
+      print(f"  중앙차분 (f(h)-f(-h))/(2h) = {(f(x+hh)-f(x-hh))/(2*hh)}")
+      print(f"  왼쪽 차분  (f(0)-f(-h))/h  = {(f(x)-f(x-hh))/hh}")
+      print(f"  오른쪽 차분 (f(h)-f(0))/h  = {(f(x+hh)-f(x))/hh}")
+      print("  → 중앙차분은 좌우를 평균 내므로 -1 과 +1 이 상쇄되어 0 이 된다.")
+      print("    '값이 나왔다'가 '미분 가능하다'는 뜻이 아니다. 반드시 좌우를 따로 봐야 한다.")
+      </div>
+    </details>
+
+    <div class="practice">
+      <b>미분이 실제로 하는 일</b>
+      <ul>
+        <li><b>딥러닝의 역전파</b> — 손실을 각 가중치로 미분한 값(기울기)만큼 가중치를 움직입니다.
+            학습이란 <b>거대한 도함수 계산</b>입니다.</li>
+        <li><b>제어공학의 PID</b> — <b>D</b> 항이 바로 <b>오차의 미분</b>입니다.
+            "지금 오차가 얼마나 빨리 커지고 있나"를 보고 미리 제동을 겁니다.</li>
+        <li><b>금융의 델타</b> — 옵션 가격을 기초자산 가격으로 미분한 값입니다.
+            헤지 비율이 곧 도함수죠.</li>
+        <li><b>신호처리의 엣지 검출</b> — 이미지 밝기의 미분이 큰 곳이 <b>경계선</b>입니다.
+            소벨 필터가 이산 미분입니다.</li>
+      </ul>
+    </div>
+
+    <div class="summary">
+      <h3>✎ 스스로 점검</h3>
+      <ul>
+        <li><b>6.</b> 평균 속도와 순간 속도의 차이를 한 문장으로 설명해 보세요.
+            <span style="color:var(--text-dim)">(§1~§3)</span></li>
+        <li><b>7.</b> 왜 dt = 0 을 곧바로 대입하면 안 되나요?
+            <span style="color:var(--text-dim)">(§2 오해 상자)</span></li>
+        <li><b>8.</b> <span class="m">s(t) = t³</span> 의 도함수는? 그것이 t=3 에서 갖는 값과 의미는?
+            <span style="color:var(--text-dim)">(§5)</span></li>
+      </ul>
+    </div>
+
+    <div class="summary">
+      <h3>3강 요약</h3>
+      <ul>
+        <li><b>순간 속도 = 0/0</b> 은 그 자체로는 정의되지 않습니다.
+            <b>어떻게 0에 다가갔는지</b>가 답을 결정합니다.</li>
+        <li>답할 수 없는 '순간'을 <b>답할 수 있는 '짧은 구간'</b>으로 바꾸고, 그 극한을 읽습니다.</li>
+        <li><b>먼저 나누고, 그 다음에 0으로 보냅니다.</b> 이 순서가 전부입니다.</li>
+        <li>그래프에서는 <b>할선 → 접선</b>. 두 번째 점이 미끄러져 오면서 할선이 접선이 됩니다.</li>
+        <li><b><span class="m">f′(x) = lim<sub>h→0</sub> [f(x+h) − f(x)] / h</span></b> —
+            <b>세로 변화 ÷ 가로 변화</b> 의 극한입니다.</li>
+        <li>모든 x에서의 기울기를 모으면 <b>도함수</b>라는 새 함수가 됩니다. <b>기울기 지도</b>죠.</li>
+        <li><b>위치 → 속도 → 가속도</b> 는 전부 같은 연산(미분)의 반복입니다.</li>
+      </ul>
+    </div>
+
+    <div class="colab-cta">
+      <div class="colab-text">
+        <b>더 자유롭게 실험하고 싶다면</b><br>
+        이 강의의 실습만 모은 노트북을 Colab에서 열 수 있습니다.
+      </div>
+      <a class="btn" id="colab-link" href="#" target="_blank" rel="noopener">Colab에서 열기</a>
+    </div>
+
+    <p class="next-up">
+      다음 → <b>4강 · 기하학으로 보는 미분 공식</b><br>
+      <span class="m">(x²)′ = 2x</span> 를 오늘처럼 <b>전개하고 나누고 극한</b>으로 구할 수도 있지만,
+      그러면 <b>왜 그런 모양인지</b>는 안 보입니다.
+      다음 강의에서는 <b>정사각형이 자라는 그림</b>으로 같은 공식을 유도합니다.
+      한 번 보고 나면 공식은 <b>외울 것이 아니라 당연한 것</b>이 됩니다.
+    </p>
+
+  </section>
+
+</div>
+
+<script src="../assets/viz.js?v=312b9476b0"></script>
+<script src="../assets/calc.js?v=c1137a5076"></script>
+<script src="../assets/pylab.js?v=cb27f20364"></script>
+<script src="../assets/pycell.js?v=6dacc4c6ce"></script>
+<script>
+(function () {
+  'use strict';
+  var num = CA.num, F = CA.F;
+
+  /* =======================================================
+     패널 ① 할선에서 접선으로
+     ======================================================= */
+  var shPow = 0.3, sx0 = 2, sf = 'cube';
+
+  var SF = {
+    cube: { f: function (x) { return x * x * x; }, d: function (x) { return 3 * x * x; },
+            yd: [-1, 22], name: 's(t) = t³' },
+    sq:   { f: function (x) { return x * x; },     d: function (x) { return 2 * x; },
+            yd: [-0.6, 8],  name: 't²' },
+    sin:  { f: Math.sin,                            d: Math.cos,
+            yd: [-1.4, 1.4], name: 'sin t' }
+  };
+
+  var gSec = new CA.Graph(document.getElementById('cv-sec'), {
+    xDomain: [-0.15, 3.0],
+    height: function (w) { return Math.round(Math.max(250, Math.min(340, w * 0.48))); },
+    margin: { top: 20, right: 20, bottom: 44, left: 50 }
+  });
+
+  function drawSec() {
+    var S = SF[sf];
+    var h = Math.pow(10, shPow);
+    var x0 = sx0, x1 = x0 + h;
+    var y0 = S.f(x0), y1 = S.f(x1);
+    var avg = (y1 - y0) / h;
+    var ins = S.d(x0);
+
+    gSec.yDomain = S.yd;
+    gSec.begin();
+    gSec.axes({ xStep: 0.5, yStep: sf === 'cube' ? 5 : (sf === 'sq' ? 2 : 0.5), xLabel: 't →' });
+
+    gSec.curve(S.f, { color: V.css('--accent'), width: 2.6 });
+
+    /* 접선 — 목적지 */
+    gSec.lineAt(x0, y0, ins, { color: V.css('--pos'), width: 2.4 });
+    /* 할선 — 지금 */
+    gSec.lineAt(x0, y0, avg, { color: V.css('--purple'), width: 2.4, dash: [7, 5] });
+
+    /* 직각삼각형 — dy/dx 의 정체 */
+    gSec.slopeTriangle(x0, y0, h, avg, {
+      color: V.css('--purple'), dxLabel: 'h', dyLabel: 'f(x₀+h) − f(x₀)'
+    });
+
+    gSec.dot(x0, y0, { r: 5.5, color: V.css('--accent'), stroke: V.css('--surface'), strokeWidth: 2 });
+    gSec.dot(x1, y1, { r: 5.5, color: V.css('--purple'), stroke: V.css('--surface'), strokeWidth: 2 });
+
+    gSec.legend([
+      { color: V.css('--accent'), text: S.name },
+      { color: V.css('--purple'), text: '할선 (평균 속도)', dash: [7, 5] },
+      { color: V.css('--pos'), text: '접선 (순간 속도)' }
+    ]);
+
+    V.setText('#d-h', num(h, 5));
+    V.setText('#d-avg', num(avg, 5));
+    V.setText('#d-inst', num(ins, 5));
+    V.setText('#d-diff', num(avg - ins, 5));
+  }
+
+  V.range('sh', function (v) { shPow = v; drawSec(); },
+    function (v) { return num(Math.pow(10, v), 4); });
+  V.range('sx', function (v) { sx0 = v; drawSec(); }, function (v) { return num(v, 2); });
+  V.radios('sf', function (v) { sf = v; drawSec(); });
+
+  /* =======================================================
+     패널 ② 기울기를 모으면 도함수
+     ======================================================= */
+  var mx = -1.6, reveal = false, mf = 'cube';
+
+  var MF = {
+    cube: { f: function (x) { return x * x * x - 3 * x; }, d: function (x) { return 3 * x * x - 3; },
+            yd: [-3.4, 3.4], dyd: [-4.5, 7], name: 'x³ − 3x', dname: "f′(x) = 3x² − 3" },
+    sq:   { f: function (x) { return x * x; }, d: function (x) { return 2 * x; },
+            yd: [-0.6, 7],   dyd: [-6, 6],    name: 'x²',      dname: "f′(x) = 2x" },
+    sin:  { f: Math.sin, d: Math.cos,
+            yd: [-1.4, 1.4], dyd: [-1.4, 1.4], name: 'sin x',  dname: "f′(x) = cos x" }
+  };
+
+  /* 두 그래프를 한 캔버스에 위아래로 — 사이 간격과 높이를 한 곳에서 정한다 */
+  function mapLayout(w) {
+    var top = Math.round(V.clamp(w * 0.30, 170, 230));
+    var bot = Math.round(V.clamp(w * 0.26, 150, 200));
+    return { top: top, bot: bot, gap: 14, H: top + bot + 14 };
+  }
+
+  var cvMap = document.getElementById('cv-map');
+  var frMap = new CA.Frame(cvMap, function (w) { return mapLayout(w).H; });
+  var gTop = new CA.Graph(cvMap, {
+    frame: frMap, margin: { top: 18, right: 20, bottom: 26, left: 50 }
+  });
+  var gBot = new CA.Graph(cvMap, {
+    frame: frMap, margin: { top: 18, right: 20, bottom: 30, left: 50 }
+  });
+
+  /* 자취 — 슬라이더가 지나온 x 범위를 기억한다 */
+  var trailLo = mx, trailHi = mx;
+
+  function drawMap() {
+    var S = MF[mf];
+    frMap.begin();
+    var L = mapLayout(frMap.w);
+
+    /* 위 그래프 */
+    gTop.yDomain = S.yd;
+    gTop.plot.margin.top = 18;
+    gTop.plot.margin.bottom = L.H - L.top + 8;
+    gTop.xDomain = [-2.7, 2.7];
+    gTop.begin();
+    gTop.axes({ xStep: 1, yStep: 2, labels: true });
+    gTop.curve(S.f, { color: V.css('--accent'), width: 2.6 });
+    gTop.lineAt(mx, S.f(mx), S.d(mx), { color: V.css('--pos'), width: 2.2, span: 1.1 });
+    gTop.dot(mx, S.f(mx), { r: 5.5, color: V.css('--accent'), stroke: V.css('--surface'), strokeWidth: 2 });
+    gTop.text(-2.55, S.yd[1] - (S.yd[1] - S.yd[0]) * 0.09, 'f(x) = ' + S.name, {
+      color: V.css('--accent'), align: 'left', size: 12.5, bg: V.css('--surface')
+    });
+
+    /* 아래 그래프 — 같은 캔버스의 아래쪽을 쓴다 */
+    gBot.yDomain = S.dyd;
+    gBot.plot.margin.top = L.top + L.gap;
+    gBot.plot.margin.bottom = 30;
+    gBot.xDomain = [-2.7, 2.7];
+    gBot.begin();
+    gBot.axes({ xStep: 1, yStep: 2, xLabel: 'x →' });
+
+    if (reveal) {
+      gBot.curve(S.d, { color: V.css('--pos'), width: 2.6, alpha: 0.45 });
+    }
+    /* 지나온 자취 */
+    if (trailHi - trailLo > 1e-6) {
+      gBot.curve(S.d, { color: V.css('--pos'), width: 2.8, from: trailLo, to: trailHi });
+    }
+    gBot.dot(mx, S.d(mx), { r: 5.5, color: V.css('--pos'), stroke: V.css('--surface'), strokeWidth: 2 });
+    gBot.hline(0, { color: V.css('--text-dim'), dash: null, width: 1 });
+    gBot.text(-2.55, S.dyd[1] - (S.dyd[1] - S.dyd[0]) * 0.11,
+      reveal ? S.dname : '기울기를 모은 곳 (슬라이더를 밀어 채워보세요)', {
+      color: V.css('--pos'), align: 'left', size: 12.5, bg: V.css('--surface')
+    });
+
+    var dv = S.d(mx);
+    V.setText('#m-x', num(mx, 3));
+    V.setText('#m-y', num(S.f(mx), 4));
+    V.setText('#m-d', num(dv, 4));
+    V.setText('#m-mono', Math.abs(dv) < 0.05 ? '거의 평평 (봉우리/골짜기)' : (dv > 0 ? '올라가는 중' : '내려가는 중'));
+  }
+
+  V.range('mx', function (v) {
+    mx = v;
+    trailLo = Math.min(trailLo, v);
+    trailHi = Math.max(trailHi, v);
+    drawMap();
+  }, function (v) { return num(v, 2); });
+  V.check('m-reveal', function (v) { reveal = v; drawMap(); });
+  V.radios('mf', function (v) {
+    mf = v;
+    trailLo = trailHi = mx;              // 함수를 바꾸면 자취를 지운다
+    drawMap();
+  });
+
+  /* =======================================================
+     패널 ③ 위치 · 속도 · 가속도
+     ======================================================= */
+  var mt = 1, mo = 'const';
+
+  var MO = {
+    'const': { s: function (t) { return 3 * t; },  v: function () { return 3; },  a: function () { return 0; },
+               sd: [-0.5, 13], vd: [-0.5, 5],  ad: [-2.5, 2.5], name: 's = 3t' },
+    accel:   { s: function (t) { return t * t; },  v: function (t) { return 2 * t; }, a: function () { return 2; },
+               sd: [-0.5, 17], vd: [-0.5, 9],  ad: [-2.5, 3.5], name: 's = t²' },
+    cube:    { s: function (t) { return t * t * t / 3; }, v: function (t) { return t * t; }, a: function (t) { return 2 * t; },
+               sd: [-0.5, 22], vd: [-0.5, 17], ad: [-1, 9],     name: 's = t³/3' },
+    osc:     { s: function (t) { return 2 * Math.sin(t); }, v: function (t) { return 2 * Math.cos(t); },
+               a: function (t) { return -2 * Math.sin(t); },
+               sd: [-2.4, 2.4], vd: [-2.4, 2.4], ad: [-2.4, 2.4], name: 's = 2 sin t' }
+  };
+
+  function motLayout(w) {
+    var row = Math.round(V.clamp(w * 0.21, 118, 165));
+    return { row: row, gap: 10, H: row * 3 + 20 };
+  }
+
+  var cvMot = document.getElementById('cv-mot');
+  var frMot = new CA.Frame(cvMot, function (w) { return motLayout(w).H; });
+  var gRows = [0, 1, 2].map(function () {
+    return new CA.Graph(cvMot, {
+      xDomain: [-0.1, 4.2],
+      frame: frMot,
+      margin: { top: 14, right: 20, bottom: 20, left: 52 }
+    });
+  });
+
+  function drawMot() {
+    var S = MO[mo];
+    frMot.begin();
+    var L = motLayout(frMot.w);
+    var fns = [S.s, S.v, S.a];
+    var doms = [S.sd, S.vd, S.ad];
+    var cols = [V.css('--accent'), V.css('--purple'), V.css('--neg')];
+    var names = ['위치 s(t)   ' + S.name, "속도 s′(t)", '가속도 s″(t)'];
+
+    for (var i = 0; i < 3; i++) {
+      var g = gRows[i];
+      g.yDomain = doms[i];
+      g.plot.margin.top = i * L.row + 12;
+      g.plot.margin.bottom = L.H - (i + 1) * L.row + 12;
+      g.begin();
+      g.axes({
+        xStep: 1,
+        yStep: CA.niceStep(doms[i][1] - doms[i][0], 3),
+        labels: true,
+        xLabel: i === 2 ? '시각 t →' : null
+      });
+      g.curve(fns[i], { color: cols[i], width: 2.6 });
+      g.hline(0, { color: V.css('--text-dim'), dash: null, width: 1 });
+      g.vline(mt, { color: V.css('--text-dim'), dash: [4, 4], width: 1.2 });
+      g.dot(mt, fns[i](mt), { r: 5.5, color: cols[i], stroke: V.css('--surface'), strokeWidth: 2 });
+      /* 제목은 y 눈금 숫자와 겹치지 않게 축 오른쪽에서 시작한다 */
+      g.text(0.12, doms[i][1] - (doms[i][1] - doms[i][0]) * 0.13, names[i], {
+        color: cols[i], align: 'left', size: 12.5, bg: V.css('--surface')
+      });
+    }
+
+    var vv = S.v(mt), aa = S.a(mt);
+    V.setText('#o-s', num(S.s(mt), 3));
+    V.setText('#o-v', num(vv, 3));
+    V.setText('#o-a', num(aa, 3));
+    V.setText('#o-st',
+      Math.abs(aa) < 1e-9 ? '속도 일정' :
+      (vv * aa > 0 ? '빨라지는 중' : '느려지는 중'));
+  }
+
+  V.range('mt', function (v) { mt = v; drawMot(); }, function (v) { return num(v, 2); });
+  V.radios('mo', function (v) { mo = v; drawMot(); });
+
+  V.onRedraw(function () { drawSec(); drawMap(); drawMot(); });
+  drawSec(); drawMap(); drawMot();
+
+  var a = document.getElementById('colab-link');
+  if (a) a.href = 'https://colab.research.google.com/github/mioon1402/timeseriesdata/blob/main/notebooks/C03-derivative.ipynb';
+})();
+</script>
+</body>
+</html>

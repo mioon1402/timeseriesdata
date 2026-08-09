@@ -1,0 +1,787 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>극한 — '도착'이 아니라 '접근' · 미적분의 직관</title>
+<meta name="description" content="0.9, 0.99, 0.999… 도착하지 않아도 목적지는 확실합니다. 곡선을 확대하면 직선이 되는 이유, 그리고 극한이 없는 경우까지.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%E2%88%AB%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css?v=b7dfb076b2">
+<link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">미적분 2강 · 극한</p>
+    <h1>극한 — '도착'이 아니라 '접근'</h1>
+    <p class="lede">
+      1강 끝에서 <b>'두께를 0으로 보낸다'</b> 는 조작을 썼습니다.
+      이 조작이 <b>미적분 전체를 떠받치는 기둥</b>, 바로 <b>극한</b>입니다.
+      미분도 적분도 결국 극한 위에 서 있으니, 여기서 확실히 잡고 갑시다.
+      핵심은 한 문장입니다 — <b>도착하지 않아도 목적지는 알 수 있다.</b>
+    </p>
+  </header>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 강의에서 배우는 것</b>
+      <ol>
+        <li><a href="#s0">기초 다지기 — 왜 극한이 필요한가</a></li>
+        <li><a href="#s1">다가가는 수들</a></li>
+        <li><a href="#s2">lim 기호 읽는 법</a></li>
+        <li><a href="#s3">확대의 비유 — 곡선이 직선이 된다</a></li>
+        <li><a href="#s4">극한값은 함숫값이 아니다</a></li>
+        <li><a href="#s5">극한이 없을 때 — 점프와 진동</a></li>
+        <li><a href="#s6">0.999… 는 1인가</a></li>
+        <li><a href="#s7">파이썬으로 확인하기</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s0">0. 기초 다지기 — 왜 극한이 필요한가</h2>
+    <p>
+      1강에서 원을 <b>n개의 고리</b>로 쪼갰습니다.
+      n이 <b>6일 때 오차 16.7%</b>, <b>80일 때 1.25%</b> 였죠.
+      그런데 우리가 원한 건 <b>"오차가 작다"</b> 가 아니라 <b>"오차가 없다"</b> 였습니다.
+    </p>
+    <p>
+      그래서 <b>n을 무한히 키운다</b>고 했습니다. 그런데 곰곰이 생각하면 이상합니다.
+      <b>무한은 숫자가 아닙니다.</b> n에 ∞ 를 대입할 수는 없어요.
+      "무한히 많은 고리"라는 것도 실제로는 존재하지 않습니다.
+      그럼 우리가 한 건 대체 <b>무슨 계산</b>이었을까요?
+    </p>
+
+    <div class="callout">
+      <b>극한은 '무한을 다루는 법'이 아니라 '무한을 피하는 법'입니다</b><br>
+      극한은 ∞ 를 대입하지 않습니다.
+      대신 <b>n = 10, 100, 1000, … 이라는 유한한 계산들의 목록</b>을 만들고,
+      그 목록이 <b>어디를 가리키는지</b>를 읽습니다.
+      <br><br>
+      "n이 커질수록 값이 3.14159… 에 <b>원하는 만큼 가까워진다</b>" —
+      이 문장은 <b>무한을 한 번도 쓰지 않고</b> 무한의 결론을 말합니다.
+      이게 극한의 전부입니다.
+    </div>
+
+    <h2 id="s1">1. 다가가는 수들</h2>
+    <p>
+      <b>0.9, 0.99, 0.999, 0.9999 …</b> 이 수열은 어디로 갈까요?
+      <b>어떤 항도 1은 아닙니다.</b> 하지만 <b>원하는 만큼 1에 가까워질 수</b> 있습니다.
+      소수점 아래 9를 백 개 붙이면 1과의 차이는 상상하기 힘들 만큼 작죠.
+    </p>
+    <p>
+      이럴 때 우리는 <b>"이 수열의 극한은 1"</b> 이라고 말합니다.
+      <b>도착하지 않지만, 목적지가 어디인지는 확실합니다.</b>
+    </p>
+
+    <div class="panel">
+      <div class="panel-title">① 아무리 확대해도 목적지는 그대로다</div>
+      <div class="canvas-wrap"><canvas id="cv-seq"></canvas></div>
+
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">몇 번째 항까지 볼까요</span><span class="val" id="sn-val">3</span></span>
+          <input type="range" id="sn" min="1" max="9" step="1" value="3">
+        </label>
+      </div>
+
+      <div class="readout">
+        <div class="stat accent"><span class="k">마지막 항</span><span class="v" id="q-last">–</span></div>
+        <div class="stat neg"><span class="k">1과의 차</span><span class="v" id="q-gap">–</span></div>
+        <div class="stat purple"><span class="k">아래 그림의 확대 배율</span><span class="v" id="q-zoom">–</span></div>
+        <div class="stat pos"><span class="k">목적지</span><span class="v">1</span></div>
+      </div>
+      <p class="hint">
+        위는 전체 모습, 아래는 <b>1 근처를 확대</b>한 모습입니다.
+        슬라이더를 밀면 <b>아래 그림이 계속 확대되는데도</b> 점은 여전히 1의 왼쪽에 있습니다.
+        <b>영원히 닿지 않습니다.</b> 그런데도 <b>어디로 가는지는 명백</b>하죠.
+      </p>
+    </div>
+
+    <div class="myth">
+      <div class="bad"><b>⚠ 흔한 오해</b>
+        "극한이 1이라는 건 <b>언젠가 1이 된다</b>는 뜻이다."</div>
+      <div class="good"><b>아닙니다 — 영원히 1이 되지 않습니다</b>
+        <span class="m">0.999…9</span> 는 9가 몇 개든 <b>항상 1보다 작습니다.</b>
+        극한은 "언젠가 도달한다"는 <b>예언</b>이 아니라,
+        "<b>얼마나 가깝게든 만들 수 있다</b>"는 <b>보장</b>입니다.
+        <br>
+        <b>"1과의 차를 0.000001 아래로 만들어봐"</b> 라고 요구하면 → 7번째 항을 내놓으면 됩니다.
+        어떤 요구가 와도 응할 수 있다 — 그래서 극한이 1입니다. (8강에서 이 게임을 정식으로 다룹니다.)</div>
+    </div>
+
+    <h2 id="s2">2. lim 기호 읽는 법</h2>
+
+    <div class="formula">
+      <div class="name">극한의 표기</div>
+      <div class="eq" style="font-size:19px">
+        lim<sub>&nbsp;x→a</sub> f(x) = L
+      </div>
+      <ul class="where">
+        <li><span class="sym">읽는 법</span><span class="desc">"x가 a에 <b>한없이 가까워질 때</b> f(x)는 L에 한없이 가까워진다"</span></li>
+        <li><span class="sym">x → a</span><span class="desc"><b>다가간다</b>. <b>x = a 는 아닙니다.</b>
+            오히려 <b>x ≠ a 인 점들만</b> 봅니다</span></li>
+        <li><span class="sym">L</span><span class="desc"><b>목적지</b>. f가 a에서 실제로 얼마인지와는 <b>상관이 없습니다</b>(§4)</span></li>
+        <li><span class="sym">= 의 뜻</span><span class="desc">"과정이 끝났다"가 아니라
+            "<b>이 과정이 가리키는 값이 L이다</b>"</span></li>
+      </ul>
+    </div>
+
+    <h2 id="s3">3. 확대의 비유 — 곡선이 직선이 된다</h2>
+    <p>
+      곡선 위 <b>한 점에서의 '방향'</b>을 알고 싶다고 합시다.
+      그런데 <b>한 점만 보면 방향이라는 게 없습니다</b> — 방향은 <b>두 점</b>이 있어야 정의되니까요.
+    </p>
+    <p>
+      그런데 곡선을 그 점 주위로 <b>계속 확대하면</b> 신기한 일이 벌어집니다.
+      구불구불하던 곡선이 <b>점점 곧게 펴져서</b>, 충분히 확대하면
+      <b>직선과 구별할 수 없게</b> 됩니다.
+    </p>
+
+    <div class="panel">
+      <div class="panel-title">② 확대할수록 곡선이 직선이 된다</div>
+      <div class="canvas-wrap"><canvas id="cv-zoom"></canvas></div>
+
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">확대 배율</span><span class="val" id="zm-val">1배</span></span>
+          <input type="range" id="zm" min="0" max="3" step="0.02" value="0">
+        </label>
+        <label class="ctrl">
+          <span class="label-row"><span class="name">확대할 지점 x₀</span><span class="val" id="zx-val">1</span></span>
+          <input type="range" id="zx" min="-2.5" max="2.5" step="0.02" value="1">
+        </label>
+      </div>
+
+      <div class="seg" role="group" aria-label="함수 선택" style="margin-top:10px">
+        <label><input type="radio" name="zf" value="sq" checked><span>x²</span></label>
+        <label><input type="radio" name="zf" value="sin"><span>sin x</span></label>
+        <label><input type="radio" name="zf" value="sqrt"><span>√x</span></label>
+        <label><input type="radio" name="zf" value="abs"><span>|x| ← 반례</span></label>
+      </div>
+
+      <div class="readout">
+        <div class="stat accent"><span class="k">보이는 x 범위의 폭</span><span class="v" id="z-w">–</span></div>
+        <div class="stat purple"><span class="k">접선 기울기</span><span class="v" id="z-slope">–</span></div>
+        <div class="stat neg"><span class="k">곡선이 직선에서 벗어난 정도</span><span class="v" id="z-dev">–</span></div>
+        <div class="stat pos"><span class="k">매끈한가</span><span class="v" id="z-ok">–</span></div>
+      </div>
+      <p class="hint">
+        <b>확대 배율을 끝까지 밀어보세요.</b> x², sin x, √x 는 파란 곡선이
+        <b>회색 직선 뒤로 완전히 숨습니다.</b>
+        그런데 <b>|x| 는 아무리 확대해도 꺾인 채</b>로 남습니다 —
+        <b>x₀ = 0</b> 에 맞춰놓고 확대해 보세요.
+      </p>
+    </div>
+
+    <div class="formula">
+      <div class="name">국소 선형성 (局所線形性)</div>
+      <div class="eq" style="font-size:16px;line-height:2.2">
+        충분히 확대하면 &nbsp; f(x₀ + d) ≈ f(x₀) + <b>m · d</b>
+        <br>
+        <span class="small">여기서 m 이 그 <b>극한의 직선</b>(접선)의 기울기 = <b>미분값</b></span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">왜 통하는가</span><span class="desc">x² 은 접선에서 <b>d² 만큼</b> 벗어납니다.
+            창의 폭이 <b>d</b> 이므로 <b>어긋남 ÷ 창 크기 = d</b> → 확대할수록 <b>0으로</b> 갑니다</span></li>
+        <li><span class="sym">위 패널의 숫자</span><span class="desc">폭 3 → 어긋남 50%, 폭 0.3 → 5%,
+            폭 0.03 → <b>0.5%</b>. 폭을 <b>10배 줄이면 어긋남도 10배</b> 줄어듭니다</span></li>
+        <li><span class="sym">|x| 는 왜 안 되나</span><span class="desc">꺾인 점에서는 <b>왼쪽 기울기 −1, 오른쪽 기울기 +1</b>.
+            확대해도 이 둘이 <b>영원히 만나지 않습니다</b>. 그래서 <b>미분이 불가능</b>합니다</span></li>
+      </ul>
+    </div>
+
+    <div class="takeaway">
+      <b>"확대를 무한히 반복하면 도달하는 그 직선" ·</b>
+      이것이 <b>극한적 사고</b>입니다.
+      어떤 <b>유한한</b> 확대에서도 완벽한 직선은 아니지만, <b>목적지는 명확</b>합니다.
+      3강의 미분이 정확히 이 아이디어를 수식으로 옮긴 것입니다.
+    </div>
+
+    <h2 id="s4">4. 극한값은 함숫값이 아니다</h2>
+    <p>
+      가장 중요한 구분입니다.
+      <b>극한은 '주변에서 어디를 가리키는가'</b> 이지
+      <b>'그 점에서 실제로 얼마인가'</b> 가 아닙니다.
+    </p>
+    <p>
+      아래 <b>[구멍]</b> 을 보세요.
+      <span class="m">f(x) = (x²−1)/(x−1)</span> 은 x=1 에서 <b>0/0</b> 이라 정의되지 않습니다.
+      그래프에 <b>구멍이 뚫려</b> 있죠.
+      그런데 x를 1에 가까이 가져가면 값이 <b>2를 향해</b> 몰려갑니다.
+    </p>
+
+    <div class="panel">
+      <div class="panel-title">③ 극한이 있을 때와 없을 때</div>
+      <div class="canvas-wrap"><canvas id="cv-hole"></canvas></div>
+
+      <div class="seg" role="group" aria-label="경우 선택" style="margin-top:6px">
+        <label><input type="radio" name="hc" value="hole" checked><span>구멍 — 극한 있음</span></label>
+        <label><input type="radio" name="hc" value="jump"><span>점프 — 극한 없음</span></label>
+        <label><input type="radio" name="hc" value="osc"><span>진동 — 극한 없음</span></label>
+      </div>
+
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">1에서 얼마나 떨어져 있나</span><span class="val" id="hd-val">0.5</span></span>
+          <input type="range" id="hd" min="0" max="3" step="0.02" value="0.2">
+        </label>
+      </div>
+
+      <div class="seg" role="group" aria-label="접근 방향" style="margin-top:10px">
+        <label><input type="radio" name="hs" value="left" checked><span>왼쪽에서 ←</span></label>
+        <label><input type="radio" name="hs" value="right"><span>오른쪽에서 →</span></label>
+      </div>
+
+      <div class="readout">
+        <div class="stat accent"><span class="k">지금 x</span><span class="v" id="h-x">–</span></div>
+        <div class="stat purple"><span class="k">f(x)</span><span class="v" id="h-fx">–</span></div>
+        <div class="stat"><span class="k">x = 1 에서의 함숫값</span><span class="v" id="h-at1">–</span></div>
+        <div class="stat pos"><span class="k">x → 1 의 극한</span><span class="v" id="h-lim">–</span></div>
+      </div>
+      <p class="hint">
+        슬라이더를 오른쪽 끝까지 밀고 <b>왼쪽·오른쪽 접근을 번갈아</b> 눌러보세요.
+        <b>양쪽이 같은 값을 가리켜야</b> 극한이 존재합니다.
+      </p>
+    </div>
+
+    <h2 id="s5">5. 극한이 없을 때 — 점프와 진동</h2>
+
+    <div class="formula">
+      <div class="name">극한이 존재할 조건</div>
+      <div class="eq" style="font-size:16px;line-height:2.2">
+        lim<sub>&nbsp;x→a⁻</sub> f(x) = lim<sub>&nbsp;x→a⁺</sub> f(x) = L
+        &nbsp;⟺&nbsp; lim<sub>&nbsp;x→a</sub> f(x) = L
+      </div>
+      <ul class="where">
+        <li><span class="sym">a⁻</span><span class="desc"><b>왼쪽에서</b> 다가감 (a보다 작은 쪽). <b>좌극한</b></span></li>
+        <li><span class="sym">a⁺</span><span class="desc"><b>오른쪽에서</b> 다가감. <b>우극한</b></span></li>
+        <li><span class="sym">점프</span><span class="desc">좌극한 1, 우극한 2.2 — <b>둘이 다르므로 극한이 없습니다</b>.
+            전자회로의 스위칭, 계단 요금제가 이런 모양입니다</span></li>
+        <li><span class="sym">진동</span><span class="desc"><span class="m">sin(1/(x−1))</span> 은
+            1에 가까워질수록 <b>더 빠르게 위아래로 흔들립니다</b>.
+            어떤 값에도 <b>정착하지 않으므로</b> 극한이 없습니다</span></li>
+      </ul>
+    </div>
+
+    <div class="pitfall">
+      <b>"극한이 없다" 와 "무한대다" 는 다릅니다</b>
+      <span class="m">1/x²</span> 은 x→0 에서 <b>무한히 커집니다.</b>
+      이때 <span class="m">lim = ∞</span> 라고 쓰긴 하지만,
+      이건 <b>"극한값이 ∞ 라는 수다"</b> 라는 뜻이 <b>아니라</b>
+      "<b>어떤 유한한 값에도 정착하지 않고 한없이 커진다</b>"는 <b>거동의 서술</b>입니다.
+      엄밀히 말하면 <b>극한은 존재하지 않습니다.</b>
+      기호 사전의 "∞ 는 수가 아니라 <b>과정</b>" 이라는 말이 여기서 힘을 발휘합니다.
+    </div>
+
+    <h2 id="s6">6. 0.999… 는 1인가</h2>
+    <p>
+      §1의 수열은 <b>영원히 1이 아니라고</b> 했습니다.
+      그런데 수학은 <b><span class="m">0.999… = 1</span></b> 이라고 합니다. 모순일까요?
+    </p>
+    <p>
+      <b>모순이 아닙니다.</b> 두 문장은 <b>다른 것</b>을 말하고 있습니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">두 문장을 구분하면</div>
+      <div class="eq" style="font-size:15px;line-height:2.4">
+        <b>수열의 각 항</b> 0.9, 0.99, 0.999, … 은 <b>전부 1보다 작다</b> ✓<br>
+        <b>기호 0.999…</b> 는 항이 아니라 <b>그 수열의 극한</b>을 가리키는 이름이다 ⟹ <b>= 1</b> ✓
+      </div>
+      <ul class="where">
+        <li><span class="sym">핵심</span><span class="desc"><b>… 이라는 표기 자체가 이미 '극한'을 뜻합니다.</b>
+            "9를 아주 많이 붙인 수"가 아니라 "<b>그 과정이 가리키는 목적지</b>"라는 말이죠</span></li>
+        <li><span class="sym">간단한 증명</span><span class="desc">x = 0.999… 라 하면 10x = 9.999… 이고,
+            빼면 9x = 9 → <b>x = 1</b></span></li>
+        <li><span class="sym">더 짧게</span><span class="desc">1과 0.999… 사이에 <b>낄 수 있는 수가 하나도 없습니다.</b>
+            서로 다른 두 실수 사이에는 반드시 다른 수가 있으므로, <b>둘은 같은 수</b>입니다</span></li>
+      </ul>
+    </div>
+
+    <h2 id="s7">7. 파이썬으로 확인하기</h2>
+
+    <div class="pycell" data-packages="numpy" data-title="2-1. 다가가는 수들">
+    import numpy as np
+
+    print(f"{'n':>3} {'항':>22} {'1과의 차':>12}")
+    for n in range(1, 17):
+        항 = 1 - 10.0**(-n)
+        print(f"{n:>3} {항:>22.16f} {10.0**(-n):>12.0e}")
+
+    print("\n→ 어떤 항도 1이 아니다. 그런데 '1과의 차'를 원하는 만큼 작게 만들 수 있다.")
+    print("  (16번째부터는 컴퓨터의 소수 자릿수 한계로 1로 보인다 — 수학이 아니라 기계의 한계다)")
+    </div>
+
+    <div class="pitfall">
+      <b>컴퓨터의 소수는 무한하지 않습니다</b>
+      파이썬의 <code>float</code> 은 <b>약 16자리</b>까지만 구분합니다.
+      그래서 <code>1 - 1e-17 == 1</code> 이 <b>True</b> 로 나옵니다.
+      수학에서는 절대 같지 않은 두 수인데도요.
+      <b>극한 개념은 수학의 것이고, 컴퓨터는 그 근사일 뿐</b>이라는 것을 늘 기억해야 합니다.
+      수치해석에서 이 차이를 놓치면 <b>계산이 조용히 틀립니다.</b>
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="2-2. 확대하면 직선이 되는가">
+    def 어긋남(f, x0, 반폭, 기울기):
+        """창 안에서 곡선이 접선에서 벗어난 최대 거리를, 창 높이 대비 %로"""
+        d = np.linspace(-반폭, 반폭, 2001)
+        곡선 = f(x0 + d)
+        접선 = f(x0) + 기울기 * d
+        return 100 * np.abs(곡선 - 접선).max() / (2 * 반폭)
+
+    함수들 = {
+        "x²":  (lambda x: x**2,      lambda x: 2*x),
+        "sin": (np.sin,              np.cos),
+        "√x":  (np.sqrt,             lambda x: 0.5/np.sqrt(x)),
+        "|x|": (np.abs,              lambda x: 0.0),      # x=0 에서는 접선이 없다
+    }
+
+    print(f"{'창 반폭':>8}", "".join(f"{이름:>10}" for 이름 in 함수들))
+    for w in [1.0, 0.1, 0.01, 0.001]:
+        행 = f"{w:>8}"
+        for 이름, (f, df) in 함수들.items():
+            x0 = 0.0 if 이름 == "|x|" else 1.0
+            행 += f"{어긋남(f, x0, w, df(x0)):>9.4f}%"
+        print(행)
+
+    print("\n→ 매끈한 함수는 확대할수록 어긋남이 10배씩 줄어든다.")
+    print("  |x| 는 x=0 에서 50% 로 고정 — 아무리 확대해도 꺾인 채다.")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="2-3. 구멍이 뚫린 함수">
+    def f(x):
+        return (x**2 - 1) / (x - 1)        # x=1 에서 0/0
+
+    print("x = 1 에 왼쪽에서 다가가기")
+    for d in [0.1, 0.01, 0.001, 0.0001]:
+        print(f"  x = {1-d:<10.4f} f(x) = {f(1-d):.6f}")
+
+    print("\nx = 1 에 오른쪽에서 다가가기")
+    for d in [0.1, 0.01, 0.001, 0.0001]:
+        print(f"  x = {1+d:<10.4f} f(x) = {f(1+d):.6f}")
+
+    print("\n→ 양쪽 모두 2를 가리킨다.  lim(x→1) f(x) = 2")
+
+    try:
+        print("f(1) =", f(1))
+    except ZeroDivisionError:
+        print("f(1) = 계산 불가 (0/0)  ← 함숫값은 없는데 극한은 있다")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="2-4. 왜 2인가 — 약분해보면">
+    import sympy as sp
+
+    x = sp.Symbol('x')
+    식 = (x**2 - 1) / (x - 1)
+    print("원래 식 :", 식)
+    print("약분하면:", sp.simplify(식), "   ← x ≠ 1 인 곳에서는 이것과 완전히 같다")
+    print("극한    :", sp.limit(식, x, 1))
+    print()
+    print("(x²-1) = (x-1)(x+1) 이므로 x≠1 이면 (x-1) 이 약분되어 x+1 이 남는다.")
+    print("x=1 을 '대입'한 게 아니라, x≠1 인 점들만 보고 목적지를 읽은 것이다.")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="2-5. 극한이 없는 두 가지">
+    # ① 점프 — 좌우 극한이 다르다
+    def 점프(x): return np.where(x < 1, x, x + 1.2)
+    print("점프 함수")
+    print("  왼쪽에서 :", [round(float(점프(np.array(1-d))), 4) for d in [0.1, 0.01, 0.001]])
+    print("  오른쪽에서:", [round(float(점프(np.array(1+d))), 4) for d in [0.1, 0.01, 0.001]])
+    print("  → 1 과 2.2. 서로 다르므로 극한이 없다\n")
+
+    # ② 진동 — 어디에도 정착하지 않는다
+    def 진동(x): return np.sin(1/(x-1))
+    print("진동 함수 sin(1/(x-1))")
+    for d in [0.1, 0.01, 0.001, 0.0001, 0.00001]:
+        print(f"  x = 1+{d:<9} f = {진동(1+d):>9.5f}")
+    print("  → 값이 -1 과 1 사이를 계속 오간다. 목적지가 없다")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="2-6. 연습문제">
+    # 문제 1. lim(x→0) (1 - cos x) / x²  을 수치로 추정해보세요. (x = 0.1, 0.01, 0.001)
+
+    # 문제 2. |x| 대신 x·|x| 를 x=0 에서 확대하면 직선이 될까요?
+    #         2-2 셀의 '어긋남' 함수로 확인해보세요. (기울기 0 으로)
+
+    # 문제 3. 1강의 고리 합을 n = 10, 100, 1000, 10000 으로 계산해
+    #         "극한이 π 다" 를 수치로 확인해보세요.
+
+    # 아래에 직접 써보세요
+    </div>
+
+    <details style="margin:18px 0">
+      <summary style="cursor:pointer;font-weight:600;color:var(--accent)">모범 답안 보기</summary>
+      <div class="pycell" data-packages="numpy" data-title="모범 답안">
+      # 문제 1 — 1/2 로 간다
+      print("문제 1")
+      for x in [0.1, 0.01, 0.001, 0.0001]:
+          print(f"  x={x:<8} (1-cos x)/x² = {(1-np.cos(x))/x**2:.8f}")
+      print("  → 0.5 (11강의 테일러 급수로 보면 cos x ≈ 1 - x²/2 이므로 당연하다)\n")
+
+      # 문제 2 — x|x| 는 x=0 에서 매끈하다 (미분 가능, 기울기 0)
+      print("문제 2")
+      for w in [1.0, 0.1, 0.01]:
+          print(f"  창 반폭 {w:<6} 어긋남 = {어긋남(lambda x: x*np.abs(x), 0.0, w, 0.0):.4f}%")
+      print("  → 줄어든다. x|x| 는 꺾이지 않고 매끈하게 휘어서 지나간다\n")
+
+      # 문제 3 — 고리 합의 극한
+      print("문제 3")
+      for n in [10, 100, 1000, 10000]:
+          dr = 1.0/n
+          r = np.arange(n) * dr
+          print(f"  n={n:>6}  합 = {(2*np.pi*r*dr).sum():.8f}")
+      print(f"  참값 π = {np.pi:.8f}   ← 극한이 π 다")
+      </div>
+    </details>
+
+    <div class="practice">
+      <b>극한이 실제로 하는 일</b>
+      <ul>
+        <li><b>수치해석의 수렴 판정</b> — 반복 계산을 언제 멈출지는
+            "변화량이 ε 아래로 내려갔는가"로 정합니다. 극한의 정의를 그대로 코드로 옮긴 것입니다.</li>
+        <li><b>제어공학의 정상상태</b> — 시스템이 <b>t → ∞ 에서 어디로 수렴하는가</b>가
+            안정성 판정입니다.</li>
+        <li><b>기계학습의 학습률</b> — 손실이 <b>어떤 값으로 수렴하는지</b>,
+            아니면 <b>진동하는지</b>가 학습이 잘 되는지의 신호입니다. §5의 두 그림 그대로입니다.</li>
+        <li><b>딥러닝의 ReLU</b> — <span class="m">max(0,x)</span> 는 0에서 <b>|x| 처럼 꺾여</b> 있어
+            미분이 정의되지 않습니다. 그래서 라이브러리들이 <b>0에서의 값을 임의로 정해</b> 씁니다.</li>
+      </ul>
+    </div>
+
+    <div class="summary">
+      <h3>✎ 스스로 점검</h3>
+      <ul>
+        <li><b>4.</b> 0.9, 0.99, 0.999… 의 극한이 1이라는 말은 '언젠가 1이 된다'는 뜻인가요?
+            <span style="color:var(--text-dim)">(§1, §6)</span></li>
+        <li><b>5.</b> 곡선을 확대하는 비유에서 '극한'에 해당하는 것은 무엇인가요?
+            <span style="color:var(--text-dim)">(§3)</span></li>
+      </ul>
+    </div>
+
+    <div class="summary">
+      <h3>2강 요약</h3>
+      <ul>
+        <li>극한은 <b>무한을 다루는 법이 아니라 무한을 피하는 법</b>입니다.
+            유한한 계산들의 목록이 <b>어디를 가리키는지</b>를 읽습니다.</li>
+        <li><b>도착하지 않아도 목적지는 확실합니다.</b>
+            "얼마나 가깝게든 만들 수 있다"는 <b>보장</b>이 극한의 내용입니다.</li>
+        <li><b><span class="m">lim<sub>x→a</sub> f(x)</span> 는 x = a 를 보지 않습니다.</b>
+            x ≠ a 인 주변 점들만 봅니다.</li>
+        <li>매끈한 곡선은 <b>확대하면 직선</b>이 됩니다(국소 선형성).
+            그 극한의 직선이 <b>접선</b>이고, 기울기가 <b>미분값</b>입니다.</li>
+        <li><b>꺾인 점(|x|)</b> 은 아무리 확대해도 펴지지 않습니다 — <b>미분 불가능</b>.</li>
+        <li><b>좌극한 = 우극한</b> 일 때만 극한이 존재합니다.
+            <b>점프</b>와 <b>진동</b>은 극한이 없는 대표적인 두 경우입니다.</li>
+        <li><span class="m">0.999… = 1</span> 입니다 — '…' 이라는 표기 자체가 <b>극한을 뜻하는 이름</b>이니까요.</li>
+      </ul>
+    </div>
+
+    <div class="colab-cta">
+      <div class="colab-text">
+        <b>더 자유롭게 실험하고 싶다면</b><br>
+        이 강의의 실습만 모은 노트북을 Colab에서 열 수 있습니다.
+      </div>
+      <a class="btn" id="colab-link" href="#" target="_blank" rel="noopener">Colab에서 열기</a>
+    </div>
+
+    <p class="next-up">
+      다음 → <b>3강 · 미분의 역설 — 순간을 측정하기</b><br>
+      "바로 이 순간의 속도"는 <b>0 나누기 0</b> 입니다. 정의되지 않는 값이죠.
+      그런데도 <b>속도계는 멀쩡히 작동합니다.</b>
+      오늘 배운 극한으로 이 역설을 풉니다.
+    </p>
+
+  </section>
+
+</div>
+
+<script src="../assets/viz.js?v=312b9476b0"></script>
+<script src="../assets/calc.js?v=c1137a5076"></script>
+<script src="../assets/pylab.js?v=cb27f20364"></script>
+<script src="../assets/pycell.js?v=6dacc4c6ce"></script>
+<script>
+(function () {
+  'use strict';
+  var num = CA.num, F = CA.F;
+
+  /* =======================================================
+     패널 ① 다가가는 수열 — 전체 보기 + 확대 보기
+     ======================================================= */
+  var sn = 3;
+  var gSeq = new CA.Graph(document.getElementById('cv-seq'), {
+    height: function (w) { return Math.round(Math.max(210, Math.min(260, w * 0.32))); },
+    margin: { top: 10, right: 20, bottom: 10, left: 20 }
+  });
+
+  /* 수직선 하나를 픽셀 좌표로 직접 그린다 — 두 축이 필요 없으니 Plot 을 쓰지 않는다 */
+  function numberLine(c, W, y, lo, hi, title) {
+    var padL = 44, padR = 26;
+    var x0 = padL, x1 = W - padR;
+    function px(v) { return x0 + (v - lo) / (hi - lo) * (x1 - x0); }
+
+    c.save();
+    c.strokeStyle = V.css('--text-dim');
+    c.lineWidth = 1.4;
+    c.beginPath();
+    c.moveTo(x0, y); c.lineTo(x1, y);
+    c.stroke();
+
+    c.font = '11.5px ' + V.FONT;
+    c.fillStyle = V.css('--text-dim');
+    c.textAlign = 'left'; c.textBaseline = 'bottom';
+    c.fillText(title, x0, y - 24);
+    c.restore();
+    return px;
+  }
+
+  function drawSeq() {
+    gSeq.begin();
+    var c = gSeq.ctx, W = gSeq.w, H = gSeq.h;
+    var accent = V.css('--accent'), pos = V.css('--pos'), dim = V.css('--text-dim');
+
+    var yTop = Math.round(H * 0.34), yBot = Math.round(H * 0.82);
+    var i, v, X;
+
+    /* --- 위: 전체 --- */
+    var pxT = numberLine(c, W, yTop, -0.05, 1.12, '전체 보기  (0 ~ 1.1)');
+    c.save();
+    c.font = '11.5px ' + V.FONT;
+    c.textAlign = 'center'; c.textBaseline = 'top';
+    [0, 0.5].forEach(function (t) {          // 1 은 아래 초록 표시로 따로 그린다
+      c.strokeStyle = dim; c.lineWidth = 1;
+      c.beginPath(); c.moveTo(pxT(t), yTop - 4); c.lineTo(pxT(t), yTop + 4); c.stroke();
+      c.fillStyle = dim;
+      c.fillText(String(t), pxT(t), yTop + 8);
+    });
+    c.restore();
+
+    for (i = 1; i <= sn; i++) {
+      v = 1 - Math.pow(10, -i);
+      X = pxT(v);
+      c.save();
+      c.fillStyle = accent;
+      c.globalAlpha = 0.35 + 0.65 * i / sn;
+      c.beginPath(); c.arc(X, yTop, 5, 0, Math.PI * 2); c.fill();
+      c.restore();
+    }
+    /* 목적지 1 */
+    c.save();
+    c.strokeStyle = pos; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(pxT(1), yTop - 13); c.lineTo(pxT(1), yTop + 13); c.stroke();
+    c.fillStyle = pos;
+    c.font = '700 12px ' + V.FONT;
+    c.textAlign = 'center'; c.textBaseline = 'bottom';
+    c.fillText('1', pxT(1), yTop - 16);
+    c.restore();
+
+    /* --- 아래: 확대 --- */
+    var e = Math.pow(10, -(sn - 1));
+    var lo = 1 - 2.5 * e, hi = 1 + 0.5 * e;
+    var zoom = 1.17 / (hi - lo);
+    var pxB = numberLine(c, W, yBot, lo, hi,
+      '1 근처를 ' + (zoom < 10 ? num(zoom, 1) : Math.round(zoom).toLocaleString()) + '배 확대');
+
+    for (i = 1; i <= sn; i++) {
+      v = 1 - Math.pow(10, -i);
+      if (v < lo) continue;
+      X = pxB(v);
+      c.save();
+      c.fillStyle = accent;
+      c.beginPath(); c.arc(X, yBot, 5.5, 0, Math.PI * 2); c.fill();
+      c.font = '11px ' + V.FONT;
+      c.fillStyle = accent;
+      c.textAlign = 'center'; c.textBaseline = 'top';
+      c.fillText('제' + i + '항', X, yBot + 9);
+      c.restore();
+    }
+    c.save();
+    c.strokeStyle = pos; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(pxB(1), yBot - 13); c.lineTo(pxB(1), yBot + 13); c.stroke();
+    c.fillStyle = pos;
+    c.font = '700 12px ' + V.FONT;
+    c.textAlign = 'center'; c.textBaseline = 'bottom';
+    c.fillText('1', pxB(1), yBot - 16);
+    c.restore();
+
+    var last = 1 - Math.pow(10, -sn);
+    V.setText('#q-last', last.toFixed(Math.min(10, sn)));
+    V.setText('#q-gap', Math.pow(10, -sn).toExponential(0));
+    V.setText('#q-zoom', (zoom < 10 ? num(zoom, 1) : Math.round(zoom).toLocaleString()) + '배');
+  }
+
+  V.range('sn', function (v) { sn = v; drawSeq(); });
+
+  /* =======================================================
+     패널 ② 확대하면 직선이 된다
+     ======================================================= */
+  var zPow = 0, zx = 1, zf = 'sq';
+
+  var ZF = {
+    sq:   { f: function (x) { return x * x; },   d: function (x) { return 2 * x; },  lo: -2.5, hi: 2.5, name: 'x²' },
+    sin:  { f: Math.sin,                          d: Math.cos,                       lo: -2.5, hi: 2.5, name: 'sin x' },
+    sqrt: { f: function (x) { return Math.sqrt(Math.max(0, x)); },
+            d: function (x) { return 0.5 / Math.sqrt(Math.max(1e-9, x)); },          lo: 0.2,  hi: 2.5, name: '√x' },
+    abs:  { f: Math.abs,                          d: function (x) { return x > 0 ? 1 : (x < 0 ? -1 : 0); },
+            lo: -2.5, hi: 2.5, name: '|x|' }
+  };
+
+  var gZoom = new CA.Graph(document.getElementById('cv-zoom'), {
+    equal: 'x',            // 가로 폭을 그대로 지킨다 — 화면에 쓰는 '창 폭' 숫자와 맞아야 하므로
+    height: function (w) { return Math.round(Math.max(250, Math.min(340, w * 0.44))); },
+    margin: { top: 16, right: 16, bottom: 30, left: 44 }
+  });
+
+  function drawZoom() {
+    var S = ZF[zf];
+    var x0 = V.clamp(zx, S.lo, S.hi);
+    var w = 3 * Math.pow(10, -zPow);       // 창 반폭
+    var y0 = S.f(x0);
+    var m = S.d(x0);
+
+    gZoom.xDomain = [x0 - w, x0 + w];
+    gZoom.yDomain = [y0 - w, y0 + w];
+    gZoom.begin();
+
+    var step = CA.niceStep(2 * w, 4);
+    gZoom.axes({
+      xStep: step, yStep: step,
+      xFormat: function (v) { return num(v, 6); },
+      yFormat: function (v) { return num(v, 6); }
+    });
+
+    /* 극한의 직선(접선)을 굵은 회색으로 먼저 깔고, 그 위에 곡선을 얹는다 */
+    gZoom.lineAt(x0, y0, m, { color: V.css('--text-dim'), width: 7, alpha: 0.32 });
+    gZoom.curve(S.f, { color: V.css('--accent'), width: 2.4, samples: 900 });
+    gZoom.dot(x0, y0, { r: 5, color: V.css('--accent'), stroke: V.css('--surface'), strokeWidth: 2 });
+
+    /* 어긋남 측정 — 보이는 창 안에서 접선과 가장 크게 벌어지는 거리 */
+    var N = 400, dev = 0;
+    for (var i = 0; i <= N; i++) {
+      var d = -w + 2 * w * i / N;
+      var xx = x0 + d;
+      if (zf === 'sqrt' && xx < 0) continue;
+      var e = Math.abs(S.f(xx) - (y0 + m * d));
+      if (isFinite(e) && e > dev) dev = e;
+    }
+    var pct = 100 * dev / (2 * w);
+
+    /* 꺾인 점인가 — 좌우 기울기를 비교한다.
+       창 크기에 비례하는 간격을 쓰면 매끈한 곡선도 꺾였다고 나오므로
+       확대 배율과 무관한 아주 작은 간격으로 잰다. */
+    var dd = 1e-7 * Math.max(1, Math.abs(x0));
+    var kL = (S.f(x0) - S.f(x0 - dd)) / dd;
+    var kR = (S.f(x0 + dd) - S.f(x0)) / dd;
+    var smooth = Math.abs(kL - kR) < 1e-3 * Math.max(1, Math.abs(kL));
+
+    gZoom.legend([
+      { color: V.css('--text-dim'), text: '극한의 직선 (접선)' },
+      { color: V.css('--accent'), text: S.name + ' 를 ' + num(3 / w, 1) + '배 확대' }
+    ]);
+
+    V.setText('#z-w', num(2 * w, 6));
+    V.setText('#z-slope', smooth ? num(m, 4) : '없음 (좌 ' + num(kL, 2) + ' / 우 ' + num(kR, 2) + ')');
+    V.setText('#z-dev', '창 폭의 ' + (pct < 0.001 ? '0.001% 미만' : num(pct, 3) + '%'));
+    V.setText('#z-ok', smooth ? '예' : '아니오 (꺾인 점)');
+  }
+
+  V.range('zm', function (v) { zPow = v; drawZoom(); },
+    function (v) { return num(Math.pow(10, v), v > 2 ? 0 : 1) + '배'; });
+  V.range('zx', function (v) { zx = v; drawZoom(); }, function (v) { return num(v, 2); });
+  V.radios('zf', function (v) { zf = v; drawZoom(); });
+
+  /* =======================================================
+     패널 ③ 극한이 있을 때와 없을 때
+     ======================================================= */
+  var hc = 'hole', hd = 0.2, hs = 'left';
+
+  var HC = {
+    hole: {
+      f: function (x) { return (x * x - 1) / (x - 1); },
+      at1: '없음 (0/0)', lim: '2', yd: [0, 3.4], samples: 1200,
+      label: 'f(x) = (x²−1)/(x−1)'
+    },
+    jump: {
+      f: function (x) { return x < 1 ? x : x + 1.2; },
+      at1: '2.2', lim: '없음 (좌 1 · 우 2.2)', yd: [-0.3, 3.4], samples: 2400,
+      label: 'f(x) = x (x<1) · x+1.2 (x≥1)'
+    },
+    osc: {
+      f: function (x) { return Math.abs(x - 1) < 1e-12 ? 0 : Math.sin(1 / (x - 1)); },
+      at1: '없음', lim: '없음 (계속 진동)', yd: [-1.35, 1.35], samples: 6000,
+      label: 'f(x) = sin(1/(x−1))'
+    }
+  };
+
+  var gHole = new CA.Graph(document.getElementById('cv-hole'), {
+    xDomain: [0, 2],
+    height: function (w) { return Math.round(Math.max(230, Math.min(310, w * 0.44))); },
+    margin: { top: 20, right: 18, bottom: 42, left: 46 }
+  });
+
+  function drawHole() {
+    var S = HC[hc];
+    var d = 0.8 * Math.pow(10, -hd);
+    var x = hs === 'left' ? 1 - d : 1 + d;
+    var y = S.f(x);
+
+    gHole.yDomain = S.yd;
+    gHole.begin();
+    gHole.axes({ xStep: 0.5, yStep: hc === 'osc' ? 0.5 : 1, xLabel: 'x →' });
+
+    gHole.vline(1, { color: V.css('--text-dim'), dash: [4, 4], width: 1.2 });
+    gHole.curve(S.f, { color: V.css('--accent'), width: 2.4, samples: S.samples });
+
+    /* 구멍 — 속이 빈 동그라미 */
+    if (hc === 'hole') {
+      gHole.dot(1, 2, { r: 5.5, color: V.css('--surface'), stroke: V.css('--accent'), strokeWidth: 2.2 });
+      gHole.text(1, 2, '구멍 (정의 안 됨)', {
+        color: V.css('--accent'), dx: 10, dy: -8, align: 'left', size: 12, bg: V.css('--surface')
+      });
+      gHole.hline(2, { color: V.css('--pos'), dash: [5, 4], width: 1.4 });
+    }
+    if (hc === 'jump') {
+      gHole.dot(1, 1, { r: 5.5, color: V.css('--surface'), stroke: V.css('--accent'), strokeWidth: 2.2 });
+      gHole.dot(1, 2.2, { r: 5, color: V.css('--accent') });
+      gHole.text(1, 1, '좌극한 1', {
+        color: V.css('--text-dim'), dx: -10, dy: -6, align: 'right', size: 12, bg: V.css('--surface')
+      });
+      gHole.text(1, 2.2, '우극한 2.2', {
+        color: V.css('--text-dim'), dx: 10, dy: -6, align: 'left', size: 12, bg: V.css('--surface')
+      });
+    }
+
+    /* 지금 위치 */
+    if (isFinite(y)) {
+      gHole.segment(x, gHole.plot.yDomain[0], x, y, {
+        color: V.css('--purple'), dash: [4, 4], width: 1.4
+      });
+      gHole.dot(x, y, { r: 6, color: V.css('--purple'), stroke: V.css('--surface'), strokeWidth: 2 });
+    }
+    gHole.text((gHole.plot.xDomain[0] + gHole.plot.xDomain[1]) / 2,
+      S.yd[1] - (S.yd[1] - S.yd[0]) * 0.06, S.label, {
+      color: V.css('--text-dim'), size: 12.5, bg: V.css('--surface')
+    });
+
+    V.setText('#h-x', x.toFixed(6));
+    V.setText('#h-fx', isFinite(y) ? y.toFixed(6) : '—');
+    V.setText('#h-at1', S.at1);
+    V.setText('#h-lim', S.lim);
+  }
+
+  V.range('hd', function (v) { hd = v; drawHole(); },
+    function (v) { return num(0.8 * Math.pow(10, -v), 6); });
+  V.radios('hc', function (v) { hc = v; drawHole(); });
+  V.radios('hs', function (v) { hs = v; drawHole(); });
+
+  V.onRedraw(function () { drawSeq(); drawZoom(); drawHole(); });
+  drawSeq(); drawZoom(); drawHole();
+
+  var a = document.getElementById('colab-link');
+  if (a) a.href = 'https://colab.research.google.com/github/mioon1402/timeseriesdata/blob/main/notebooks/C02-limit.ipynb';
+})();
+</script>
+</body>
+</html>

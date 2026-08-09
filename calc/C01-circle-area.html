@@ -224,7 +224,7 @@
 
     <div class="panel">
       <div class="panel-title">① 원을 고리로 쪼개서 펴 세우기</div>
-      <div class="canvas-wrap"><canvas id="cv-ring"></canvas></div>
+      <div class="board" style="max-width:400px"><div class="canvas-wrap"><canvas id="cv-ring"></canvas></div></div>
       <div class="canvas-wrap" style="margin-top:10px"><canvas id="cv-tri"></canvas></div>
 
       <div class="controls">
@@ -372,7 +372,7 @@
 
     <div class="panel">
       <div class="panel-title">③ 반지름을 살짝 늘리면 넓이는 얼마나 느는가</div>
-      <div class="canvas-wrap"><canvas id="cv-grow"></canvas></div>
+      <div class="board" style="max-width:400px"><div class="canvas-wrap"><canvas id="cv-grow"></canvas></div></div>
       <div class="canvas-wrap" style="margin-top:10px"><canvas id="cv-plot"></canvas></div>
 
       <div class="controls">
@@ -635,7 +635,7 @@
 </div>
 
 <script src="../assets/viz.js?v=312b9476b0"></script>
-<script src="../assets/calc.js?v=653550113c"></script>
+<script src="../assets/calc.js?v=c1137a5076"></script>
 <script src="../assets/pylab.js?v=cb27f20364"></script>
 <script src="../assets/pycell.js?v=6dacc4c6ce"></script>
 <script>
@@ -652,7 +652,7 @@
 
   var gRing = new CA.Graph(document.getElementById('cv-ring'), {
     xDomain: [-1.26, 1.26], yDomain: [-1.26, 1.26], equal: true,
-    height: function (w) { return Math.round(Math.max(250, Math.min(340, w * 0.44))); },
+    height: function (w) { return Math.round(V.clamp(w, 240, 400)); },
     margin: { top: 12, right: 12, bottom: 12, left: 12 }
   });
 

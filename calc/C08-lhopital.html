@@ -1,0 +1,715 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>로피탈 정리와 입실론-델타 · 미적분의 직관</title>
+<meta name="description" content="0/0은 누가 더 빨리 0으로 가는가의 경주입니다. 그리고 '한없이 가까이'를 공방 게임으로 못 박습니다.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%E2%88%AB%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css">
+<link rel="stylesheet" href="../assets/pycell.css">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">미적분 8강 · 로피탈 정리와 ε-δ</p>
+    <h1>로피탈 정리와 입실론-델타</h1>
+    <p class="lede">
+      3강에서 <b>0/0 의 역설</b>을 극한으로 우회했습니다.
+      이 강의에서는 그 극한을 <b>더 밀어붙입니다.</b>
+      0/0 꼴 극한을 <b>기계적으로 푸는 로피탈 정리</b>, 그리고
+      <b>'한없이 가까이'</b> 라는 말을 수학적으로 못 박은 <b>입실론-델타 정의</b>입니다.
+    </p>
+  </header>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 강의에서 배우는 것</b>
+      <ol>
+        <li><a href="#s0">기초 다지기 — 부정형이란</a></li>
+        <li><a href="#s1">그래프의 구멍 — 극한이 진짜 필요한 순간</a></li>
+        <li><a href="#s2">로피탈 정리 — 0/0은 기울기의 경주</a></li>
+        <li><a href="#s3">쓰면 안 되는 경우</a></li>
+        <li><a href="#s4">입실론-델타 — '한없이 가까이'의 게임화</a></li>
+        <li><a href="#s5">실전 방어전</a></li>
+        <li><a href="#s6">파이썬으로 확인하기</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s0">0. 기초 다지기 — 부정형이란</h2>
+    <p>
+      3강에서 봤듯이 <span class="m">0/0</span> 은 <b>부정형</b>입니다 — <b>식만 봐서는 답을 알 수 없는 꼴.</b>
+      부정형은 이것 말고도 여럿 있습니다.
+    </p>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>꼴</th><th>예</th><th>실제 극한</th></tr></thead>
+        <tbody>
+          <tr><td class="m">0/0</td><td class="m">sin x / x</td><td>1</td></tr>
+          <tr><td class="m">0/0</td><td class="m">x² / x</td><td>0</td></tr>
+          <tr><td class="m">0/0</td><td class="m">x / x³</td><td>∞ (없음)</td></tr>
+          <tr><td class="m">∞/∞</td><td class="m">(2x+1) / (x−3)</td><td>2</td></tr>
+          <tr><td class="m">0 · ∞</td><td class="m">x · ln x</td><td>0 (x→0⁺)</td></tr>
+          <tr><td class="m">1<sup>∞</sup></td><td class="m">(1+1/n)<sup>n</sup></td><td>e (6강!)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout">
+      <b>같은 꼴인데 답이 다 다릅니다</b><br>
+      <span class="m">sin x/x</span>, <span class="m">x²/x</span>, <span class="m">x/x³</span> 은
+      <b>전부 0/0</b> 인데 답은 <b>1, 0, ∞</b> 로 제각각입니다.
+      <br><br>
+      <b>그래서 '꼴'이 아니라 '누가 더 빨리 0으로 가는가'를 봐야 합니다.</b>
+      이 강의는 그 <b>속도 비교</b>를 체계화합니다.
+    </div>
+
+    <h2 id="s1">1. 그래프의 구멍 — 극한이 진짜 필요한 순간</h2>
+    <p>
+      <span class="m">f(x) = sin(x)/x</span> 를 봅시다.
+      x=0 을 넣으면 <b>0/0</b> 이라 정의되지 않습니다 — <b>그래프에 구멍이 있죠.</b>
+      그런데 0 근처 값을 넣어보면
+      <span class="m">sin(0.1)/0.1 ≈ 0.9983</span>,
+      <span class="m">sin(0.01)/0.01 ≈ 0.99998</span> —
+      값이 <b>1을 향해 몰려갑니다.</b>
+    </p>
+
+    <div class="panel">
+      <div class="panel-title">① 두 함수가 0으로 가는 '속도'를 비교한다</div>
+      <div class="canvas-wrap"><canvas id="cv-race"></canvas></div>
+
+      <div class="seg" role="group" aria-label="문제 선택" style="margin-top:6px">
+        <label><input type="radio" name="pr" value="sinx" checked><span>sin x / x</span></label>
+        <label><input type="radio" name="pr" value="sq"><span>x² / x</span></label>
+        <label><input type="radio" name="pr" value="cub"><span>x / x³</span></label>
+        <label><input type="radio" name="pr" value="expm"><span>(eˣ−1) / x</span></label>
+        <label><input type="radio" name="pr" value="cos"><span>(1−cos x) / x²</span></label>
+      </div>
+
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">0 을 얼마나 확대할까</span><span class="val" id="rz-val">1배</span></span>
+          <input type="range" id="rz" min="0" max="2.5" step="0.02" value="0">
+        </label>
+        <label class="toggle"><input type="checkbox" id="r-tan" checked> 두 접선(기울기 경주) 보기</label>
+      </div>
+
+      <div class="readout">
+        <div class="stat accent"><span class="k">분자의 기울기 f′(0)</span><span class="v" id="r-fp">–</span></div>
+        <div class="stat purple"><span class="k">분모의 기울기 g′(0)</span><span class="v" id="r-gp">–</span></div>
+        <div class="stat pos"><span class="k">기울기의 비 f′/g′</span><span class="v" id="r-ratio">–</span></div>
+        <div class="stat warn"><span class="k">실제 극한 (수치)</span><span class="v" id="r-lim">–</span></div>
+      </div>
+      <p class="hint">
+        위 그림은 <b>분자 f 와 분모 g 를 따로</b> 그린 것입니다.
+        <b>둘 다 0을 지나갑니다.</b> 확대해 보면 둘 다 <b>직선처럼</b> 보이고(2강),
+        비율은 <b>두 직선의 기울기 비</b>로 결정됩니다.
+      </p>
+    </div>
+
+    <h2 id="s2">2. 로피탈 정리 — 0/0은 기울기의 경주</h2>
+    <p>
+      두 함수 f, g 가 <b>모두 x=a 에서 0</b> 이라 합시다.
+      a 근처에서 각 함수를 <b>접선으로 근사</b>하면 (2강의 확대 논리)
+      <span class="m">f(a+dx) ≈ f′(a)·dx</span>,
+      <span class="m">g(a+dx) ≈ g′(a)·dx</span>.
+      비율을 만들면 <b>공통의 dx 가 약분</b>됩니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">로피탈 정리</div>
+      <div class="eq" style="font-size:16px;line-height:2.4">
+        lim<sub>&nbsp;x→a</sub>
+        <span class="frac"><span>f(x)</span><span>g(x)</span></span>
+        =
+        lim<sub>&nbsp;dx→0</sub>
+        <span class="frac"><span>f′(a)·dx</span><span>g′(a)·dx</span></span>
+        =
+        <b><span class="frac"><span>f′(a)</span><span>g′(a)</span></span></b>
+        <br>
+        <span class="small">단, <b>0/0 또는 ∞/∞ 꼴일 때만</b></span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">직관</span><span class="desc"><b>둘 다 0으로 향하는 두 함수의 비는
+            '누가 더 빨리 0으로 가는가'</b> — 두 접선 기울기의 비로 결정됩니다</span></li>
+        <li><span class="sym">sin x / x</span><span class="desc"><span class="m">cos(x)/1 → cos(0) = <b>1</b></span></span></li>
+        <li><span class="sym">(eˣ−1)/x</span><span class="desc"><span class="m">eˣ/1 → <b>1</b></span></span></li>
+        <li><span class="sym">x²/x</span><span class="desc"><span class="m">2x/1 → <b>0</b></span>.
+            분자가 <b>더 빨리</b> 0으로 가니 비는 0</span></li>
+        <li><span class="sym">두 번 써도 됩니다</span><span class="desc"><span class="m">(1−cos x)/x²</span> 는
+            한 번 쓰면 <span class="m">sin x / 2x</span> 로 <b>여전히 0/0</b> —
+            한 번 더 쓰면 <span class="m">cos x / 2 → <b>1/2</b></span></span></li>
+      </ul>
+    </div>
+
+    <h2 id="s3">3. 쓰면 안 되는 경우</h2>
+
+    <div class="myth">
+      <div class="bad"><b>⚠ 흔한 오해</b>
+        "로피탈은 <b>아무 극한에나</b> 써도 된다."</div>
+      <div class="good"><b>0/0 또는 ∞/∞ 꼴에서만 성립합니다</b>
+        <span class="m">lim<sub>x→1</sub> (x+3)/(x+1) = 4/2 = <b>2</b></span> 인데,
+        분모·분자를 미분하면 <span class="m">1/1 = <b>1</b></span> — <b>엉뚱한 답</b>이 나옵니다.
+        <br>
+        0/0 꼴이 <b>아닌데도</b> 기계적으로 미분해버리는 것이 가장 흔한 사고입니다.
+        <b>먼저 대입해서 꼴을 확인하세요.</b></div>
+    </div>
+
+    <div class="pitfall">
+      <b>순환논증에 주의</b>
+      <span class="m">sin</span> 의 도함수가 <span class="m">cos</span> 이라는 사실을 <b>증명할 때</b>는
+      <span class="m">lim<sub>x→0</sub> sin x / x = 1</span> 이라는 극한 <b>자체가 필요합니다.</b>
+      (정의식을 전개하면 이 극한이 나옵니다.)
+      <br><br>
+      그러니 그 맥락에서 <span class="m">sin x/x</span> 를 로피탈로 풀면
+      <b>"A를 증명하려고 A를 쓰는"</b> 순환논증이 됩니다.
+      <b>도구에는 사용 조건이 있습니다.</b>
+      (그래도 <b>값을 확인</b>하는 용도로는 아무 문제 없습니다 — 이 강의처럼요.)
+    </div>
+
+    <div class="pitfall">
+      <b>로피탈을 써도 안 끝나는 경우</b>
+      <span class="m">lim<sub>x→∞</sub> (x + sin x)/x</span> 의 답은 <b>1</b> 입니다.
+      그런데 로피탈을 쓰면 <span class="m">(1 + cos x)/1</span> —
+      <b>진동해서 극한이 없습니다.</b>
+      <br><br>
+      로피탈은 <b>"미분한 쪽의 극한이 존재하면"</b> 원래 극한도 그 값이라는 정리입니다.
+      <b>거꾸로는 성립하지 않습니다.</b>
+      미분한 쪽이 실패했다고 <b>원래 극한이 없는 건 아닙니다.</b>
+    </div>
+
+    <h2 id="s4">4. 입실론-델타 — '한없이 가까이'의 게임화</h2>
+    <p>
+      마지막 관문입니다.
+      <b>"한없이 가까워진다"</b> 는 표현은 <b>직관적이지만 모호</b>합니다.
+      19세기 수학자들(코시, 바이어슈트라스)은 이를 <b>두 사람의 공방 게임</b>으로 바꿔 못 박았습니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">ε-δ 게임의 규칙</div>
+      <div class="eq" style="font-size:14.5px;line-height:2.5;text-align:left;padding-left:10px">
+        <b>공격수</b>가 허용 오차 <b>ε</b>(입실론)을 제시한다:<br>
+        &nbsp;&nbsp;"f(x) 가 목적지 L 에서 <b>±ε 안</b>에 들어와야 인정한다."<br>
+        <b>방어수</b>는 입력 범위 <b>δ</b>(델타)로 응수한다:<br>
+        &nbsp;&nbsp;"x 를 a 에서 <b>±δ 안</b>에만 두면 항상 그렇게 된다."<br>
+        <b>판정</b>: 공격수가 ε 을 <b>아무리 작게</b> 잡아도 방어수가
+        <b>매번 δ 를 찾아낼 수 있다면</b> — <b>그 극한은 존재한다.</b>
+      </div>
+      <ul class="where">
+        <li><span class="sym">ε</span><span class="desc"><b>세로 방향</b> 허용 오차 (결과의 정밀도)</span></li>
+        <li><span class="sym">δ</span><span class="desc"><b>가로 방향</b> 입력 범위 (내가 통제할 수 있는 것)</span></li>
+        <li><span class="sym">순서가 중요</span><span class="desc"><b>ε 이 먼저, δ 가 나중.</b>
+            "어떤 정밀도를 요구하든 그것을 달성할 방법이 있다"는 뜻입니다</span></li>
+        <li><span class="sym">무한이 사라졌다</span><span class="desc">'무한히'라는 무한의 언어를
+            <b>'모든 도전에 응수하는 전략의 존재'</b>라는 <b>유한한 논리</b>로 바꾼 것 —
+            현대 해석학의 주춧돌입니다</span></li>
+      </ul>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">② ε 을 아무리 좁혀도 δ 를 찾을 수 있는가</div>
+      <div class="canvas-wrap"><canvas id="cv-eps"></canvas></div>
+
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">공격수의 ε (세로 띠 폭)</span><span class="val" id="ee-val">0.6</span></span>
+          <input type="range" id="ee" min="-2.3" max="0" step="0.01" value="-0.22">
+        </label>
+        <label class="ctrl">
+          <span class="label-row"><span class="name">방어수의 δ (가로 띠 폭)</span><span class="val" id="ed-val">0.2</span></span>
+          <input type="range" id="ed" min="-3" max="0" step="0.01" value="-0.7">
+        </label>
+        <button class="btn" id="auto-d">방어수 자동 응수</button>
+      </div>
+
+      <div class="seg" role="group" aria-label="함수 선택" style="margin-top:10px">
+        <label><input type="radio" name="ef" value="lin" checked><span>3x+1 → 7 (x→2)</span></label>
+        <label><input type="radio" name="ef" value="sq"><span>x² → 4 (x→2)</span></label>
+        <label><input type="radio" name="ef" value="hole"><span>sin x / x → 1 (x→0)</span></label>
+        <label><input type="radio" name="ef" value="jump"><span>점프 함수 ← 방어 실패</span></label>
+      </div>
+
+      <div class="readout">
+        <div class="stat neg"><span class="k">ε</span><span class="v" id="p-eps">–</span></div>
+        <div class="stat purple"><span class="k">δ</span><span class="v" id="p-del">–</span></div>
+        <div class="stat"><span class="k">δ 안에서 f 가 벗어난 최대치</span><span class="v" id="p-max">–</span></div>
+        <div class="stat pos"><span class="k">판정</span><span class="v" id="p-ok">–</span></div>
+      </div>
+      <p class="hint">
+        <b>가로 띠(δ) 안의 곡선이 세로 띠(ε) 밖으로 나가면 방어 실패</b>입니다.
+        ε 을 줄여도 <b>δ 를 더 줄이면 다시 성공</b>하죠. <b>[자동 응수]</b> 를 눌러 확인해 보세요.
+        <br>
+        그런데 <b>점프 함수</b>에서는 ε 을 충분히 작게 잡으면
+        <b>어떤 δ 로도 방어할 수 없습니다</b> — 그래서 극한이 없습니다.
+      </p>
+    </div>
+
+    <h2 id="s5">5. 실전 방어전</h2>
+    <p>
+      <span class="m">lim<sub>x→2</sub> (3x+1) = 7</span> 을 방어해 봅시다.
+    </p>
+
+    <div class="formula">
+      <div class="name">δ = ε/3 이라는 전략</div>
+      <div class="eq" style="font-size:14.5px;line-height:2.5;text-align:left;padding-left:10px">
+        <b>공격수</b>: ε = 0.1 &nbsp;→&nbsp; 3x+1 이 <b>6.9 ~ 7.1</b> 사이여야 한다<br>
+        <b>계산</b>: 3x 가 5.9 ~ 6.1 &nbsp;→&nbsp; x 가 <b>1.9667 ~ 2.0333</b><br>
+        <b>방어수</b>: δ = <b>0.0333</b> (= ε/3) 으로 응수 ✓<br>
+        <b>공격수</b>: ε = 0.0001 &nbsp;→&nbsp; <b>방어수</b>: δ = 0.0000333 (= ε/3) ✓
+      </div>
+      <ul class="where">
+        <li><span class="sym">핵심</span><span class="desc">어떤 ε 에도 통하는 <b>전략(δ = ε/3)</b> 이 있습니다.
+            매번 새로 계산하는 게 아니라 <b>공식 하나</b>로 끝나죠</span></li>
+        <li><span class="sym">3 의 정체</span><span class="desc"><b>기울기</b>입니다.
+            기울기가 클수록 <b>δ 를 더 좁혀야</b> 같은 ε 을 지킬 수 있습니다.
+            직관과 정확히 맞죠</span></li>
+        <li><span class="sym">x²의 경우</span><span class="desc">기울기가 <b>x마다 달라서</b>
+            δ 가 ε/4 보다 조금 작아야 합니다(x=2 에서 기울기 4).
+            ε=0.1 이면 δ ≈ <b>0.0248</b></span></li>
+        <li><span class="sym">그래서 극한이 참이다</span><span class="desc">전략이 존재하므로
+            <b>lim = 7 은 참</b>입니다. <b>증명 끝.</b></span></li>
+      </ul>
+    </div>
+
+    <div class="takeaway">
+      <b>ε-δ 를 실무 언어로 읽으면 ·</b>
+      <b>ε 은 '요구 사양'</b>, <b>δ 는 '공정 관리 범위'</b> 입니다.
+      "출력 전압을 ±0.1V 안에 유지하라(ε)" 는 요구가 오면
+      "입력을 ±0.03V 안으로 관리하면 된다(δ)" 고 답하는 것.
+      <b>어떤 사양이 와도 대응할 관리 범위가 있다면 그 시스템은 '연속'입니다.</b>
+      공학의 <b>허용오차 설계</b>가 문자 그대로 이 게임입니다.
+    </div>
+
+    <h2 id="s6">6. 파이썬으로 확인하기</h2>
+
+    <div class="pycell" data-packages="numpy" data-title="8-1. 같은 0/0 인데 답이 다르다">
+    import numpy as np
+
+    문제들 = [
+        ("sin x / x",     lambda x: np.sin(x)/x),
+        ("x² / x",        lambda x: x**2/x),
+        ("x / x³",        lambda x: x/x**3),
+        ("(eˣ-1) / x",    lambda x: (np.exp(x)-1)/x),
+        ("(1-cos x) / x²", lambda x: (1-np.cos(x))/x**2),
+    ]
+
+    print(f"{'식':>16}", "".join(f"{f'x={d}':>16}" for d in [0.1, 0.01, 0.001]))
+    for 이름, f in 문제들:
+        print(f"{이름:>16}", "".join(f"{f(d):>16.8f}" for d in [0.1, 0.01, 0.001]))
+
+    print("\n→ 전부 0/0 꼴인데 1, 0, ∞, 1, 0.5 로 제각각이다.")
+    print("  '꼴'이 아니라 '0으로 가는 속도'가 답을 결정한다.")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="8-2. 로피탈 = 기울기의 비">
+    import numpy as np
+
+    def 수치미분(f, x, h=1e-6):
+        return (f(x+h) - f(x-h)) / (2*h)
+
+    쌍 = [
+        ("sin x / x",      np.sin,                    lambda x: x,      0.0),
+        ("(eˣ-1) / x",     lambda x: np.exp(x)-1,     lambda x: x,      0.0),
+        ("x² / x",         lambda x: x**2,            lambda x: x,      0.0),
+        ("(x²-1)/(x-1)",   lambda x: x**2-1,          lambda x: x-1,    1.0),
+    ]
+
+    print(f"{'식':>16} {'f(a)':>8} {'g(a)':>8} {'f′(a)':>10} {'g′(a)':>10} {'f′/g′':>10} {'실제':>10}")
+    for 이름, f, g, a in 쌍:
+        fp, gp = 수치미분(f, a), 수치미분(g, a)
+        실제 = f(a + 1e-7) / g(a + 1e-7)
+        print(f"{이름:>16} {f(a):>8.4f} {g(a):>8.4f} {fp:>10.5f} {gp:>10.5f} {fp/gp:>10.5f} {실제:>10.5f}")
+
+    print("\n→ 둘 다 0 이고, 극한은 두 기울기의 비다.")
+    </div>
+
+    <div class="pitfall">
+      <b>0/0 꼴이 아닌데 쓰면 틀립니다</b>
+      아래 셀에서 <span class="m">(x+3)/(x+1)</span> 을 x→1 에서 확인해 보세요.
+      <b>정답 2</b>, <b>로피탈 1</b>. 완전히 다른 값이 나옵니다.
+      <b>대입해서 꼴부터 확인하는 습관</b>이 필요합니다.
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="8-3. 쓰면 안 되는 경우 두 가지">
+    import numpy as np
+
+    # ① 0/0 꼴이 아닌데 쓴 경우
+    f = lambda x: x + 3
+    g = lambda x: x + 1
+    a = 1.0
+    print("① (x+3)/(x+1) 을 x→1 에서")
+    print(f"   대입하면 {f(a)}/{g(a)} = {f(a)/g(a)}   ← 0/0 이 아니다! 그냥 대입하면 끝")
+    print(f"   로피탈을 억지로 쓰면 f′/g′ = 1/1 = 1   ← 틀린 답\n")
+
+    # ② 미분한 쪽이 진동해서 극한이 없는 경우
+    print("② (x + sin x)/x 를 x→∞ 에서")
+    for x in [1e2, 1e3, 1e4, 1e5]:
+        print(f"   x={x:>8.0e}  값 = {(x+np.sin(x))/x:.10f}")
+    print("   → 1 로 수렴한다. 그런데 로피탈은 (1+cos x)/1 이라 진동해서 극한이 없다.")
+    print("   로피탈은 '미분한 쪽이 수렴하면' 성립하는 정리다. 거꾸로는 아니다.")
+    </div>
+
+    <div class="pycell" data-packages="numpy,sympy" data-title="8-4. sympy 로 극한 확인">
+    import sympy as sp
+
+    x = sp.Symbol('x')
+    문제 = [
+        (sp.sin(x)/x, 0),
+        ((sp.exp(x)-1)/x, 0),
+        ((1-sp.cos(x))/x**2, 0),
+        (x*sp.log(x), 0),                 # 0·(-∞) 꼴
+        ((1 + 1/x)**x, sp.oo),            # 1^∞ 꼴 → e (6강!)
+        ((x + sp.sin(x))/x, sp.oo),
+    ]
+    for 식, a in 문제:
+        print(f"lim(x→{a}) {str(식):<22} = {sp.limit(식, x, a)}")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="8-5. ε-δ 방어전 자동화">
+    import numpy as np
+
+    def 방어(f, a, L, eps, 탐색상한=1.0, 격자=20001):
+        """|f(x)-L| < eps 를 보장하는 가장 큰 δ 를 (수치로) 찾는다"""
+        delta = 탐색상한
+        while delta > 1e-15:
+            xs = np.linspace(a - delta, a + delta, 격자)
+            xs = xs[np.abs(xs - a) > 1e-14]          # x = a 는 보지 않는다
+            if np.max(np.abs(f(xs) - L)) < eps:
+                return delta
+            delta *= 0.7
+        return None
+
+    사례 = [
+        ("3x+1 → 7  (x→2)",  lambda x: 3*x + 1,        2.0, 7.0),
+        ("x² → 4    (x→2)",  lambda x: x**2,           2.0, 4.0),
+        ("sin x/x → 1 (x→0)", lambda x: np.sin(x)/x,   0.0, 1.0),
+    ]
+
+    for 이름, f, a, L in 사례:
+        print(f"{이름}")
+        for eps in [0.5, 0.1, 0.01, 0.001]:
+            d = 방어(f, a, L, eps)
+            print(f"    ε = {eps:<8} → δ = {d:.8f}   (ε/기울기 ≈ {eps/abs((f(a+1e-6)-f(a-1e-6))/2e-6):.8f})")
+        print()
+
+    print("→ 어떤 ε 이 와도 δ 를 찾을 수 있다. 그래서 극한이 존재한다.")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="8-6. 방어에 실패하는 경우 — 점프">
+    import numpy as np
+
+    def 점프(x): return np.where(x < 1, x, x + 1.2)
+
+    print("점프 함수를 x→1 에서 L=1 로 방어해보면")
+    for eps in [1.5, 1.0, 0.5, 0.1]:
+        d = 방어(점프, 1.0, 1.0, eps)
+        print(f"    ε = {eps:<6} → δ = {d}")
+
+    print("\n→ ε 을 1.2 아래로 내리면 어떤 δ 로도 방어할 수 없다 (None).")
+    print("  오른쪽에서 오는 값이 항상 2.2 근처라 |f-1| ≥ 1.2 이기 때문이다.")
+    print("  '어떤 ε 에도 응수할 수 있어야' 극한인데, 여기서는 못 한다 → 극한 없음.")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="8-7. 연습문제">
+    # 문제 1. lim(x→0) (tan x - x)/x³ 을 수치로 추정하고,
+    #         로피탈을 몇 번 써야 답이 나오는지 생각해보세요.
+
+    # 문제 2. lim(x→0⁺) x·ln x 는 0·(-∞) 꼴입니다.
+    #         (ln x)/(1/x) 로 바꾸면 ∞/∞ 가 되어 로피탈을 쓸 수 있습니다. 확인해보세요.
+
+    # 문제 3. lim(x→2) x² = 4 를 ε = 0.001 로 방어할 δ 를 8-5 셀로 찾고,
+    #         손으로 계산한 min(√(4+ε)-2, 2-√(4-ε)) 와 비교하세요.
+
+    # 아래에 직접 써보세요
+    </div>
+
+    <details style="margin:18px 0">
+      <summary style="cursor:pointer;font-weight:600;color:var(--accent)">모범 답안 보기</summary>
+      <div class="pycell" data-packages="numpy" data-title="모범 답안">
+      import numpy as np
+
+      # 문제 1 — 1/3, 로피탈 세 번
+      print("문제 1")
+      for x in [0.1, 0.01, 0.001]:
+          print(f"  x={x:<8} (tan x - x)/x³ = {(np.tan(x)-x)/x**3:.8f}")
+      print("  → 1/3. 0/0 이 세 번 반복되므로 로피탈을 세 번 써야 한다.")
+      print("    (11강의 테일러로 보면 tan x ≈ x + x³/3 이라 한눈에 보인다)\n")
+
+      # 문제 2 — 0
+      print("문제 2")
+      for x in [0.1, 0.01, 1e-4, 1e-8]:
+          print(f"  x={x:<10} x·ln x = {x*np.log(x):>14.10f}")
+      print("  → 0. x 가 ln x 의 발산보다 훨씬 빨리 0으로 간다.\n")
+
+      # 문제 3
+      print("문제 3")
+      eps = 0.001
+      수치 = 방어(lambda x: x**2, 2.0, 4.0, eps)
+      손 = min(np.sqrt(4+eps) - 2, 2 - np.sqrt(4-eps))
+      print(f"  수치로 찾은 δ = {수치:.10f}")
+      print(f"  손으로 계산한 δ = {손:.10f}")
+      print(f"  ε/4 = {eps/4:.10f}   ← 기울기 4 로 나눈 값과 거의 같다")
+      </div>
+    </details>
+
+    <div class="practice">
+      <b>이 두 도구가 실제로 하는 일</b>
+      <ul>
+        <li><b>수치해석의 조건수</b> — "입력 오차 δ 가 출력 오차 ε 으로 얼마나 증폭되는가"가
+            바로 <b>ε/δ 비</b>입니다. 조건수가 크면 <b>δ 를 아무리 줄여도</b> 답이 흔들립니다.</li>
+        <li><b>제어공학의 안정성 마진</b> — "외란이 δ 안이면 출력이 ε 안"이라는 보장이
+            <b>입력-출력 안정성</b>의 정의입니다.</li>
+        <li><b>알고리즘의 점근 복잡도</b> — <span class="m">O(n log n)</span> 같은 표기는
+            "누가 더 빨리 커지는가"의 경주입니다. §2와 정확히 같은 사고죠.</li>
+        <li><b>기계학습의 수렴 증명</b> — "임의의 ε 에 대해 어떤 N 이후로는 오차가 ε 미만"이
+            수렴 정리의 표준 문장입니다.</li>
+      </ul>
+    </div>
+
+    <div class="summary">
+      <h3>✎ 스스로 점검</h3>
+      <ul>
+        <li><b>21.</b> <span class="m">sin(x)/x</span> 의 x=0 구멍이 '1로 메워진다'는 말의 정확한 의미는?
+            <span style="color:var(--text-dim)">(§1)</span></li>
+        <li><b>22.</b> 로피탈 정리에서 dx 가 약분되는 직관을 설명해 보세요.
+            <span style="color:var(--text-dim)">(§2)</span></li>
+        <li><b>23.</b> ε-δ 게임에서 공격수와 방어수는 각각 무엇을 제시하나요?
+            <span style="color:var(--text-dim)">(§4)</span></li>
+      </ul>
+    </div>
+
+    <div class="summary">
+      <h3>8강 요약</h3>
+      <ul>
+        <li><b>0/0 은 부정형</b>입니다. 같은 꼴이라도 답은 <b>1, 0, ∞</b> 로 제각각.
+            <b>'0으로 가는 속도'</b>가 답을 정합니다.</li>
+        <li><b>로피탈 정리</b>: 0/0 또는 ∞/∞ 꼴이면
+            <b><span class="m">lim f/g = f′/g′</span></b>.
+            두 접선 근사의 <b>dx 가 약분</b>되기 때문입니다.</li>
+        <li><b>꼴이 아니면 쓰면 안 됩니다.</b> 대입해서 확인부터 하세요.</li>
+        <li><b>미분한 쪽이 실패해도 원래 극한은 있을 수 있습니다.</b> 정리는 한 방향입니다.</li>
+        <li><b>ε-δ</b>: 공격수가 <b>세로 오차 ε</b> 을 주면 방어수가 <b>가로 범위 δ</b> 로 응수.
+            <b>모든 ε 에 응수할 전략이 있으면</b> 극한이 존재합니다.</li>
+        <li><b><span class="m">δ = ε / (기울기)</span></b> 가 표준 전략입니다.
+            <b>기울기가 클수록 δ 를 더 좁혀야</b> 합니다.</li>
+        <li>'무한히 가까이'를 <b>유한한 논리</b>로 바꾼 것 — 이것이 현대 해석학의 주춧돌입니다.</li>
+      </ul>
+    </div>
+
+    <div class="colab-cta">
+      <div class="colab-text">
+        <b>더 자유롭게 실험하고 싶다면</b><br>
+        이 강의의 실습만 모은 노트북을 Colab에서 열 수 있습니다.
+      </div>
+      <a class="btn" id="colab-link" href="#" target="_blank" rel="noopener">Colab에서 열기</a>
+    </div>
+
+    <p class="next-up">
+      다음 → <b>9강 · 적분과 미적분학의 기본 정리</b><br>
+      여기까지가 <b>미분의 봉우리</b>였습니다.
+      이제 <b>두 번째 봉우리, 적분</b>으로 넘어갑니다.
+      미분이 '쪼개서 순간을 보는' 것이라면 적분은 <b>'조각을 모아 전체를 복원하는'</b> 것이죠.
+      그리고 그 정점에서 <b>두 연산이 서로를 정확히 되돌린다</b>는
+      <b>미적분 최대의 통찰</b>을 만납니다.
+    </p>
+
+  </section>
+
+</div>
+
+<script src="../assets/viz.js"></script>
+<script src="../assets/calc.js"></script>
+<script src="../assets/pylab.js"></script>
+<script src="../assets/pycell.js"></script>
+<script>
+(function () {
+  'use strict';
+  var num = CA.num, F = CA.F;
+
+  /* =======================================================
+     패널 ① 0으로 가는 속도 경주
+     ======================================================= */
+  var pr = 'sinx', rz = 0, showTan = true;
+
+  var PR = {
+    sinx: { f: Math.sin, g: function (x) { return x; }, a: 0,
+            fn: 'sin x', gn: 'x', lim: 1 },
+    sq:   { f: function (x) { return x * x; }, g: function (x) { return x; }, a: 0,
+            fn: 'x²', gn: 'x', lim: 0 },
+    cub:  { f: function (x) { return x; }, g: function (x) { return x * x * x; }, a: 0,
+            fn: 'x', gn: 'x³', lim: Infinity },
+    expm: { f: function (x) { return Math.exp(x) - 1; }, g: function (x) { return x; }, a: 0,
+            fn: 'eˣ − 1', gn: 'x', lim: 1 },
+    cos:  { f: function (x) { return 1 - Math.cos(x); }, g: function (x) { return x * x; }, a: 0,
+            fn: '1 − cos x', gn: 'x²', lim: 0.5 }
+  };
+
+  var gRace = new CA.Graph(document.getElementById('cv-race'), {
+    equal: 'x',
+    height: function (w) { return Math.round(Math.max(250, Math.min(340, w * 0.44))); },
+    margin: { top: 18, right: 20, bottom: 40, left: 52 }
+  });
+
+  function drawRace() {
+    var S = PR[pr];
+    var w = 1.5 * Math.pow(10, -rz);
+    gRace.xDomain = [S.a - w, S.a + w];
+    gRace.yDomain = [-w, w];
+    gRace.begin();
+
+    var step = CA.niceStep(2 * w, 4);
+    gRace.axes({
+      xStep: step, yStep: step,
+      xFormat: function (v) { return num(v, 6); },
+      yFormat: function (v) { return num(v, 6); },
+      xLabel: 'x →'
+    });
+
+    var fp = F.deriv(S.f, S.a, w * 1e-4 + 1e-9);
+    var gp = F.deriv(S.g, S.a, w * 1e-4 + 1e-9);
+
+    if (showTan) {
+      gRace.lineAt(S.a, 0, fp, { color: V.css('--accent'), width: 6, alpha: 0.22 });
+      gRace.lineAt(S.a, 0, gp, { color: V.css('--purple'), width: 6, alpha: 0.22 });
+    }
+    gRace.curve(S.f, { color: V.css('--accent'), width: 2.6, samples: 900 });
+    gRace.curve(S.g, { color: V.css('--purple'), width: 2.6, samples: 900 });
+    gRace.dot(S.a, 0, { r: 5, color: V.css('--text-dim'), stroke: V.css('--surface'), strokeWidth: 2 });
+
+    gRace.legend([
+      { color: V.css('--accent'), text: '분자  ' + S.fn },
+      { color: V.css('--purple'), text: '분모  ' + S.gn }
+    ], { corner: 'tl' });
+
+    /* 실제 극한 (수치) */
+    var e = 1e-7;
+    var real = S.f(S.a + e) / S.g(S.a + e);
+
+    V.setText('#r-fp', num(fp, 5));
+    V.setText('#r-gp', num(gp, 5));
+    V.setText('#r-ratio',
+      Math.abs(gp) > 1e-8 ? num(fp / gp, 5) : '0/0 — 한 번 더 미분해야 함');
+    V.setText('#r-lim',
+      Math.abs(real) > 1e6 ? '∞ (없음)' : num(real, 5));
+  }
+
+  V.range('rz', function (v) { rz = v; drawRace(); },
+    function (v) { return num(Math.pow(10, v), v > 2 ? 0 : 1) + '배'; });
+  V.radios('pr', function (v) { pr = v; drawRace(); });
+  V.check('r-tan', function (v) { showTan = v; drawRace(); });
+
+  /* =======================================================
+     패널 ② ε-δ 게임
+     ======================================================= */
+  var epsPow = -0.22, delPow = -0.7, ef = 'lin';
+
+  var EF = {
+    lin:  { f: function (x) { return 3 * x + 1; }, a: 2, L: 7,
+            yd: [5.4, 8.6], name: 'f(x) = 3x + 1' },
+    sq:   { f: function (x) { return x * x; }, a: 2, L: 4,
+            yd: [2.6, 5.4], name: 'f(x) = x²' },
+    hole: { f: function (x) { return Math.abs(x) < 1e-12 ? 1 : Math.sin(x) / x; }, a: 0, L: 1,
+            yd: [0.3, 1.5], name: 'f(x) = sin x / x', hole: true },
+    jump: { f: function (x) { return x < 1 ? x : x + 1.2; }, a: 1, L: 1,
+            yd: [-0.2, 3.0], name: 'f(x) = x (x<1) · x+1.2 (x≥1)' }
+  };
+
+  var gEps = new CA.Graph(document.getElementById('cv-eps'), {
+    height: function (w) { return Math.round(Math.max(250, Math.min(340, w * 0.46))); },
+    margin: { top: 18, right: 20, bottom: 40, left: 52 }
+  });
+
+  /* δ 안에서 f 가 L 에서 벗어나는 최대치 (x = a 는 제외) */
+  function maxDev(S, d) {
+    var N = 1200, m = 0;
+    for (var i = 0; i <= N; i++) {
+      var x = S.a - d + 2 * d * i / N;
+      if (Math.abs(x - S.a) < d * 1e-6) continue;
+      var v = Math.abs(S.f(x) - S.L);
+      if (isFinite(v) && v > m) m = v;
+    }
+    return m;
+  }
+
+  function drawEps() {
+    var S = EF[ef];
+    var eps = Math.pow(10, epsPow);
+    var del = Math.pow(10, delPow);
+
+    /* x 범위는 δ 보다 넉넉하게 — 띠가 화면을 다 덮으면 그림이 안 보인다 */
+    var half = Math.max(del * 2.4, 0.6);
+    gEps.xDomain = [S.a - half, S.a + half];
+    gEps.yDomain = S.yd;
+    gEps.begin();
+    gEps.axes({
+      xStep: CA.niceStep(2 * half, 4),
+      yStep: CA.niceStep(S.yd[1] - S.yd[0], 4),
+      xFormat: function (v) { return num(v, 5); },
+      xLabel: 'x →'
+    });
+
+    /* ε 띠 (가로 방향으로 뻗은 세로 폭 2ε) */
+    gEps.rect(S.a - half, S.L - eps, S.a + half, S.L + eps, {
+      fill: V.css('--neg-soft'), stroke: V.css('--neg'), lineWidth: 1.2, dash: [5, 4]
+    });
+    /* δ 띠 */
+    gEps.rect(S.a - del, S.yd[0], S.a + del, S.yd[1], {
+      fill: V.css('--purple-soft'), stroke: V.css('--purple'), lineWidth: 1.2, dash: [5, 4]
+    });
+
+    gEps.curve(S.f, { color: V.css('--accent'), width: 2.6, samples: 1600 });
+    gEps.hline(S.L, { color: V.css('--pos'), width: 1.6, dash: [6, 4] });
+    if (S.hole) {
+      gEps.dot(S.a, S.L, { r: 5, color: V.css('--surface'), stroke: V.css('--accent'), strokeWidth: 2 });
+    }
+    gEps.text(S.a - half * 0.95, S.L, 'L = ' + num(S.L, 3), {
+      color: V.css('--pos'), align: 'left', dy: -7, size: 12, bg: V.css('--surface')
+    });
+    gEps.text(S.a, S.yd[1] - (S.yd[1] - S.yd[0]) * 0.07, S.name, {
+      color: V.css('--text-dim'), size: 12.5, bg: V.css('--surface')
+    });
+
+    gEps.legend([
+      { color: V.css('--neg'), text: '허용 오차 ε (세로 띠)', dash: [5, 4] },
+      { color: V.css('--purple'), text: '입력 범위 δ (가로 띠)', dash: [5, 4] }
+    ], { corner: 'bl' });
+
+    var m = maxDev(S, del);
+    var ok = m < eps;
+    V.setText('#p-eps', num(eps, 6));
+    V.setText('#p-del', num(del, 6));
+    V.setText('#p-max', num(m, 6));
+    V.setText('#p-ok', ok ? '방어 성공 ✓' : '방어 실패 — δ 를 줄이세요');
+  }
+
+  var rEps = V.range('ee', function (v) { epsPow = v; drawEps(); },
+    function (v) { return num(Math.pow(10, v), 5); });
+  var rDel = V.range('ed', function (v) { delPow = v; drawEps(); },
+    function (v) { return num(Math.pow(10, v), 6); });
+  V.radios('ef', function (v) { ef = v; drawEps(); });
+
+  V.click('auto-d', function () {
+    var S = EF[ef];
+    var eps = Math.pow(10, epsPow);
+    /* δ 를 줄여가며 방어에 성공하는 가장 큰 값을 찾는다 */
+    var p = 0;
+    for (p = 0; p >= -3; p -= 0.01) {
+      if (maxDev(S, Math.pow(10, p)) < eps) break;
+    }
+    rDel.set(Math.max(-3, Math.round(p * 100) / 100));
+  });
+
+  V.onRedraw(function () { drawRace(); drawEps(); });
+  drawRace(); drawEps();
+
+  var a = document.getElementById('colab-link');
+  if (a) a.href = 'https://colab.research.google.com/github/mioon1402/timeseriesdata/blob/main/notebooks/C08-lhopital.ipynb';
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,789 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>음함수 미분 — 제약 속의 변화율 · 미적분의 직관</title>
+<meta name="description" content="y로 풀지 않고도 접선 기울기를 얻습니다. 등고선을 벗어나지 않는 균형 조건 하나면 됩니다.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%E2%88%AB%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css?v=b7dfb076b2">
+<link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">미적분 7강 · 음함수 미분</p>
+    <h1>음함수 미분 — 제약 속의 변화율</h1>
+    <p class="lede">
+      지금까지는 <span class="m">y = f(x)</span> 처럼
+      <b>x 를 넣으면 y 가 바로 나오는 '착한' 함수</b>만 다뤘습니다.
+      그런데 원의 방정식 <span class="m">x² + y² = 25</span> 는 y로 풀면
+      <span class="m">y = ±√(25−x²)</span> 로 지저분해지고,
+      <span class="m">y = sin(x+y)</span> 같은 건 <b>아예 못 풉니다.</b>
+      그래도 곡선 위 한 점에서 <b>접선 기울기는 알고 싶죠.</b>
+      이럴 때 쓰는 것이 <b>음함수 미분</b>입니다.
+    </p>
+  </header>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 강의에서 배우는 것</b>
+      <ol>
+        <li><a href="#s0">기초 다지기 — 음함수란 무엇인가</a></li>
+        <li><a href="#s1">값의 지형도와 등고선</a></li>
+        <li><a href="#s2">균형 조건 하나로 끝내기</a></li>
+        <li><a href="#s3">여러 곡선에서 확인하기</a></li>
+        <li><a href="#s4">사다리 문제 — 맞물려 변하는 변수들</a></li>
+        <li><a href="#s5">보너스: ln x 의 미분을 공짜로</a></li>
+        <li><a href="#s6">파이썬으로 확인하기</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s0">0. 기초 다지기 — 음함수란 무엇인가</h2>
+    <p>
+      <b>양함수(陽函數)</b> 는 <span class="m">y = x² + 1</span> 처럼
+      <b>y 가 혼자 왼쪽에 나와 있는</b> 식입니다. 값을 <b>바로 계산</b>할 수 있죠.
+    </p>
+    <p>
+      <b>음함수(陰函數)</b> 는 <span class="m">x² + y² = 25</span> 처럼
+      <b>x 와 y 가 뒤섞여 있는</b> 식입니다.
+      y 값이 <b>식 안에 숨어 있어서</b>(陰) 붙은 이름입니다.
+    </p>
+
+    <div class="callout">
+      <b>왜 음함수를 그냥 y로 풀지 않나요?</b><br>
+      <b>① 풀면 지저분해집니다.</b>
+      <span class="m">x²+y²=25</span> → <span class="m">y = ±√(25−x²)</span>.
+      부호가 둘로 갈리고, 제곱근 미분에 연쇄법칙까지 붙습니다.
+      <br>
+      <b>② 아예 못 푸는 경우가 많습니다.</b>
+      <span class="m">y = sin(x+y)</span>, <span class="m">x³+y³ = 3xy</span>,
+      열역학의 <b>반데르발스 상태방정식</b> — 전부 y에 대해 풀리지 않습니다.
+      <br>
+      <b>③ 애초에 '함수'가 아닐 수도 있습니다.</b>
+      원은 <b>한 x 에 y 가 두 개</b>입니다. 그래도 <b>각 점에서 접선은 멀쩡히 존재</b>하죠.
+      <br><br>
+      <b>음함수 미분은 이 셋을 전부 피해 갑니다.</b>
+    </div>
+
+    <h2 id="s1">1. 값의 지형도와 등고선</h2>
+    <p>
+      <b>발상의 전환.</b>
+      <span class="m">x² + y²</span> 을 <b>'평면 위 각 점의 고도'</b> 를 주는 <b>지형</b>으로 봅시다.
+    </p>
+    <ul>
+      <li>점 (1, 2) 의 고도는 <span class="m">1 + 4 = 5</span></li>
+      <li>점 (3, 4) 의 고도는 <span class="m">9 + 16 = 25</span></li>
+    </ul>
+    <p>
+      그러면 방정식 <span class="m">x² + y² = 25</span> 는 이 지형에서
+      <b>고도가 25로 일정한 등고선</b> — 즉 <b>반지름 5인 원</b>입니다.
+    </p>
+
+    <div class="panel">
+      <div class="panel-title">① 등고선 위를 걸으면 고도가 안 변한다</div>
+      <div class="board" style="max-width:430px"><div class="canvas-wrap"><canvas id="cv-cont"></canvas></div></div>
+
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">등고선 위의 점 (각도 °)</span><span class="val" id="ct-val">53</span></span>
+          <input type="range" id="ct" min="0" max="360" step="0.5" value="53">
+        </label>
+        <label class="toggle"><input type="checkbox" id="c-levels" checked> 다른 고도의 등고선도 보기</label>
+        <label class="toggle"><input type="checkbox" id="c-grad" checked> 고도가 가장 빨리 오르는 방향 보기</label>
+      </div>
+
+      <div class="readout">
+        <div class="stat accent"><span class="k">점</span><span class="v" id="c-pt">–</span></div>
+        <div class="stat"><span class="k">고도 x² + y²</span><span class="v" id="c-h">–</span></div>
+        <div class="stat purple"><span class="k">x 쪽 기여 2x</span><span class="v" id="c-fx">–</span></div>
+        <div class="stat purple"><span class="k">y 쪽 기여 2y</span><span class="v" id="c-fy">–</span></div>
+        <div class="stat pos"><span class="k">접선 기울기 −x/y</span><span class="v" id="c-sl">–</span></div>
+        <div class="stat warn"><span class="k">검산 (수치)</span><span class="v" id="c-num">–</span></div>
+      </div>
+      <p class="hint">
+        <b>초록 접선</b>과 <b>빨간 화살표</b>(고도가 가장 빨리 오르는 방향)가
+        <b>언제나 수직</b>입니다. 당연하죠 — <b>가장 가파른 방향과 직각으로 가야</b> 고도가 안 변하니까요.
+      </p>
+    </div>
+
+    <h2 id="s2">2. 균형 조건 하나로 끝내기</h2>
+    <p>
+      <b>등고선을 따라 걷는 한, 고도는 변하지 않아야 합니다.</b>
+      점을 <span class="m">dx, dy</span> 만큼 살짝 옮길 때 고도의 변화는 <b>두 기여의 합</b>인데
+      (<span class="m">x²</span> 항에서 <span class="m">2x·dx</span>,
+      <span class="m">y²</span> 항에서 <span class="m">2y·dy</span> —
+      <b>4강의 정사각형 논리 그대로</b>),
+      이 합이 <b>0이어야 등고선 위에 남습니다.</b>
+    </p>
+
+    <div class="formula">
+      <div class="name">음함수 미분의 전부</div>
+      <div class="eq" style="font-size:17px;line-height:2.3">
+        2x·dx + 2y·dy = 0
+        &nbsp;⟹&nbsp;
+        <span class="frac"><span>dy</span><span>dx</span></span> = − <span class="frac"><span>x</span><span>y</span></span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">2x·dx</span><span class="desc">x 를 dx 만큼 밀 때 <b>x² 항이 올려주는 고도</b>.
+            4강의 <b>정사각형 두 띠</b>죠</span></li>
+        <li><span class="sym">2y·dy</span><span class="desc">y 를 dy 만큼 밀 때 <b>y² 항이 올려주는 고도</b></span></li>
+        <li><span class="sym">= 0</span><span class="desc"><b>등고선을 벗어나지 않는 조건.</b>
+            이 한 줄이 전부입니다</span></li>
+        <li><span class="sym">확인</span><span class="desc">점 (3,4) 에서 x를 살짝 늘리면 고도가 <b>2×3 = 6</b> 의 비율로
+            오르려 합니다. 상쇄하려면 y쪽에서 <b>2×4 = 8</b> 의 비율로 내려야 하죠.
+            <span class="m">6dx + 8dy = 0</span> ⟹ <b>dy/dx = −3/4</b></span></li>
+      </ul>
+    </div>
+
+    <div class="takeaway">
+      <b>전통적 방법과 비교해 보세요 ·</b>
+      <span class="m">y = √(25−x²)</span> 를 미분하면
+      <span class="m">y′ = −x/√(25−x²)</span> 입니다.
+      x=3 을 넣으면 <span class="m">−3/4</span> — <b>같은 답</b>이죠.
+      그런데 음함수 방법은 <b>제곱근도, 연쇄법칙도, 부호 갈림도</b> 필요 없었습니다.
+      게다가 <b>아래쪽 반원(y &lt; 0)</b>도 <span class="m">−x/y</span> 하나로 <b>동시에</b> 처리됩니다.
+    </div>
+
+    <h2 id="s3">3. 여러 곡선에서 확인하기</h2>
+    <p>
+      원 말고도 해봅시다. 방법은 <b>언제나 같습니다</b> —
+      <b>양변을 미세 변화로 바꾸고, 합이 0이 되게 놓는다.</b>
+    </p>
+
+    <div class="panel">
+      <div class="panel-title">② y 로 풀리지 않는 곡선들</div>
+      <div class="board" style="max-width:430px"><div class="canvas-wrap"><canvas id="cv-curves"></canvas></div></div>
+
+      <div class="seg" role="group" aria-label="곡선 선택" style="margin-top:6px">
+        <label><input type="radio" name="cc" value="circle" checked><span>원 x²+y²=25</span></label>
+        <label><input type="radio" name="cc" value="ellipse"><span>타원 x²/9+y²/4=1</span></label>
+        <label><input type="radio" name="cc" value="folium"><span>데카르트 잎 x³+y³=3xy</span></label>
+        <label><input type="radio" name="cc" value="sinxy"><span>y = sin(x+y)</span></label>
+      </div>
+
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">곡선 위의 점</span><span class="val" id="cu-val">0.9</span></span>
+          <input type="range" id="cu" min="0" max="6.283" step="0.005" value="0.9">
+        </label>
+      </div>
+
+      <div class="readout">
+        <div class="stat accent"><span class="k">점</span><span class="v" id="u-pt">–</span></div>
+        <div class="stat purple"><span class="k">x 쪽 기여</span><span class="v" id="u-fx">–</span></div>
+        <div class="stat purple"><span class="k">y 쪽 기여</span><span class="v" id="u-fy">–</span></div>
+        <div class="stat pos"><span class="k">접선 기울기</span><span class="v" id="u-sl">–</span></div>
+        <div class="stat warn"><span class="k">공식</span><span class="v" id="u-form">–</span></div>
+      </div>
+      <p class="hint">
+        <b>데카르트 잎</b>은 원점에서 스스로 교차하고 <b>수직 접선</b>도 갖습니다.
+        <span class="m">y = sin(x+y)</span> 는 <b>y로 풀 방법이 아예 없는데도</b>
+        접선은 멀쩡히 나옵니다.
+      </p>
+    </div>
+
+    <div class="formula">
+      <div class="name">일반 공식</div>
+      <div class="eq" style="font-size:16px;line-height:2.3">
+        F(x, y) = 상수 &nbsp;⟹&nbsp; F<sub>x</sub>·dx + F<sub>y</sub>·dy = 0
+        &nbsp;⟹&nbsp;
+        <span class="frac"><span>dy</span><span>dx</span></span> = − <span class="frac"><span>F<sub>x</sub></span><span>F<sub>y</sub></span></span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">F<sub>x</sub></span><span class="desc"><b>y 를 상수로 두고 x 로만</b> 미분한 것 (편미분).
+            "x 를 밀 때 고도가 오르는 비율"</span></li>
+        <li><span class="sym">F<sub>y</sub></span><span class="desc"><b>x 를 상수로 두고 y 로만</b> 미분한 것</span></li>
+        <li><span class="sym">F<sub>y</sub> = 0 이면</span><span class="desc">기울기가 <b>무한대</b> —
+            즉 <b>수직 접선</b>입니다. 원에서 (±5, 0) 이 그런 점이죠</span></li>
+        <li><span class="sym">기하학적 뜻</span><span class="desc">벡터 <span class="m">(F<sub>x</sub>, F<sub>y</sub>)</span> 는
+            <b>고도가 가장 빨리 오르는 방향</b>(<b>기울기 벡터</b>)이고,
+            접선은 그것과 <b>수직</b>입니다</span></li>
+      </ul>
+    </div>
+
+    <h2 id="s4">4. 사다리 문제 — 맞물려 변하는 변수들</h2>
+    <p>
+      <b>길이 5m 사다리가 벽에 기대 있습니다.</b>
+      바닥 끝이 벽에서 <b>3m</b> 떨어진 순간, <b>초당 0.5m 로 미끄러지고</b> 있습니다.
+      <b>꼭대기는 얼마나 빨리 내려올까요?</b>
+    </p>
+
+    <div class="panel">
+      <div class="panel-title">③ 사다리가 미끄러진다</div>
+      <div class="board" style="max-width:430px"><div class="canvas-wrap"><canvas id="cv-ladder"></canvas></div></div>
+
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">바닥 거리 x (m)</span><span class="val" id="lx-val">3</span></span>
+          <input type="range" id="lx" min="0.2" max="4.8" step="0.01" value="3">
+        </label>
+        <label class="ctrl">
+          <span class="label-row"><span class="name">바닥이 미끄러지는 속도 dx/dt (m/s)</span><span class="val" id="lv-val">0.5</span></span>
+          <input type="range" id="lv" min="0.1" max="1.5" step="0.01" value="0.5">
+        </label>
+      </div>
+
+      <div class="readout">
+        <div class="stat accent"><span class="k">바닥 거리 x</span><span class="v" id="l-x">–</span></div>
+        <div class="stat accent"><span class="k">높이 y</span><span class="v" id="l-y">–</span></div>
+        <div class="stat purple"><span class="k">바닥 속도 dx/dt</span><span class="v" id="l-vx">–</span></div>
+        <div class="stat neg"><span class="k">꼭대기 속도 dy/dt</span><span class="v" id="l-vy">–</span></div>
+        <div class="stat warn"><span class="k">속도 비 |dy/dt ÷ dx/dt|</span><span class="v" id="l-ratio">–</span></div>
+      </div>
+      <p class="hint">
+        <b>x 를 오른쪽 끝까지 밀어보세요.</b> 사다리가 눕는 순간
+        <b>꼭대기 속도가 폭발합니다</b>(y → 0 이라 <span class="m">−x/y</span> 가 무한대).
+        실제로 사다리가 <b>마지막에 쾅 떨어지는</b> 이유입니다.
+      </p>
+    </div>
+
+    <div class="formula">
+      <div class="name">시간으로 미분하기 (관련 변화율)</div>
+      <div class="eq" style="font-size:15.5px;line-height:2.4">
+        x² + y² = 25 &nbsp;⟹&nbsp;
+        2x·<span class="frac"><span>dx</span><span>dt</span></span> +
+        2y·<span class="frac"><span>dy</span><span>dt</span></span> = 0
+        <br>
+        <span class="small">x=3, y=4, dx/dt=0.5 를 넣으면</span><br>
+        2·3·0.5 + 2·4·<span class="frac"><span>dy</span><span>dt</span></span> = 0
+        &nbsp;⟹&nbsp; <b>dy/dt = −0.375 m/s</b>
+      </div>
+      <ul class="where">
+        <li><span class="sym">달라진 점</span><span class="desc">§2에서는 <b>x 로</b> 미분했고,
+            여기서는 <b>t(시간)로</b> 미분했습니다. <b>방법은 완전히 같습니다</b></span></li>
+        <li><span class="sym">음수</span><span class="desc">꼭대기가 <b>내려온다</b>는 뜻</span></li>
+        <li><span class="sym">누가 원인인가</span><span class="desc"><b>어느 쪽도 아닙니다.</b>
+            둘은 '사다리 길이 일정'이라는 <b>제약으로 맞물려 함께 변할</b> 뿐입니다</span></li>
+      </ul>
+    </div>
+
+    <div class="myth">
+      <div class="bad"><b>⚠ 흔한 오해</b>
+        "음함수 미분은 <b>별도의 새로운 미분법</b>이다."</div>
+      <div class="good"><b>아닙니다 — 내용물은 지금까지 배운 미분 그대로입니다</b>
+        새로운 것은 <b>관점 하나</b>뿐입니다 —
+        <b>"관계식이 유지되려면(등고선을 벗어나지 않으려면) 변화량들의 합이 0이어야 한다"</b>
+        는 조건을 쓰는 것.
+        <br>
+        각 항을 미분하는 일 자체는 4·5강에서 배운 것을 그대로 씁니다.
+        <span class="m">y²</span> 을 x로 미분할 때 <span class="m">2y·y′</span> 이 되는 것도
+        <b>연쇄법칙</b>일 뿐이죠 (y가 x의 함수니까요).</div>
+    </div>
+
+    <h2 id="s5">5. 보너스: ln x 의 미분을 공짜로</h2>
+    <p>
+      <span class="m">y = ln x</span> 는 <b><span class="m">e<sup>y</sup> = x</span> 라는 뜻</b>입니다 (로그의 정의).
+      양변에 <b>미세 변화</b>를 주면:
+    </p>
+
+    <div class="formula">
+      <div class="name">(ln x)′ = 1/x — 계산 없이</div>
+      <div class="eq" style="font-size:15.5px;line-height:2.4">
+        e<sup>y</sup> = x &nbsp;⟹&nbsp; e<sup>y</sup>·dy = dx
+        <br>
+        <span class="small">그런데 e<sup>y</sup> 가 곧 x 이므로</span><br>
+        x·dy = dx &nbsp;⟹&nbsp; <b>(ln x)′ = 1/x</b>
+      </div>
+      <ul class="where">
+        <li><span class="sym">왼쪽 미분</span><span class="desc"><span class="m">e<sup>y</sup></span> 를 미분하면
+            <b>연쇄법칙</b>으로 <span class="m">e<sup>y</sup>·dy</span> (6강: <span class="m">(e<sup>u</sup>)′ = e<sup>u</sup></span>)</span></li>
+        <li><span class="sym">치환 한 방</span><span class="desc"><span class="m">e<sup>y</sup> = x</span> 를 <b>그대로 대입</b>하면 끝.
+            <b>이게 음함수 미분의 힘</b>입니다</span></li>
+        <li><span class="sym">뜻</span><span class="desc"><span class="m">ln x</span> 는 x가 클수록 <b>천천히</b> 자랍니다.
+            x=1 에서 기울기 1, x=100 에서 기울기 0.01</span></li>
+        <li><span class="sym">같은 방법으로</span><span class="desc"><span class="m">y = √x</span> 는
+            <span class="m">y² = x</span> ⟹ <span class="m">2y·dy = dx</span> ⟹
+            <span class="m">1/(2√x)</span>. 4강 §5와 같은 답이죠</span></li>
+      </ul>
+    </div>
+
+    <h2 id="s6">6. 파이썬으로 확인하기</h2>
+
+    <div class="pycell" data-packages="numpy" data-title="7-1. 원 위의 접선 기울기">
+    import numpy as np
+
+    R = 5.0
+    print(f"{'각도°':>7} {'x':>9} {'y':>9} {'-x/y':>12} {'√ 로 풀어서':>14}")
+    for deg in [30, 53.13, 90, 120, 210]:
+        t = np.radians(deg)
+        x, y = R*np.cos(t), R*np.sin(t)
+        음함수 = -x/y if abs(y) > 1e-9 else np.inf
+        # y = ±√(R²-x²) 를 직접 미분한 값 (위/아래 반원에 따라 부호가 갈린다)
+        부호 = 1 if y >= 0 else -1
+        양함수 = 부호 * (-x / np.sqrt(R**2 - x**2)) if abs(x) < R else np.inf
+        print(f"{deg:>7} {x:>9.4f} {y:>9.4f} {음함수:>12.5f} {양함수:>14.5f}")
+
+    print("\n→ 같은 답이다. 음함수 쪽은 부호를 따로 챙길 필요가 없다.")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="7-2. 일반 공식 −Fx/Fy 를 수치로">
+    import numpy as np
+
+    def 편미분(F, x, y, 축, h=1e-6):
+        if 축 == 'x': return (F(x+h, y) - F(x-h, y)) / (2*h)
+        else:         return (F(x, y+h) - F(x, y-h)) / (2*h)
+
+    def 기울기(F, x, y):
+        Fx, Fy = 편미분(F, x, y, 'x'), 편미분(F, x, y, 'y')
+        return -Fx / Fy if abs(Fy) > 1e-12 else np.inf
+
+    곡선들 = [
+        ("원 x²+y²=25",       lambda x, y: x**2 + y**2,          (3.0, 4.0),  -3/4),
+        ("타원 x²/9+y²/4=1",  lambda x, y: x**2/9 + y**2/4,      (1.6209069176, 1.6829419696), None),
+        ("x³+y³=2",           lambda x, y: x**3 + y**3,          (1.0, 1.0),  -1.0),
+        ("y = sin(x+y)",      lambda x, y: np.sin(x+y) - y,      None,        None),
+    ]
+
+    for 이름, F, 점, 손계산 in 곡선들[:3]:
+        x, y = 점
+        수치 = 기울기(F, x, y)
+        print(f"{이름:<20} 점 ({x:.4f}, {y:.4f})   dy/dx = {수치:>10.6f}"
+              + (f"   손계산 {손계산}" if 손계산 is not None else ""))
+    </div>
+
+    <div class="pycell" data-packages="numpy,scipy" data-title="7-3. y로 풀 수 없는 곡선 — y = sin(x+y)">
+    from scipy.optimize import brentq
+    import numpy as np
+
+    # y 를 대수적으로 풀 수는 없다. 수치적으로 찾아야 한다.
+    def y_of(x):
+        return brentq(lambda y: np.sin(x + y) - y, -1.2, 1.2)
+
+    print(f"{'x':>7} {'y (수치해)':>14} {'음함수 미분':>14} {'수치 기울기':>14}")
+    for x in [0.0, 0.5, 1.0, 2.0, 3.0]:
+        y = y_of(x)
+        # F(x,y) = sin(x+y) - y = 0 이므로  Fx = cos(x+y),  Fy = cos(x+y) - 1
+        기울기 = -np.cos(x+y) / (np.cos(x+y) - 1)
+        수치 = (y_of(x+1e-5) - y_of(x-1e-5)) / 2e-5
+        print(f"{x:>7} {y:>14.8f} {기울기:>14.8f} {수치:>14.8f}")
+
+    print("\n→ y 를 '풀지 않고도' 기울기는 정확히 나온다. 이것이 음함수 미분의 실용적 가치다.")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="7-4. 사다리 문제">
+    import numpy as np
+
+    L = 5.0          # 사다리 길이
+    dxdt = 0.5       # 바닥이 미끄러지는 속도 (m/s)
+
+    print(f"{'x (m)':>8} {'y (m)':>9} {'dy/dt (m/s)':>14} {'속도 비':>10}")
+    for x in [1, 2, 3, 4, 4.5, 4.9, 4.99]:
+        y = np.sqrt(L**2 - x**2)
+        dydt = -(x * dxdt) / y            # 2x·dx/dt + 2y·dy/dt = 0
+        print(f"{x:>8} {y:>9.4f} {dydt:>14.4f} {abs(dydt/dxdt):>10.3f}")
+
+    print("\n→ x=3 에서 dy/dt = -0.375 m/s (교과서의 그 답)")
+    print("  사다리가 누울수록(y→0) 꼭대기 속도가 폭발한다. 마지막에 '쾅' 떨어지는 이유다.")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="7-5. ln 과 √ 를 음함수로 유도하기">
+    import numpy as np
+
+    def 수치미분(f, x, h=1e-6):
+        return (f(x+h) - f(x-h)) / (2*h)
+
+    print("ln x :  e^y = x  ⟹  e^y·dy = dx  ⟹  x·dy = dx  ⟹  y' = 1/x")
+    for x in [0.5, 1, 2, 10, 100]:
+        print(f"  x={x:>6}  수치미분 {수치미분(np.log, x):>12.8f}   1/x = {1/x:>12.8f}")
+
+    print("\n√x :  y² = x  ⟹  2y·dy = dx  ⟹  y' = 1/(2y) = 1/(2√x)")
+    for x in [0.25, 1, 4, 9]:
+        print(f"  x={x:>6}  수치미분 {수치미분(np.sqrt, x):>12.8f}   1/(2√x) = {1/(2*np.sqrt(x)):>12.8f}")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="7-6. 연습문제">
+    # 문제 1. x³ + y³ = 2 위의 점 (1,1) 에서 dy/dx 를 손으로 구하고 7-2 셀로 확인하세요.
+
+    # 문제 2. 반지름 3인 원 x²+y²=9 위에서 접선이 '수평'이 되는 점은 어디일까요?
+    #         (힌트: dy/dx = -x/y = 0)
+
+    # 문제 3. 풍선에 공기를 넣어 반지름이 초당 0.5cm 로 커집니다.
+    #         반지름이 10cm 인 순간 부피는 초당 얼마나 늘까요?
+    #         (V = (4/3)πr³ 를 t 로 미분하세요)
+
+    # 아래에 직접 써보세요
+    </div>
+
+    <details style="margin:18px 0">
+      <summary style="cursor:pointer;font-weight:600;color:var(--accent)">모범 답안 보기</summary>
+      <div class="pycell" data-packages="numpy" data-title="모범 답안">
+      import numpy as np
+
+      # 문제 1 — 3x²dx + 3y²dy = 0 ⟹ dy/dx = -x²/y² = -1
+      F1 = lambda x, y: x**3 + y**3
+      print(f"문제 1: 손계산 -1²/1² = -1,  수치 {기울기(F1, 1.0, 1.0):.8f}\n")
+
+      # 문제 2 — dy/dx = -x/y = 0 이려면 x=0. 점 (0, ±3)
+      print("문제 2: -x/y = 0 ⟹ x = 0 ⟹ 점 (0, 3) 과 (0, -3)")
+      print("        원의 맨 위와 맨 아래. 접선이 수평인 곳이다.")
+      print(f"        확인: (0,3) 에서 기울기 = {기울기(lambda x,y: x**2+y**2, 1e-9, 3.0):.6f}\n")
+
+      # 문제 3 — dV/dt = 4πr²·dr/dt
+      r, drdt = 10.0, 0.5
+      print(f"문제 3: dV/dt = 4πr²·dr/dt = {4*np.pi*r**2*drdt:.4f} cm³/s")
+      print("        4πr² 은 겉넓이다 — 4강에서 본 '경계의 크기' 가 여기서도 나온다.")
+      </div>
+    </details>
+
+    <div class="practice">
+      <b>음함수 미분이 실제로 하는 일</b>
+      <ul>
+        <li><b>열역학</b> — 반데르발스 상태방정식
+            <span class="m">(P + a/V²)(V − b) = RT</span> 는 V로 풀리지 않습니다.
+            그래도 <b>압축률 <span class="m">∂V/∂P</span></b> 는 음함수 미분으로 바로 나옵니다.</li>
+        <li><b>경제학의 무차별곡선</b> — 효용 <span class="m">U(x,y) = 상수</span> 가 등고선이고,
+            그 기울기가 <b>한계대체율</b>입니다.</li>
+        <li><b>기계학습의 등고선</b> — 손실함수의 등고선과 <b>기울기 벡터가 수직</b>이라는 사실이
+            경사하강법의 기하학입니다.</li>
+        <li><b>관련 변화율</b> — 레이더로 항공기 거리 변화율에서 속도를 뽑아내는 계산이
+            <b>사다리 문제와 똑같은 구조</b>입니다.</li>
+        <li><b>제약 최적화</b> — 라그랑주 승수법이
+            "<b>목적함수의 등고선과 제약 곡선이 접한다</b>"는 이 그림의 확장입니다.</li>
+      </ul>
+    </div>
+
+    <div class="summary">
+      <h3>✎ 스스로 점검</h3>
+      <ul>
+        <li><b>18.</b> <span class="m">x²+y²=25</span> 를 '등고선'으로 본다는 게 무슨 뜻인가요?
+            <span style="color:var(--text-dim)">(§1)</span></li>
+        <li><b>19.</b> 사다리 문제에서 x와 y가 '독립적이지 않다'는 말의 의미는?
+            <span style="color:var(--text-dim)">(§4)</span></li>
+        <li><b>20.</b> 같은 방법으로 <span class="m">x³+y³=2</span> 위의 점 (1,1) 에서 dy/dx 를 구해 보세요.
+            <span style="color:var(--text-dim)">(답: −1 — <span class="m">3x²dx + 3y²dy = 0</span>)</span></li>
+      </ul>
+    </div>
+
+    <div class="summary">
+      <h3>7강 요약</h3>
+      <ul>
+        <li><b>음함수</b>는 x 와 y 가 뒤섞인 식입니다.
+            y 로 풀면 지저분하거나, <b>아예 안 풀리거나, 함수가 아닐 수도</b> 있습니다.</li>
+        <li>관계식을 <b>지형의 등고선</b>으로 봅니다.
+            <b>등고선 위를 걸으면 고도가 안 변합니다.</b></li>
+        <li>그래서 <b><span class="m">F<sub>x</sub>·dx + F<sub>y</sub>·dy = 0</span></b> —
+            <b>변화량들의 합이 0</b>. 이 한 줄이 전부입니다.</li>
+        <li><b><span class="m">dy/dx = −F<sub>x</sub> / F<sub>y</sub></span></b>.
+            <span class="m">F<sub>y</sub> = 0</span> 이면 <b>수직 접선</b>.</li>
+        <li><b>접선은 '고도가 가장 빨리 오르는 방향'과 수직</b>입니다.</li>
+        <li><b>시간으로 미분</b>하면 <b>관련 변화율</b> 문제가 됩니다.
+            사다리는 <span class="m">2x·x′ + 2y·y′ = 0</span>.</li>
+        <li>새 미분법이 아니라 <b>새 관점</b>입니다. 미분 자체는 4·5강 그대로예요.</li>
+        <li>덤으로 <b><span class="m">(ln x)′ = 1/x</span></b> 를 <b>계산 없이</b> 얻었습니다.</li>
+      </ul>
+    </div>
+
+    <div class="colab-cta">
+      <div class="colab-text">
+        <b>더 자유롭게 실험하고 싶다면</b><br>
+        이 강의의 실습만 모은 노트북을 Colab에서 열 수 있습니다.
+      </div>
+      <a class="btn" id="colab-link" href="#" target="_blank" rel="noopener">Colab에서 열기</a>
+    </div>
+
+    <p class="next-up">
+      다음 → <b>8강 · 로피탈 정리와 입실론-델타</b><br>
+      3강에서 <b>0/0 의 역설</b>을 극한으로 우회했습니다.
+      이제 그 극한을 <b>더 밀어붙입니다.</b>
+      0/0 꼴을 <b>기계적으로 푸는 로피탈 정리</b>, 그리고
+      <b>'한없이 가까이'</b> 라는 말을 수학적으로 못 박은 <b>입실론-델타</b> 정의입니다.
+    </p>
+
+  </section>
+
+</div>
+
+<script src="../assets/viz.js?v=312b9476b0"></script>
+<script src="../assets/calc.js?v=c1137a5076"></script>
+<script src="../assets/pylab.js?v=cb27f20364"></script>
+<script src="../assets/pycell.js?v=6dacc4c6ce"></script>
+<script>
+(function () {
+  'use strict';
+  var num = CA.num;
+
+  /* =======================================================
+     패널 ① 등고선
+     ======================================================= */
+  var ctDeg = 53, showLevels = true, showGrad = true;
+  var R = 5;
+
+  var gCont = new CA.Graph(document.getElementById('cv-cont'), {
+    xDomain: [-7.6, 7.6], yDomain: [-7.6, 7.6], equal: true,
+    height: function (w) { return Math.round(V.clamp(w, 250, 430)); },
+    margin: { top: 18, right: 18, bottom: 34, left: 44 }
+  });
+
+  function drawCont() {
+    var t = ctDeg * Math.PI / 180;
+    var x = R * Math.cos(t), y = R * Math.sin(t);
+
+    gCont.begin();
+    gCont.axes({ xStep: 2, yStep: 2, xLabel: 'x →' });
+
+    /* 다른 고도의 등고선 */
+    if (showLevels) {
+      [1, 2, 3, 4, 6, 7].forEach(function (r) {
+        gCont.circle(0, 0, r, { stroke: V.css('--text-dim'), width: 1, alpha: 0.35, dash: [4, 4] });
+        gCont.text(r * Math.cos(3.76), r * Math.sin(3.76), String(r * r), {
+          color: V.css('--text-dim'), size: 10.5, alpha: 0.9, bg: V.css('--surface')
+        });
+      });
+    }
+
+    /* 고도 25 등고선 */
+    gCont.circle(0, 0, R, { stroke: V.css('--accent'), width: 2.6 });
+
+    /* 접선 */
+    var slope = Math.abs(y) > 1e-9 ? -x / y : Infinity;
+    if (isFinite(slope)) {
+      gCont.lineAt(x, y, slope, { color: V.css('--pos'), width: 2.4, span: 4.5 });
+    } else {
+      gCont.segment(x, y - 4.5, x, y + 4.5, { color: V.css('--pos'), width: 2.4 });
+    }
+
+    /* 기울기 벡터 (Fx, Fy) = (2x, 2y) — 방향만 쓰고 길이는 보기 좋게 */
+    if (showGrad) {
+      var g = Math.hypot(2 * x, 2 * y);
+      var ux = 2 * x / g, uy = 2 * y / g, len = 2.6;
+      var c = gCont.ctx;
+      gCont.segment(x, y, x + ux * len, y + uy * len, { color: V.css('--neg'), width: 2.6 });
+      c.save();
+      var hx = gCont.px(x + ux * len), hy = gCont.py(y + uy * len);
+      var ang = Math.atan2(gCont.py(y + uy * len) - gCont.py(y), gCont.px(x + ux * len) - gCont.px(x));
+      c.translate(hx, hy); c.rotate(ang);
+      c.fillStyle = V.css('--neg');
+      c.beginPath(); c.moveTo(0, 0); c.lineTo(-11, -5.5); c.lineTo(-11, 5.5); c.closePath(); c.fill();
+      c.restore();
+      gCont.text(x + ux * len, y + uy * len, '고도 ↑ 가장 빠른 방향', {
+        color: V.css('--neg'), size: 11.5, dy: uy > 0 ? -10 : 18, bg: V.css('--surface')
+      });
+    }
+
+    gCont.dot(x, y, { r: 6, color: V.css('--accent'), stroke: V.css('--surface'), strokeWidth: 2 });
+
+    gCont.legend([
+      { color: V.css('--accent'), text: '고도 25 인 등고선 (x²+y²=25)' },
+      { color: V.css('--pos'), text: '접선 — 기울기 −x/y' },
+      { color: V.css('--neg'), text: '기울기 벡터 (2x, 2y)' }
+    ], { corner: 'bl' });
+
+    /* 수치 검산 — 곡선을 아주 조금 따라가서 잰다 */
+    var e = 1e-5;
+    var x2 = R * Math.cos(t + e), y2 = R * Math.sin(t + e);
+    var numSlope = (y2 - y) / (x2 - x);
+
+    V.setText('#c-pt', '(' + num(x, 3) + ', ' + num(y, 3) + ')');
+    V.setText('#c-h', num(x * x + y * y, 3));
+    V.setText('#c-fx', num(2 * x, 3));
+    V.setText('#c-fy', num(2 * y, 3));
+    V.setText('#c-sl', isFinite(slope) ? num(slope, 4) : '∞ (수직)');
+    V.setText('#c-num', Math.abs(numSlope) < 1e4 ? num(numSlope, 4) : '∞ (수직)');
+  }
+
+  V.range('ct', function (v) { ctDeg = v; drawCont(); }, function (v) { return num(v, 1); });
+  V.check('c-levels', function (v) { showLevels = v; drawCont(); });
+  V.check('c-grad', function (v) { showGrad = v; drawCont(); });
+
+  /* =======================================================
+     패널 ② 여러 음함수 곡선
+     ======================================================= */
+  var cc = 'circle', cu = 0.9;
+
+  /* 각 곡선은 매개변수 t 로 점을 주고, F 로 편미분을 수치로 잰다 */
+  var CC = {
+    circle: {
+      F: function (x, y) { return x * x + y * y; },
+      pt: function (t) { return [5 * Math.cos(t), 5 * Math.sin(t)]; },
+      lim: 7, form: 'dy/dx = −x/y', name: 'x² + y² = 25',
+      draw: function (g) { g.circle(0, 0, 5, { stroke: V.css('--accent'), width: 2.6 }); }
+    },
+    ellipse: {
+      F: function (x, y) { return x * x / 9 + y * y / 4; },
+      pt: function (t) { return [3 * Math.cos(t), 2 * Math.sin(t)]; },
+      lim: 4.2, form: 'dy/dx = −(2x/9)/(y/2)', name: 'x²/9 + y²/4 = 1',
+      draw: function (g) {
+        var pts = [], i;
+        for (i = 0; i <= 300; i++) {
+          var t = i / 300 * Math.PI * 2;
+          pts.push([3 * Math.cos(t), 2 * Math.sin(t)]);
+        }
+        g.poly(pts, { stroke: V.css('--accent'), width: 2.6, close: true });
+      }
+    },
+    folium: {
+      /* x³+y³ = 3xy 를 매개변수로: x = 3s/(1+s³), y = 3s²/(1+s³) */
+      F: function (x, y) { return x * x * x + y * y * y - 3 * x * y; },
+      pt: function (t) {
+        var s = Math.tan(t / 2 * 0.98 + 0.01) * 1.0;
+        var d = 1 + s * s * s;
+        if (Math.abs(d) < 1e-3) d = 1e-3 * (d < 0 ? -1 : 1);
+        return [3 * s / d, 3 * s * s / d];
+      },
+      lim: 2.6, form: 'dy/dx = −(3x²−3y)/(3y²−3x)', name: 'x³ + y³ = 3xy',
+      draw: function (g) {
+        var pts = [], i, s, d;
+        for (i = 0; i <= 900; i++) {
+          s = -0.5 + i / 900 * 60;                   // s > -1 인 쪽의 고리와 두 가지
+          d = 1 + s * s * s;
+          if (Math.abs(d) < 1e-6) { continue; }
+          var p = [3 * s / d, 3 * s * s / d];
+          if (Math.abs(p[0]) < 40 && Math.abs(p[1]) < 40) pts.push(p);
+        }
+        g.poly(pts, { stroke: V.css('--accent'), width: 2.6, close: false });
+      }
+    },
+    sinxy: {
+      F: function (x, y) { return Math.sin(x + y) - y; },
+      pt: function (t) {
+        /* x 를 t 로 훑고, y 는 이분법으로 찾는다 (대수적으로 풀 수 없다) */
+        var x = -4 + t / (Math.PI * 2) * 12;
+        var lo = -1.3, hi = 1.3;
+        for (var i = 0; i < 70; i++) {
+          var mid = (lo + hi) / 2;
+          if (Math.sin(x + mid) - mid > 0) lo = mid; else hi = mid;
+        }
+        return [x, (lo + hi) / 2];
+      },
+      lim: 5, form: 'dy/dx = −cos(x+y) / (cos(x+y) − 1)', name: 'y = sin(x + y)',
+      draw: function (g) {
+        var pts = [], i;
+        for (i = 0; i <= 500; i++) {
+          pts.push(CC.sinxy.pt(i / 500 * Math.PI * 2));
+        }
+        g.poly(pts, { stroke: V.css('--accent'), width: 2.6, close: false });
+      }
+    }
+  };
+
+  var gCur = new CA.Graph(document.getElementById('cv-curves'), {
+    equal: true,
+    height: function (w) { return Math.round(V.clamp(w, 250, 430)); },
+    margin: { top: 18, right: 18, bottom: 34, left: 44 }
+  });
+
+  function pd(F, x, y, ax) {
+    var h = 1e-6;
+    return ax === 'x' ? (F(x + h, y) - F(x - h, y)) / (2 * h)
+                      : (F(x, y + h) - F(x, y - h)) / (2 * h);
+  }
+
+  function drawCurves() {
+    var S = CC[cc];
+    var p = S.pt(cu);
+    var L = S.lim;
+
+    gCur.xDomain = [-L, L];
+    gCur.yDomain = [-L, L];
+    gCur.begin();
+    gCur.axes({ xStep: CA.niceStep(2 * L, 5), yStep: CA.niceStep(2 * L, 5), xLabel: 'x →' });
+
+    S.draw(gCur);
+
+    var Fx = pd(S.F, p[0], p[1], 'x'), Fy = pd(S.F, p[0], p[1], 'y');
+    var slope = Math.abs(Fy) > 1e-9 ? -Fx / Fy : Infinity;
+
+    if (isFinite(slope) && Math.abs(slope) < 1e4) {
+      gCur.lineAt(p[0], p[1], slope, { color: V.css('--pos'), width: 2.4, span: L * 0.75 });
+    } else {
+      gCur.segment(p[0], p[1] - L * 0.7, p[0], p[1] + L * 0.7, { color: V.css('--pos'), width: 2.4 });
+    }
+    gCur.dot(p[0], p[1], { r: 6, color: V.css('--accent'), stroke: V.css('--surface'), strokeWidth: 2 });
+
+    gCur.legend([
+      { color: V.css('--accent'), text: S.name },
+      { color: V.css('--pos'), text: '접선' }
+    ], { corner: 'bl' });
+
+    V.setText('#u-pt', '(' + num(p[0], 3) + ', ' + num(p[1], 3) + ')');
+    V.setText('#u-fx', num(Fx, 4));
+    V.setText('#u-fy', num(Fy, 4));
+    V.setText('#u-sl', (isFinite(slope) && Math.abs(slope) < 1e4) ? num(slope, 4) : '∞ (수직)');
+    V.setText('#u-form', S.form);
+  }
+
+  V.range('cu', function (v) { cu = v; drawCurves(); }, function (v) { return num(v, 2); });
+  V.radios('cc', function (v) { cc = v; cu = 0.9; drawCurves(); });
+
+  /* =======================================================
+     패널 ③ 사다리
+     ======================================================= */
+  var lx = 3, lv = 0.5;
+  var LEN = 5;
+
+  var gLad = new CA.Graph(document.getElementById('cv-ladder'), {
+    xDomain: [-1.2, 6.4], yDomain: [-1.2, 6.4], equal: true,
+    height: function (w) { return Math.round(Math.max(260, Math.min(350, w * 0.46))); },
+    margin: { top: 18, right: 18, bottom: 34, left: 44 }
+  });
+
+  function drawLadder() {
+    var y = Math.sqrt(Math.max(1e-6, LEN * LEN - lx * lx));
+    var dydt = -(lx * lv) / y;
+
+    gLad.begin();
+    gLad.axes({ xStep: 1, yStep: 1, xLabel: '바닥 거리 (m) →' });
+
+    /* 벽과 바닥 */
+    gLad.segment(0, 0, 0, 6, { color: V.css('--text-dim'), width: 5 });
+    gLad.segment(0, 0, 6.2, 0, { color: V.css('--text-dim'), width: 5 });
+
+    /* 사다리 */
+    gLad.segment(lx, 0, 0, y, { color: V.css('--accent'), width: 5 });
+    gLad.dot(lx, 0, { r: 6, color: V.css('--accent'), stroke: V.css('--surface'), strokeWidth: 2 });
+    gLad.dot(0, y, { r: 6, color: V.css('--neg'), stroke: V.css('--surface'), strokeWidth: 2 });
+
+    /* 속도 화살표 — 길이를 실제 속도에 비례하게 */
+    var sc = 1.1;
+    function arrow(x0, y0, dx, dy, color) {
+      gLad.segment(x0, y0, x0 + dx, y0 + dy, { color: color, width: 3 });
+      var c = gLad.ctx;
+      var hx = gLad.px(x0 + dx), hy = gLad.py(y0 + dy);
+      var ang = Math.atan2(gLad.py(y0 + dy) - gLad.py(y0), gLad.px(x0 + dx) - gLad.px(x0));
+      c.save(); c.translate(hx, hy); c.rotate(ang);
+      c.fillStyle = color;
+      c.beginPath(); c.moveTo(0, 0); c.lineTo(-11, -5.5); c.lineTo(-11, 5.5); c.closePath(); c.fill();
+      c.restore();
+    }
+    arrow(lx, 0, lv * sc, 0, V.css('--purple'));
+    arrow(0, y, 0, dydt * sc, V.css('--neg'));
+
+    gLad.text(lx + lv * sc / 2, 0, 'dx/dt = ' + num(lv, 2), {
+      color: V.css('--purple'), dy: 20, size: 11.5, bg: V.css('--surface')
+    });
+    gLad.text(0, y + dydt * sc / 2, 'dy/dt = ' + num(dydt, 3), {
+      color: V.css('--neg'), dx: 10, align: 'left', baseline: 'middle', size: 11.5, bg: V.css('--surface')
+    });
+    gLad.text(lx / 2, y / 2, '5 m', {
+      color: V.css('--accent'), dx: 12, dy: -6, size: 12, bg: V.css('--surface')
+    });
+
+    /* 사다리 끝이 그리는 자취 = 사분원 */
+    gLad.circle(0, 0, LEN, {
+      stroke: V.css('--text-dim'), width: 1.2, dash: [5, 4], alpha: 0.6
+    });
+
+    V.setText('#l-x', num(lx, 3) + ' m');
+    V.setText('#l-y', num(y, 3) + ' m');
+    V.setText('#l-vx', '+' + num(lv, 3) + ' m/s');
+    V.setText('#l-vy', num(dydt, 4) + ' m/s');
+    V.setText('#l-ratio', num(Math.abs(dydt / lv), 3) + ' 배');
+  }
+
+  V.range('lx', function (v) { lx = v; drawLadder(); }, function (v) { return num(v, 2); });
+  V.range('lv', function (v) { lv = v; drawLadder(); }, function (v) { return num(v, 2); });
+
+  V.onRedraw(function () { drawCont(); drawCurves(); drawLadder(); });
+  drawCont(); drawCurves(); drawLadder();
+
+  var a = document.getElementById('colab-link');
+  if (a) a.href = 'https://colab.research.google.com/github/mioon1402/timeseriesdata/blob/main/notebooks/C07-implicit.ipynb';
+})();
+</script>
+</body>
+</html>

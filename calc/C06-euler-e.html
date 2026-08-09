@@ -1,0 +1,696 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>오일러 상수 e — 자기 자신을 낳는 함수 · 미적분의 직관</title>
+<meta name="description" content="높이가 곧 기울기가 되는 밑을 찾으면 2.71828…이 나옵니다. 복리에서 출발해도 같은 수에 도착합니다.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%E2%88%AB%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css?v=b7dfb076b2">
+<link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">미적분 6강 · 오일러 상수 e</p>
+    <h1>오일러 상수 e — 자기 자신을 낳는 함수</h1>
+    <p class="lede">
+      미적분에는 <b>마법 같은 함수</b>가 하나 있습니다.
+      <span class="m">eˣ</span> — <b>미분해도 <span class="m">eˣ</span>, 적분해도 <span class="m">eˣ</span></b>.
+      그리고 <span class="m">e = 2.71828…</span> 이라는 기묘한 숫자.
+      <b>어디서 왔고 왜 이런 성질을 가질까요?</b>
+      우연이 아니라 <b>필연</b>임을 두 가지 길(<b>성장의 길, 복리의 길</b>)로 확인합니다.
+    </p>
+  </header>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 강의에서 배우는 것</b>
+      <ol>
+        <li><a href="#s0">기초 다지기 — 지수함수 읽는 법</a></li>
+        <li><a href="#s1">자연의 성장 패턴 — 많을수록 빨리 는다</a></li>
+        <li><a href="#s2">aˣ 를 미분해보면 — 놀라운 형태</a></li>
+        <li><a href="#s3">c = 1 이 되는 마법의 밑 — e의 탄생</a></li>
+        <li><a href="#s4">모든 지수함수의 통일 — 자연로그 ln</a></li>
+        <li><a href="#s5">복리의 길 — 같은 e에 도착한다</a></li>
+        <li><a href="#s6">dy/dx = y 라는 방정식</a></li>
+        <li><a href="#s7">파이썬으로 확인하기</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s0">0. 기초 다지기 — 지수함수 읽는 법</h2>
+    <p>
+      <span class="m">2³</span> 은 <b>2를 세 번 곱한 것</b>(=8)입니다.
+      여기서 <b>2를 밑(base)</b>, <b>3을 지수(exponent)</b> 라고 부릅니다.
+    </p>
+    <p>
+      <b>지수함수</b> <span class="m">f(x) = aˣ</span> 는 <b>지수 자리에 변수가 들어간</b> 함수입니다.
+      <span class="m">x²</span>(밑이 변수)과 <span class="m">2ˣ</span>(지수가 변수)은
+      <b>완전히 다른 함수</b>입니다 — 헷갈리기 쉬우니 주의하세요.
+    </p>
+
+    <div class="formula">
+      <div class="name">지수함수의 성질 한 줄</div>
+      <div class="eq" style="font-size:17px">
+        a<sup>x+1</sup> = a<sup>x</sup> · a
+      </div>
+      <ul class="where">
+        <li><span class="sym">읽는 법</span><span class="desc"><b>x가 1 커질 때마다 값이 a배</b>가 됩니다.
+            "몇 개 더해지는가"가 아니라 "<b>몇 배가 되는가</b>"</span></li>
+        <li><span class="sym">이게 핵심</span><span class="desc">지수함수는 <b>곱셈으로 자랍니다.</b>
+            그래서 <b>지금 값이 클수록 다음 증가분도 큽니다</b> — §1의 이야기입니다</span></li>
+        <li><span class="sym">a<sup>0</sup> = 1</span><span class="desc">모든 지수함수는 <b>(0, 1) 을 지납니다</b></span></li>
+      </ul>
+    </div>
+
+    <h2 id="s1">1. 자연의 성장 패턴 — 많을수록 빨리 는다</h2>
+    <p>
+      세포 하나가 둘로, 둘이 넷으로 갈라집니다.
+      예금이 많을수록 이자도 많이 붙습니다.
+      전염병 초기, 방사성 붕괴(음의 성장)도 마찬가지입니다.
+    </p>
+    <p>
+      <b>공통점: 매 순간 늘어나는 양이 지금 있는 양에 비례한다.</b>
+      이런 성장을 <span class="m">f(x) = aˣ</span> 꼴로 씁니다.
+    </p>
+
+    <h2 id="s2">2. aˣ 를 미분해보면 — 놀라운 형태</h2>
+    <p>
+      미분의 정의에 <span class="m">aˣ</span> 를 넣고 정리하면 <b>이런 꼴</b>이 나옵니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">지수함수를 미분하면 자기 자신이 나온다</div>
+      <div class="eq" style="font-size:15px;line-height:2.4">
+        <span class="frac"><span>a<sup>x+h</sup> − a<sup>x</sup></span><span>h</span></span>
+        = a<sup>x</sup> ·
+        <span class="frac"><span>a<sup>h</sup> − 1</span><span>h</span></span>
+        <br>
+        <span class="small">뒤쪽 분수에는 <b>x 가 없습니다</b> — a 에만 의존하는 어떤 상수 c 죠</span>
+        <br>
+        ⟹ &nbsp; <b>( a<sup>x</sup> )′ = a<sup>x</sup> · c</b>
+      </div>
+      <ul class="where">
+        <li><span class="sym">핵심 조작</span><span class="desc"><span class="m">a<sup>x+h</sup> = a<sup>x</sup>·a<sup>h</sup></span>
+            로 <b><span class="m">a<sup>x</sup></span> 를 통째로 밖으로 빼냈습니다.</b>
+            지수함수라서 가능한 일입니다</span></li>
+        <li><span class="sym">c 의 정체</span><span class="desc">남은 극한
+            <span class="m">lim<sub>h→0</sub> (a<sup>h</sup>−1)/h</span> 는
+            <b>x = 0 에서의 접선 기울기</b>입니다 (정의에 x=0 을 넣어보세요)</span></li>
+        <li><span class="sym">뜻</span><span class="desc"><b>모든 지수함수의 도함수는 자기 자신에 어떤 상수를 곱한 것.</b>
+            a=2 면 c ≈ <b>0.693</b>, a=3 이면 c ≈ <b>1.099</b>.
+            <b>밑이 클수록 시작이 가파릅니다</b></span></li>
+      </ul>
+    </div>
+
+    <h2 id="s3">3. c = 1 이 되는 마법의 밑 — e의 탄생</h2>
+    <p>
+      그렇다면 결정적 질문: <b>c 가 정확히 1이 되는 밑은 없을까요?</b>
+    </p>
+    <p>
+      <b>있습니다.</b> 그 밑을 <b>e</b> 라 부릅니다.
+      2와 3 사이 어딘가(0.693과 1.099 사이에 1이 있으니), 정확히는 <b>2.71828…</b> 입니다.
+      아래에서 <b>밑 a 를 직접 움직여</b> 그 순간을 찾아보세요.
+    </p>
+
+    <div class="panel">
+      <div class="panel-title">① c = 1 이 되는 밑을 찾아보세요</div>
+      <div class="canvas-wrap"><canvas id="cv-base"></canvas></div>
+
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">밑 a</span><span class="val" id="ba-val">2</span></span>
+          <input type="range" id="ba" min="1.2" max="4" step="0.001" value="2">
+        </label>
+        <button class="btn" id="snap-e">c = 1 인 곳으로 맞추기</button>
+      </div>
+
+      <div class="readout">
+        <div class="stat accent"><span class="k">밑 a</span><span class="v" id="b-a">–</span></div>
+        <div class="stat purple"><span class="k">x=0 에서의 기울기 c</span><span class="v" id="b-c">–</span></div>
+        <div class="stat pos"><span class="k">c 와 1 의 차</span><span class="v" id="b-gap">–</span></div>
+        <div class="stat warn"><span class="k">판정</span><span class="v" id="b-ok">–</span></div>
+      </div>
+      <p class="hint">
+        회색 <b>기준선</b>(기울기 1)과 <b>보라색 접선</b>이 <b>겹치는 순간</b>의 a 가 바로 <b>e</b> 입니다.
+        <span class="m">a = 2</span> 면 접선이 <b>더 완만</b>하고, <span class="m">a = 3</span> 이면 <b>더 가파릅니다.</b>
+      </p>
+    </div>
+
+    <div class="formula">
+      <div class="name">e 의 정의와 그 결과</div>
+      <div class="eq" style="font-size:18px;line-height:2.2">
+        <b>e</b> = "x=0 에서의 접선 기울기가 <b>정확히 1</b> 이 되는 밑"
+        <br>
+        ⟹ &nbsp; ( e<sup>x</sup> )′ = e<sup>x</sup> · 1 = <b>e<sup>x</sup></b>
+      </div>
+      <ul class="where">
+        <li><span class="sym">한 문장으로</span><span class="desc"><b>어느 점에서든 높이가 곧 기울기입니다.</b></span></li>
+        <li><span class="sym">뜻</span><span class="desc"><b>커질수록 그만큼 더 가파르게 커지는 함수</b> —
+            '변화율이 자기 크기에 비례한다'는 자연의 성장 법칙의 <b>가장 순수한 형태</b>입니다</span></li>
+      </ul>
+    </div>
+
+    <p>
+      아래에서 <b>x 를 움직이며</b> 확인해 보세요.
+      <b>초록 막대(높이)</b>와 <b>보라 삼각형의 기울기</b>가 <b>언제나 같은 수</b>입니다.
+    </p>
+
+    <div class="panel">
+      <div class="panel-title">② 높이가 곧 기울기다</div>
+      <div class="canvas-wrap"><canvas id="cv-exp"></canvas></div>
+
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">x</span><span class="val" id="ex-val">1</span></span>
+          <input type="range" id="ex" min="-1.8" max="2.2" step="0.01" value="1">
+        </label>
+      </div>
+
+      <div class="seg" role="group" aria-label="밑 선택" style="margin-top:10px">
+        <label><input type="radio" name="eb" value="e" checked><span>eˣ (a = 2.71828…)</span></label>
+        <label><input type="radio" name="eb" value="2"><span>2ˣ</span></label>
+        <label><input type="radio" name="eb" value="3"><span>3ˣ</span></label>
+      </div>
+
+      <div class="readout">
+        <div class="stat pos"><span class="k">높이 f(x)</span><span class="v" id="e-h">–</span></div>
+        <div class="stat purple"><span class="k">접선 기울기 f′(x)</span><span class="v" id="e-s">–</span></div>
+        <div class="stat accent"><span class="k">기울기 ÷ 높이</span><span class="v" id="e-r">–</span></div>
+        <div class="stat warn"><span class="k">ln a</span><span class="v" id="e-ln">–</span></div>
+      </div>
+      <p class="hint">
+        <b>eˣ 에서는 '기울기 ÷ 높이' 가 언제나 정확히 1</b> 입니다.
+        <span class="m">2ˣ</span> 는 0.693, <span class="m">3ˣ</span> 는 1.099 — <b>x 를 아무리 옮겨도 그대로</b>죠.
+        그 상수가 바로 <b>ln a</b> 입니다.
+      </p>
+    </div>
+
+    <h2 id="s4">4. 모든 지수함수의 통일 — 자연로그 ln</h2>
+    <p>
+      e를 알면 <b>어떤 <span class="m">aˣ</span> 도 e의 옷으로 갈아입힐 수</b> 있습니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">ln 과 지수함수의 통일</div>
+      <div class="eq" style="font-size:15.5px;line-height:2.4">
+        <b>ln a</b> = "e를 몇 제곱하면 a 가 되나" &nbsp;⟹&nbsp; a = e<sup>ln a</sup>
+        <br>
+        따라서 &nbsp; a<sup>x</sup> = e<sup>x·ln a</sup>
+        &nbsp;⟹&nbsp; <b>( a<sup>x</sup> )′ = a<sup>x</sup> · ln a</b>
+      </div>
+      <ul class="where">
+        <li><span class="sym">유도</span><span class="desc"><span class="m">e<sup>x·ln a</sup></span> 를
+            <b>연쇄법칙</b>(5강)으로 미분하면 바깥 <span class="m">e<sup>u</sup></span> 는 그대로,
+            안쪽 <span class="m">x·ln a</span> 의 미분은 <span class="m">ln a</span></span></li>
+        <li><span class="sym">§2 의 c 정체</span><span class="desc">앞의 상수 c 가 <b>사실 ln a 였습니다.</b>
+            ln 2 = 0.693, ln 3 = 1.099 — 위 패널의 숫자와 정확히 같죠</span></li>
+        <li><span class="sym">결론</span><span class="desc"><b>특별한 건 <span class="m">eˣ</span> 하나</b>이고,
+            나머지 지수함수는 전부 <b>그 변주</b>입니다</span></li>
+      </ul>
+    </div>
+
+    <div class="callout">
+      <b>ln 의 미분은 7강에서 공짜로 나옵니다</b><br>
+      <span class="m">y = ln x</span> 는 <span class="m">e<sup>y</sup> = x</span> 라는 뜻입니다.
+      양변에 미세 변화를 주면 <span class="m">e<sup>y</sup>·dy = dx</span> 이고,
+      <span class="m">e<sup>y</sup> = x</span> 이므로 <span class="m">x·dy = dx</span> — 즉
+      <b><span class="m">(ln x)′ = 1/x</span></b>.
+      <b>계산 한 줄도 안 했는데</b> 새 공식이 나왔죠. 이게 <b>음함수 미분</b>의 힘입니다(7강).
+    </div>
+
+    <h2 id="s5">5. 복리의 길 — 같은 e에 도착한다</h2>
+    <p>
+      <b>전혀 다른 방향</b>에서 출발해 봅시다.
+      연이율 <b>100%</b> 로 1원을 맡깁니다 (설명용 극단 예시입니다).
+    </p>
+    <ul>
+      <li>이자를 <b>1년에 한 번</b> 주면 → <b>2원</b></li>
+      <li><b>반년마다</b> 나눠 주면 → <span class="m">1.5 × 1.5 = <b>2.25원</b></span></li>
+      <li>더 잘게 나눌수록 <b>이자가 이자를 낳아</b> 금액이 커집니다</li>
+    </ul>
+    <p>
+      그럼 <b>무한히 잘게</b> 나누면 <b>무한히 커질까요?</b>
+    </p>
+
+    <div class="panel">
+      <div class="panel-title">③ 무한히 잘게 나눠도 e를 넘지 못한다</div>
+      <div class="canvas-wrap"><canvas id="cv-comp"></canvas></div>
+
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">1년을 몇 번으로 나눌까 (n)</span><span class="val" id="cn-val">4</span></span>
+          <input type="range" id="cn" min="1" max="60" step="1" value="4">
+        </label>
+        <label class="toggle"><input type="checkbox" id="c-cont" checked> 연속 복리 곡선 eˣ 겹쳐 보기</label>
+      </div>
+
+      <div class="readout">
+        <div class="stat accent"><span class="k">나누는 횟수 n</span><span class="v" id="k-n">–</span></div>
+        <div class="stat purple"><span class="k">(1 + 1/n)ⁿ</span><span class="v" id="k-v">–</span></div>
+        <div class="stat pos"><span class="k">e</span><span class="v">2.7182818</span></div>
+        <div class="stat warn"><span class="k">e 와의 차</span><span class="v" id="k-gap">–</span></div>
+      </div>
+      <p class="hint">
+        계단이 잘아질수록 <b>부드러운 <span class="m">eˣ</span> 곡선</b>에 가까워지고,
+        1년 뒤 금액은 <b>e = 2.71828… 로 수렴</b>합니다.
+        <b>무한히 커지지 않습니다.</b>
+      </p>
+    </div>
+
+    <div class="formula">
+      <div class="name">복리에서 나온 e</div>
+      <div class="eq" style="font-size:18px">
+        e = lim<sub>&nbsp;n→∞</sub> ( 1 + 1/n )<sup>n</sup>
+      </div>
+      <ul class="where">
+        <li><span class="sym">왜 유한한가</span><span class="desc">n을 키우면 <b>밑 (1+1/n) 은 1에 가까워지고</b>
+            <b>지수 n 은 커집니다.</b> 두 힘이 <b>정확히 상쇄</b>되어 유한한 값에 멈춥니다</span></li>
+        <li><span class="sym">n = 12</span><span class="desc">2.6130 (월 복리)</span></li>
+        <li><span class="sym">n = 365</span><span class="desc">2.7146 (일 복리)</span></li>
+        <li><span class="sym">n = 8760</span><span class="desc">2.7181 (시간 복리) — <b>여기서 이미 거의 e</b></span></li>
+      </ul>
+    </div>
+
+    <div class="takeaway">
+      <b>두 e가 같은 수라는 것 ·</b>
+      <b>미분에서 출발한 e</b>(접선 기울기가 1이 되는 밑)와
+      <b>복리에서 출발한 e</b>(무한 분할의 극한)가 <b>같은 수</b>입니다.
+      <b>시간을 무한히 쪼개 성장을 누적할 때 도달하는 보편적 극한</b> — 그것이 e의 정체입니다.
+      두 정의가 만나는 것은 우연이 아니라 <b>같은 현상을 두 각도에서 본 것</b>이기 때문입니다.
+    </div>
+
+    <h2 id="s6">6. dy/dx = y 라는 방정식</h2>
+    <p>
+      §3의 문장 <b>"변화율이 자기 크기에 비례한다"</b> 를 식으로 쓰면 이렇습니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">가장 단순한 미분방정식</div>
+      <div class="eq" style="font-size:18px">
+        <span class="frac"><span>dy</span><span>dx</span></span> = k · y
+        &nbsp;⟹&nbsp; y = y<sub>0</sub> · e<sup>kx</sup>
+      </div>
+      <ul class="where">
+        <li><span class="sym">k &gt; 0</span><span class="desc"><b>폭발적 성장</b> — 인구, 복리, 전염병 초기,
+            핵분열 연쇄반응</span></li>
+        <li><span class="sym">k &lt; 0</span><span class="desc"><b>지수적 감쇠</b> — 방사성 붕괴,
+            커피 식기, RC 회로의 방전, 약물 대사</span></li>
+        <li><span class="sym">y<sub>0</sub></span><span class="desc">x=0 일 때의 값(초기값).
+            <span class="m">e<sup>0</sup> = 1</span> 이니까요</span></li>
+        <li><span class="sym">왜 e 뿐인가</span><span class="desc"><b>미분해도 모양이 안 바뀌는 함수</b>가
+            <span class="m">e<sup>kx</sup></span> 뿐이기 때문입니다.
+            그래서 <b>공업수학·제어공학의 응답이 죄다 e 꼴</b>로 나옵니다</span></li>
+      </ul>
+    </div>
+
+    <div class="myth">
+      <div class="bad"><b>⚠ 흔한 오해</b>
+        "<b>e 는 그냥 외우라고 주어진 상수</b>다."</div>
+      <div class="good"><b>아닙니다 — 질문에서 태어난 수입니다</b>
+        e 는 <b>'접선 기울기 상수 c 가 1이 되도록'</b> 우리가 <b>지목한 밑</b>입니다.
+        <br>
+        π 가 <b>'둘레 ÷ 지름'</b> 이라는 질문에서 태어났듯,
+        e 는 <b>'성장률이 자기 자신과 같으려면?'</b> 이라는 질문에서 태어났습니다.
+        <br>
+        <b>정의를 알면 성질(<span class="m">(eˣ)′ = eˣ</span>)은 공짜로 따라옵니다.</b></div>
+    </div>
+
+    <h2 id="s7">7. 파이썬으로 확인하기</h2>
+
+    <div class="pycell" data-packages="numpy" data-title="6-1. x=0 에서의 기울기 c 찾기">
+    import numpy as np
+
+    def c_of(a, h=1e-7):
+        """a^x 의 x=0 에서의 접선 기울기"""
+        return (a**h - a**(-h)) / (2*h)
+
+    print(f"{'밑 a':>10} {'c (x=0 기울기)':>18} {'ln a':>14}")
+    for a in [1.5, 2, 2.5, np.e, 3, 4, 10]:
+        print(f"{a:>10.5f} {c_of(a):>18.8f} {np.log(a):>14.8f}")
+
+    print("\n→ c 와 ln a 가 완전히 같다. c = 1 이 되는 a 가 e = 2.718281828… 이다.")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="6-2. c = 1 인 밑을 직접 찾아보기">
+    # 이분법 — c(a) 는 a 에 대해 증가하므로 1을 사이에 두고 좁혀 나간다
+    lo, hi = 2.0, 3.0
+    for step in range(60):
+        mid = (lo + hi) / 2
+        if c_of(mid) < 1: lo = mid
+        else:             hi = mid
+
+    print(f"c = 1 이 되는 밑 = {mid:.12f}")
+    print(f"참값 e         = {np.e:.12f}")
+    print(f"차             = {abs(mid - np.e):.2e}")
+    print("\n→ '기울기가 1이 되는 밑' 이라는 조건 하나로 e 가 결정된다.")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="6-3. 높이 = 기울기">
+    def 수치미분(f, x, h=1e-6):
+        return (f(x+h) - f(x-h)) / (2*h)
+
+    print(f"{'x':>6} {'eˣ (높이)':>14} {'기울기':>14} {'기울기÷높이':>14}")
+    for x in [-2, -1, 0, 0.5, 1, 2, 3]:
+        높이 = np.exp(x)
+        기울기 = 수치미분(np.exp, x)
+        print(f"{x:>6} {높이:>14.6f} {기울기:>14.6f} {기울기/높이:>14.9f}")
+
+    print("\n→ 어디서든 비가 정확히 1. eˣ 는 '자기 자신을 도함수로 갖는' 유일한 꼴이다.")
+    print("\n2ˣ 와 3ˣ 도 해보면:")
+    for a in [2, 3]:
+        f = lambda x, a=a: a**x
+        비 = [수치미분(f, x)/f(x) for x in [-1, 0, 1, 2]]
+        print(f"  a={a}: 기울기÷높이 = {[round(v,6) for v in 비]}   ln {a} = {np.log(a):.6f}")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="6-4. 복리 — 무한히 나눠도 e 를 못 넘는다">
+    print(f"{'나누는 횟수 n':>16} {'(1+1/n)ⁿ':>18} {'e 와의 차':>14}")
+    for n in [1, 2, 4, 12, 52, 365, 8760, 10**6, 10**8]:
+        v = (1 + 1/n)**n
+        이름 = {1:"연 1회", 2:"반년", 4:"분기", 12:"매월", 52:"매주", 365:"매일", 8760:"매시간"}.get(n, "")
+        print(f"{n:>16,} {v:>18.10f} {np.e - v:>14.2e}  {이름}")
+
+    print(f"\ne = {np.e:.10f}")
+    print("→ 무한히 잘게 나눠도 2.71828… 을 넘지 못한다.")
+    </div>
+
+    <div class="pitfall">
+      <b>n 을 아주 크게 하면 값이 오히려 틀어집니다</b>
+      위 셀에서 <code>n = 10**16</code> 을 넣어보면 <b>1.0 이 나옵니다.</b>
+      수학적으로는 e에 더 가까워져야 하는데도요.
+      <br><br>
+      <span class="m">1 + 1/n</span> 을 계산하는 순간 <b>1e-16 이 1 에 흡수되어</b>
+      <span class="m">1.0</span> 이 되고, <span class="m">1<sup>n</sup> = 1</span> 이 되기 때문입니다.
+      2강의 <b>"컴퓨터의 소수는 무한하지 않다"</b> 가 여기서도 발목을 잡습니다.
+      <b>수학의 극한을 컴퓨터로 그대로 흉내 내려 하면 안 됩니다.</b>
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="6-5. 성장과 감쇠 — dy/dx = ky">
+    import numpy as np
+
+    사례 = [
+        ("연 3% 복리 저축",     0.03,  100,  "만원"),
+        ("세균 (20분마다 2배)", np.log(2)/(20/60), 1, "마리"),
+        ("탄소-14 (반감기 5730년)", -np.log(2)/5730, 100, "%"),
+        ("커피 식기 (τ=15분)",  -1/15, 80,   "℃ 초과분"),
+    ]
+
+    for 이름, k, y0, 단위 in 사례:
+        print(f"{이름}   (k = {k:+.6f})")
+        for t in [0, 1, 5, 10]:
+            print(f"    t={t:>3} : {y0*np.exp(k*t):>12.5f} {단위}")
+        print()
+
+    print("→ k>0 이면 폭발적 성장, k<0 이면 지수적 감쇠. 둘 다 같은 식이다.")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="6-6. 연습문제">
+    # 문제 1. (2ˣ)′ 을 x=3 에서 수치로 구하고, 2ˣ·ln 2 와 비교하세요.
+
+    # 문제 2. 반감기가 5730년인 탄소-14 가 절반이 되는 데 걸리는 시간을
+    #         y = y0·e^(kt) 에서 직접 풀어 확인하세요. (힌트: e^(kt) = 0.5)
+
+    # 문제 3. (1 + 2/n)ⁿ 은 n→∞ 에서 무엇으로 갈까요? 수치로 확인하고
+    #         왜 그런지 설명해보세요.
+
+    # 아래에 직접 써보세요
+    </div>
+
+    <details style="margin:18px 0">
+      <summary style="cursor:pointer;font-weight:600;color:var(--accent)">모범 답안 보기</summary>
+      <div class="pycell" data-packages="numpy" data-title="모범 답안">
+      import numpy as np
+      수치 = lambda f, x: (f(x+1e-6) - f(x-1e-6)) / 2e-6
+
+      # 문제 1
+      f = lambda x: 2**x
+      print(f"문제 1: 수치 {수치(f, 3.0):.8f}   2³·ln2 = {2**3*np.log(2):.8f}\n")
+
+      # 문제 2 — t = ln(0.5)/k = 반감기
+      k = -np.log(2)/5730
+      t = np.log(0.5)/k
+      print(f"문제 2: 절반이 되는 시간 = {t:.2f} 년   ← 정의한 반감기 그대로\n")
+
+      # 문제 3 — e²
+      print("문제 3:")
+      for n in [10, 100, 10**4, 10**6]:
+          print(f"  n={n:>8,} : (1+2/n)ⁿ = {(1+2/n)**n:.8f}")
+      print(f"  e² = {np.e**2:.8f}")
+      print("  이유: (1+2/n)ⁿ = [(1+2/n)^(n/2)]² 이고, m=n/2 로 두면 [(1+1/m)^m]² → e²")
+      </div>
+    </details>
+
+    <div class="practice">
+      <b>e 가 실제로 나타나는 곳</b>
+      <ul>
+        <li><b>RC 회로</b> — 커패시터 전압이 <span class="m">V(1 − e<sup>−t/RC</sup>)</span> 로 찹니다.
+            <b>시정수 τ = RC</b> 가 곧 지수의 분모죠.</li>
+        <li><b>제어공학</b> — 1차 시스템의 계단응답, 2차 시스템의 감쇠 진동이
+            전부 <span class="m">e<sup>−ζωt</sup></span> 꼴입니다.</li>
+        <li><b>기계학습</b> — 시그모이드 <span class="m">1/(1+e<sup>−x</sup>)</span>,
+            소프트맥스, 학습률의 지수 감쇠.</li>
+        <li><b>통계</b> — 정규분포의 심장이 <span class="m">e<sup>−x²/2</sup></span>,
+            포아송·지수분포도 마찬가지입니다.</li>
+        <li><b>금융</b> — 연속 복리 할인 <span class="m">e<sup>−rt</sup></span>,
+            블랙-숄즈 공식.</li>
+      </ul>
+    </div>
+
+    <div class="summary">
+      <h3>✎ 스스로 점검</h3>
+      <ul>
+        <li><b>15.</b> <span class="m">(aˣ)′ = aˣ·c</span> 에서 <b>c 의 기하학적 의미</b>는?
+            <span style="color:var(--text-dim)">(§2)</span></li>
+        <li><b>16.</b> e 는 <b>어떤 조건으로 '정의'되는</b> 수인가요?
+            <span style="color:var(--text-dim)">(§3)</span></li>
+        <li><b>17.</b> 이자를 무한히 잘게 나누면 금액이 무한히 커지지 않는 이유를 설명해 보세요.
+            <span style="color:var(--text-dim)">(§5)</span></li>
+      </ul>
+    </div>
+
+    <div class="summary">
+      <h3>6강 요약</h3>
+      <ul>
+        <li>지수함수는 <b>곱셈으로 자랍니다.</b> 그래서 <b>변화율이 지금 값에 비례</b>합니다.</li>
+        <li><b><span class="m">(aˣ)′ = aˣ · c</span></b> — 모든 지수함수의 도함수는 <b>자기 자신의 상수배</b>.
+            그 c 는 <b>x=0 에서의 접선 기울기</b>입니다.</li>
+        <li><b>e 는 c = 1 이 되도록 지목한 밑</b>입니다. 그 결과
+            <b><span class="m">(eˣ)′ = eˣ</span></b> — <b>높이가 곧 기울기</b>.</li>
+        <li><b><span class="m">c = ln a</span></b> 였습니다.
+            <span class="m">aˣ = e<sup>x ln a</sup></span> 이므로
+            <b>특별한 건 <span class="m">eˣ</span> 하나</b>뿐입니다.</li>
+        <li>복리를 무한히 잘게 나눈 극한 <span class="m">(1+1/n)ⁿ</span> 도 <b>같은 e</b> 에 도착합니다.</li>
+        <li><b><span class="m">dy/dx = ky ⟹ y = y₀e<sup>kx</sup></span></b> —
+            성장과 감쇠가 전부 이 한 식입니다.</li>
+        <li>e 는 외울 상수가 아니라 <b>질문의 답</b>입니다.</li>
+      </ul>
+    </div>
+
+    <div class="colab-cta">
+      <div class="colab-text">
+        <b>더 자유롭게 실험하고 싶다면</b><br>
+        이 강의의 실습만 모은 노트북을 Colab에서 열 수 있습니다.
+      </div>
+      <a class="btn" id="colab-link" href="#" target="_blank" rel="noopener">Colab에서 열기</a>
+    </div>
+
+    <p class="next-up">
+      다음 → <b>7강 · 음함수 미분 — 제약 속의 변화율</b><br>
+      지금까지는 <span class="m">y = f(x)</span> 처럼 <b>x를 넣으면 y가 바로 나오는</b> 함수만 다뤘습니다.
+      그런데 원의 방정식 <span class="m">x² + y² = 25</span> 는 y로 풀면 지저분해지고,
+      <span class="m">y = sin(x+y)</span> 같은 건 <b>아예 못 풉니다.</b>
+      그래도 <b>접선 기울기는 알고 싶죠.</b>
+    </p>
+
+  </section>
+
+</div>
+
+<script src="../assets/viz.js?v=312b9476b0"></script>
+<script src="../assets/calc.js?v=c1137a5076"></script>
+<script src="../assets/pylab.js?v=cb27f20364"></script>
+<script src="../assets/pycell.js?v=6dacc4c6ce"></script>
+<script>
+(function () {
+  'use strict';
+  var num = CA.num, F = CA.F;
+  var E = Math.E;
+
+  /* =======================================================
+     패널 ① c = 1 이 되는 밑 찾기
+     ======================================================= */
+  var ba = 2;
+
+  var gBase = new CA.Graph(document.getElementById('cv-base'), {
+    xDomain: [-2.2, 2.2], yDomain: [-0.6, 4.2],
+    height: function (w) { return Math.round(Math.max(250, Math.min(340, w * 0.46))); },
+    margin: { top: 20, right: 20, bottom: 40, left: 46 }
+  });
+
+  function drawBase() {
+    gBase.begin();
+    gBase.axes({ xStep: 0.5, yStep: 1, xLabel: 'x →' });
+
+    var lnA = Math.log(ba);
+
+    /* 기준선 — 기울기 1 (45°가 아니라, 축 배율이 달라도 '기울기 1' 인 직선) */
+    gBase.lineAt(0, 1, 1, { color: V.css('--text-dim'), width: 6, alpha: 0.3 });
+
+    /* 비교용 밑들 */
+    gBase.curve(function (x) { return Math.pow(2, x); }, {
+      color: V.css('--text-dim'), width: 1.4, alpha: 0.45, dash: [5, 4]
+    });
+    gBase.curve(function (x) { return Math.pow(3, x); }, {
+      color: V.css('--text-dim'), width: 1.4, alpha: 0.45, dash: [5, 4]
+    });
+
+    /* 지금 고른 밑 */
+    gBase.curve(function (x) { return Math.pow(ba, x); }, { color: V.css('--accent'), width: 2.8 });
+    gBase.lineAt(0, 1, lnA, { color: V.css('--purple'), width: 2.4 });
+    gBase.dot(0, 1, { r: 5.5, color: V.css('--accent'), stroke: V.css('--surface'), strokeWidth: 2 });
+
+    gBase.text(1.55, Math.pow(2, 1.55), '2ˣ', {
+      color: V.css('--text-dim'), size: 12, dy: -6, bg: V.css('--surface')
+    });
+    gBase.text(1.2, Math.pow(3, 1.2), '3ˣ', {
+      color: V.css('--text-dim'), size: 12, dy: -6, bg: V.css('--surface')
+    });
+
+    gBase.legend([
+      { color: V.css('--accent'), text: 'aˣ  (a = ' + num(ba, 3) + ')' },
+      { color: V.css('--purple'), text: 'x=0 에서의 접선  (기울기 c)' },
+      { color: V.css('--text-dim'), text: '기울기 1 인 기준선' }
+    ]);
+
+    var gap = lnA - 1;
+    V.setText('#b-a', num(ba, 4));
+    V.setText('#b-c', num(lnA, 5));
+    V.setText('#b-gap', (gap >= 0 ? '+' : '') + num(gap, 5));
+    V.setText('#b-ok',
+      Math.abs(gap) < 5e-4 ? '여기! a = e' :
+      (gap < 0 ? '완만함 — a 를 키우세요' : '가파름 — a 를 줄이세요'));
+  }
+
+  var rBa = V.range('ba', function (v) { ba = v; drawBase(); }, function (v) { return num(v, 3); });
+  V.click('snap-e', function () { rBa.set(Math.round(E * 1000) / 1000); });
+
+  /* =======================================================
+     패널 ② 높이가 곧 기울기
+     ======================================================= */
+  var ex = 1, eb = 'e';
+  var EB = { e: E, '2': 2, '3': 3 };
+
+  var gExp = new CA.Graph(document.getElementById('cv-exp'), {
+    xDomain: [-2, 2.4], yDomain: [-1.2, 8],
+    height: function (w) { return Math.round(Math.max(250, Math.min(340, w * 0.46))); },
+    margin: { top: 20, right: 20, bottom: 40, left: 46 }
+  });
+
+  function drawExp() {
+    var a = EB[eb], lnA = Math.log(a);
+    function f(x) { return Math.pow(a, x); }
+    var y = f(ex), s = y * lnA;
+
+    gExp.begin();
+    gExp.axes({ xStep: 0.5, yStep: 2, xLabel: 'x →' });
+    gExp.curve(f, { color: V.css('--accent'), width: 2.8 });
+
+    /* 높이 막대 */
+    gExp.segment(ex, 0, ex, y, { color: V.css('--pos'), width: 5 });
+    gExp.text(ex, y / 2, '높이 ' + num(y, 3), {
+      color: V.css('--pos'), dx: -8, align: 'right', baseline: 'middle', size: 12, bg: V.css('--surface')
+    });
+
+    /* 접선 + 기울기 삼각형 (밑변 1 이면 높이가 곧 기울기) */
+    gExp.lineAt(ex, y, s, { color: V.css('--purple'), width: 2.4, span: 1.3 });
+    gExp.slopeTriangle(ex, y, 1, s, {
+      color: V.css('--purple'), dxLabel: '1', dyLabel: '↑ ' + num(s, 3)
+    });
+    gExp.dot(ex, y, { r: 5.5, color: V.css('--accent'), stroke: V.css('--surface'), strokeWidth: 2 });
+
+    gExp.legend([
+      { color: V.css('--accent'), text: (eb === 'e' ? 'eˣ' : eb + 'ˣ') },
+      { color: V.css('--pos'), text: '높이 f(x)' },
+      { color: V.css('--purple'), text: '접선 — 밑변 1 일 때 올라간 높이 = 기울기' }
+    ]);
+
+    V.setText('#e-h', num(y, 5));
+    V.setText('#e-s', num(s, 5));
+    V.setText('#e-r', num(s / y, 6));
+    V.setText('#e-ln', num(lnA, 6));
+  }
+
+  V.range('ex', function (v) { ex = v; drawExp(); }, function (v) { return num(v, 2); });
+  V.radios('eb', function (v) { eb = v; drawExp(); });
+
+  /* =======================================================
+     패널 ③ 복리
+     ======================================================= */
+  var cn = 4, showCont = true;
+
+  var gComp = new CA.Graph(document.getElementById('cv-comp'), {
+    xDomain: [-0.03, 1.06], yDomain: [0.9, 2.95],
+    height: function (w) { return Math.round(Math.max(240, Math.min(320, w * 0.45))); },
+    margin: { top: 20, right: 24, bottom: 40, left: 50 }
+  });
+
+  function drawComp() {
+    gComp.begin();
+    gComp.axes({
+      xStep: 0.25, yStep: 0.5,
+      xLabel: '시간 (년) →',
+      xFormat: function (v) { return num(v, 2); }
+    });
+
+    /* 연속 복리 곡선 */
+    if (showCont) {
+      gComp.curve(Math.exp, { color: V.css('--pos'), width: 2.4, alpha: 0.85 });
+      gComp.text(0.72, Math.exp(0.72), 'eˣ — 연속 복리', {
+        color: V.css('--pos'), dy: -9, size: 12, bg: V.css('--surface')
+      });
+    }
+
+    /* n 번 나눠 주는 계단 */
+    var pts = [], i, amt = 1;
+    for (i = 0; i <= cn; i++) {
+      pts.push([i / cn, amt]);
+      if (i < cn) { pts.push([(i + 1) / cn, amt]); amt *= (1 + 1 / cn); }
+    }
+    gComp.plot.path(pts, { color: V.css('--accent'), width: 2.4 });
+    for (i = 0; i <= cn; i++) {
+      if (cn <= 24) gComp.dot(i / cn, Math.pow(1 + 1 / cn, i), { r: 3.4, color: V.css('--accent') });
+    }
+
+    var v = Math.pow(1 + 1 / cn, cn);
+    gComp.hline(v, { color: V.css('--accent'), dash: [5, 4], width: 1.3 });
+    gComp.hline(E, { color: V.css('--pos'), dash: [5, 4], width: 1.3 });
+    gComp.dot(1, v, { r: 5.5, color: V.css('--accent'), stroke: V.css('--surface'), strokeWidth: 2 });
+    gComp.text(1, v, num(v, 5), {
+      color: V.css('--accent'), dx: -6, dy: -9, align: 'right', size: 12, bg: V.css('--surface')
+    });
+    gComp.text(0.06, E, 'e = 2.71828', {
+      color: V.css('--pos'), align: 'left', dy: -7, size: 12, bg: V.css('--surface')
+    });
+
+    V.setText('#k-n', String(cn) + (cn === 1 ? '회 (연 1회)' : (cn === 12 ? '회 (매월)' : (cn === 52 ? '회 (매주)' : '회'))));
+    V.setText('#k-v', v.toFixed(7));
+    V.setText('#k-gap', (E - v).toFixed(7));
+  }
+
+  V.range('cn', function (v) { cn = v; drawComp(); });
+  V.check('c-cont', function (v) { showCont = v; drawComp(); });
+
+  V.onRedraw(function () { drawBase(); drawExp(); drawComp(); });
+  drawBase(); drawExp(); drawComp();
+
+  var a = document.getElementById('colab-link');
+  if (a) a.href = 'https://colab.research.google.com/github/mioon1402/timeseriesdata/blob/main/notebooks/C06-euler-e.ipynb';
+})();
+</script>
+</body>
+</html>

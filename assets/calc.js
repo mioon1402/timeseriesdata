@@ -75,14 +75,40 @@
   }
 
   /* ---------------------------------------------------------
-     2. Graph — 함수 그래프판
+     2. Frame — 캔버스 하나를 여러 그래프가 나눠 쓸 때
+        Graph.begin() 은 매번 캔버스를 지운다. 위아래로 두 그래프를
+        겹쳐 그리려면 지우는 일을 한 번만 해야 하므로, 그 역할을
+        Frame 이 맡는다.
+
+          var fr = new CA.Frame(cv, function (w) { return 380; });
+          var gA = new CA.Graph(cv, { frame: fr, margin: {...} });
+          var gB = new CA.Graph(cv, { frame: fr, margin: {...} });
+          fr.begin(); gA.begin() ... ; gB.begin() ... ;
+     --------------------------------------------------------- */
+  function Frame(canvas, height) {
+    this.canvas = canvas;
+    this.height = height || 300;
+    this.ctx = canvas.getContext('2d');
+    this.w = 0; this.h = 0;
+  }
+
+  Frame.prototype.begin = function () {
+    var f = V.fitCanvas(this.canvas, this.height);
+    this.ctx = f.ctx; this.w = f.w; this.h = f.h;
+    return this;
+  };
+
+  /* ---------------------------------------------------------
+     3. Graph — 함수 그래프판
      --------------------------------------------------------- */
   function Graph(canvas, opts) {
     opts = opts || {};
     this.canvas = canvas;
+    this.frame = opts.frame || null;
     this.xDomain = (opts.xDomain || [-1, 1]).slice();
     this.yDomain = (opts.yDomain || [-1, 1]).slice();
-    this.equal = !!opts.equal;          // 등축(각도가 의미를 가질 때)
+    // 등축(각도가 의미를 가질 때). true = 짧은 쪽에 맞춤, 'x' = x 범위를 그대로 지킴
+    this.equal = opts.equal || false;
     this.plot = new V.Plot(canvas, {
       height: opts.height || function (w) { return Math.round(Math.max(240, Math.min(380, w * 0.62))); },
       margin: Object.assign({ top: 22, right: 20, bottom: 34, left: 46 }, opts.margin || {}),
@@ -96,15 +122,29 @@
     var p = this.plot;
     p.xDomain = this.xDomain.slice();
     p.yDomain = this.yDomain.slice();
-    p.begin();
+    if (this.frame) {
+      // 캔버스 크기 조정과 지우기는 Frame 이 이미 했다
+      p.ctx = this.frame.ctx;
+      p.w = this.frame.w; p.h = this.frame.h;
+      p.pw = p.w - p.margin.left - p.margin.right;
+      p.ph = p.h - p.margin.top - p.margin.bottom;
+    } else {
+      p.begin();
+    }
     if (this.equal) {
-      // 픽셀당 단위를 두 축에서 같게. 짧은 쪽 기준으로 긴 쪽을 넓힌다.
-      var sx = p.pw / (p.xDomain[1] - p.xDomain[0]);
-      var sy = p.ph / (p.yDomain[1] - p.yDomain[0]);
-      var s = Math.min(sx, sy);
       var cx = (p.xDomain[0] + p.xDomain[1]) / 2;
       var cy = (p.yDomain[0] + p.yDomain[1]) / 2;
-      p.xDomain = [cx - p.pw / (2 * s), cx + p.pw / (2 * s)];
+      var s;
+      if (this.equal === 'x') {
+        // x 범위를 그대로 지키고 y 를 맞춘다.
+        // "지금 보이는 가로 폭"이 곧 화면에 쓴 숫자여야 할 때 쓴다.
+        s = p.pw / (p.xDomain[1] - p.xDomain[0]);
+      } else {
+        // 픽셀당 단위를 두 축에서 같게. 짧은 쪽 기준으로 긴 쪽을 넓힌다.
+        s = Math.min(p.pw / (p.xDomain[1] - p.xDomain[0]),
+                     p.ph / (p.yDomain[1] - p.yDomain[0]));
+        p.xDomain = [cx - p.pw / (2 * s), cx + p.pw / (2 * s)];
+      }
       p.yDomain = [cy - p.ph / (2 * s), cy + p.ph / (2 * s)];
     }
     this.ctx = p.ctx;
@@ -546,17 +586,26 @@
     return this;
   };
 
-  /** 캔버스 위 픽셀 좌표로 범례를 얹는다. items = [{color, text, dash}] */
+  /**
+   * 캔버스 위 픽셀 좌표로 범례를 얹는다. items = [{color, text, dash}]
+   * o.corner = 'tl' | 'tr' | 'bl' | 'br' 로 네 귀퉁이에 붙일 수 있다.
+   */
   Graph.prototype.legend = function (items, o) {
     o = o || {};
     var p = this.plot, c = this.ctx;
-    var x = o.x === undefined ? p.margin.left + 8 : o.x;
-    var y = o.y === undefined ? p.margin.top + 6 : o.y;
     c.save();
     c.font = '11.5px ' + FONT;
     var wMax = 0;
     items.forEach(function (it) { wMax = Math.max(wMax, c.measureText(it.text).width); });
     var boxW = wMax + 34, boxH = items.length * 17 + 10;
+
+    var x = o.x, y = o.y;
+    if (x === undefined || y === undefined) {
+      var cn = o.corner || 'tl';
+      var pad = 8;
+      x = (cn === 'tr' || cn === 'br') ? p.margin.left + p.pw - boxW - pad : p.margin.left + pad;
+      y = (cn === 'bl' || cn === 'br') ? p.margin.top + p.ph - boxH - pad : p.margin.top + pad;
+    }
     c.globalAlpha = 0.92;
     c.fillStyle = css('--surface');
     c.fillRect(x, y, boxW, boxH);
@@ -623,9 +672,9 @@
     return { isDragging: function () { return active; } };
   }
 
-  /* 격자 간격을 사람이 읽기 좋은 값으로 */
-  function niceStep(span) {
-    var raw = span / 8;
+  /* 격자 간격을 사람이 읽기 좋은 값으로. count = 대략 몇 칸으로 나눌지 */
+  function niceStep(span, count) {
+    var raw = span / (count || 8);
     var mag = Math.pow(10, Math.floor(Math.log10(raw)));
     var n = raw / mag;
     var mult = n >= 5 ? 5 : n >= 2 ? 2 : 1;
@@ -633,6 +682,7 @@
   }
 
   global.CA = {
+    Frame: Frame,
     Graph: Graph,
     dragX: dragX,
     F: F,

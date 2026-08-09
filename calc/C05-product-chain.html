@@ -1,0 +1,829 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>곱의 미분법과 연쇄법칙 · 미적분의 직관</title>
+<meta name="description" content="직사각형이 커질 때 붙는 두 개의 띠, 그리고 도미노처럼 이어지는 변화의 기어비. 결합된 함수의 미분을 그림으로 봅니다.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%E2%88%AB%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css?v=b7dfb076b2">
+<link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">미적분 5강 · 곱의 미분법과 연쇄법칙</p>
+    <h1>곱의 미분법과 연쇄법칙</h1>
+    <p class="lede">
+      실제 세계의 양들은 <b>혼자 변하지 않습니다.</b>
+      <b>총수입 = 가격 × 판매량</b> 처럼 두 양의 <b>곱</b>이거나,
+      <b>기온 → 에너지소비 → 전기요금</b> 처럼 변화가 <b>사슬</b>로 이어집니다.
+      결합된 함수의 변화를 다루는 <b>두 규칙</b>을 그림으로 이해합시다.
+    </p>
+  </header>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 강의에서 배우는 것</b>
+      <ol>
+        <li><a href="#s0">기초 다지기 — 왜 그냥 곱하면 안 되나</a></li>
+        <li><a href="#s1">곱의 미분법 — 팽창하는 직사각형의 해부</a></li>
+        <li><a href="#s2">따름정리 — 상수배와 합</a></li>
+        <li><a href="#s3">연쇄법칙 — 변화의 도미노</a></li>
+        <li><a href="#s4">기어비로 보는 연쇄법칙</a></li>
+        <li><a href="#s5">실전: 두 규칙을 함께 쓰기</a></li>
+        <li><a href="#s6">몫의 미분법 (보너스)</a></li>
+        <li><a href="#s7">파이썬으로 확인하기</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s0">0. 기초 다지기 — 왜 그냥 곱하면 안 되나</h2>
+    <p>
+      가장 먼저 짚어야 할 것.
+      많은 사람이 <b><span class="m">(g·h)′ = g′·h′</span></b> 이라고 착각합니다.
+      <b>틀렸습니다.</b> 왜 틀렸는지 <b>숫자 하나</b>로 확인해 봅시다.
+    </p>
+
+    <div class="myth">
+      <div class="bad"><b>⚠ 가장 흔한 실수</b>
+        <span class="m">(x · x)′ = (x)′ · (x)′ = 1 · 1 = <b>1</b></span> ?</div>
+      <div class="good"><b>x · x = x² 이고, <span class="m">(x²)′ = 2x</span> 입니다</b>
+        x=3 이면 답은 <b>6</b> 인데 위 계산은 <b>1</b> 을 줍니다. 완전히 틀렸죠.
+        <br>
+        <b>미분은 곱셈을 그대로 통과하지 않습니다.</b>
+        4강의 정사각형 그림을 떠올려 보세요 — 넓이가 늘 때는
+        <b>가로 쪽 띠와 세로 쪽 띠가 각각</b> 기여했습니다.
+        <b>두 기여를 더해야</b> 합니다.</div>
+    </div>
+
+    <h2 id="s1">1. 곱의 미분법 — 팽창하는 직사각형의 해부</h2>
+    <p>
+      <span class="m">f = g · h</span> 를 <b>가로 g, 세로 h 인 직사각형의 넓이</b>로 봅시다.
+      입력 x가 <span class="m">dx</span> 만큼 변하면 g는 <span class="m">dg</span>,
+      h는 <span class="m">dh</span> 만큼 변합니다.
+    </p>
+    <p>
+      새 넓이 <span class="m">(g+dg)(h+dh)</span> 를 전개하면 원래 넓이 <span class="m">g·h</span> 에
+      <b>세 조각</b>이 더해집니다 — 4강의 정사각형과 <b>완전히 같은 그림</b>인데,
+      이번엔 <b>가로와 세로가 서로 다른 비율로</b> 늘어날 뿐입니다.
+    </p>
+
+    <div class="panel">
+      <div class="panel-title">① 가로와 세로가 함께 늘어나는 직사각형</div>
+      <div class="board" style="max-width:400px"><div class="canvas-wrap"><canvas id="cv-prod"></canvas></div></div>
+
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">x</span><span class="val" id="px-val">1</span></span>
+          <input type="range" id="px" min="0.1" max="2" step="0.01" value="1">
+        </label>
+        <label class="ctrl">
+          <span class="label-row"><span class="name">변화폭 dx</span><span class="val" id="pd-val">0.5</span></span>
+          <input type="range" id="pd" min="0.01" max="0.8" step="0.01" value="0.5">
+        </label>
+      </div>
+
+      <div class="readout">
+        <div class="stat accent"><span class="k">가로 g(x)</span><span class="v" id="p-g">–</span></div>
+        <div class="stat accent"><span class="k">세로 h(x)</span><span class="v" id="p-h">–</span></div>
+        <div class="stat pos"><span class="k">오른쪽 띠 h·dg</span><span class="v" id="p-b1">–</span></div>
+        <div class="stat purple"><span class="k">위쪽 띠 g·dh</span><span class="v" id="p-b2">–</span></div>
+        <div class="stat neg"><span class="k">모서리 dg·dh</span><span class="v" id="p-cor">–</span></div>
+        <div class="stat warn"><span class="k">변화율</span><span class="v" id="p-rate">–</span></div>
+        <div class="stat"><span class="k">g′h + gh′</span><span class="v" id="p-form">–</span></div>
+      </div>
+      <p class="hint">
+        <span class="m">g(x) = x² + 1</span>, <span class="m">h(x) = sin x + 2</span> 입니다.
+        <b>dx 를 왼쪽 끝까지 밀어보세요</b> — 빨간 모서리가 사라지고
+        변화율이 <span class="m">g′h + gh′</span> 에 붙습니다.
+      </p>
+    </div>
+
+    <div class="formula">
+      <div class="name">곱의 미분법 (Product Rule)</div>
+      <div class="eq" style="font-size:19px">
+        ( g · h )′ = <b>g′·h + g·h′</b>
+      </div>
+      <ul class="where">
+        <li><span class="sym">g′·h</span><span class="desc"><b>오른쪽 세로 띠</b>.
+            가로가 늘어난 만큼(dg) × 원래 세로(h)</span></li>
+        <li><span class="sym">g·h′</span><span class="desc"><b>위쪽 가로 띠</b>.
+            원래 가로(g) × 세로가 늘어난 만큼(dh)</span></li>
+        <li><span class="sym">dg·dh</span><span class="desc"><b>모서리 조각</b>.
+            <b>두 번 작은 것</b>이라 사라집니다(4강)</span></li>
+        <li><span class="sym">외우는 말</span><span class="desc">"<b>한쪽 그대로 × 다른 쪽 미분</b>,
+            서로 바꿔 한 번씩"</span></li>
+        <li><span class="sym">왜 대칭인가</span><span class="desc">그림에서 <b>가로와 세로가 대등</b>하기 때문입니다.
+            누가 g이고 누가 h인지는 아무 상관 없죠</span></li>
+      </ul>
+    </div>
+
+    <h2 id="s2">2. 따름정리 — 상수배와 합</h2>
+    <p>
+      곱의 법칙 하나에서 <b>두 가지가 공짜로</b> 나옵니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">상수배와 합</div>
+      <div class="eq" style="font-size:16px;line-height:2.3">
+        ( c · g )′ = c · g′
+        &nbsp;&nbsp;·&nbsp;&nbsp;
+        ( g + h )′ = g′ + h′
+      </div>
+      <ul class="where">
+        <li><span class="sym">상수배</span><span class="desc">c는 <b>변하지 않으니</b> c′ = 0.
+            곱의 법칙에 넣으면 <span class="m">0·g + c·g′ = c·g′</span></span></li>
+        <li><span class="sym">그림으로</span><span class="desc">세로가 <b>고정된</b> 직사각형이라면
+            <b>위쪽 띠가 아예 안 생깁니다.</b> 오른쪽 띠만 남죠</span></li>
+        <li><span class="sym">합</span><span class="desc">두 넓이를 <b>따로 계산해 더하는</b> 것이므로
+            변화도 따로 더하면 됩니다. 당연하죠</span></li>
+        <li><span class="sym">쓸모</span><span class="desc">이 둘 덕분에
+            <span class="m">(3x⁵ − 7x² + 4)′ = 15x⁴ − 14x</span> 처럼
+            <b>다항식은 항별로</b> 미분하면 끝납니다</span></li>
+      </ul>
+    </div>
+
+    <h2 id="s3">3. 연쇄법칙 — 변화의 도미노</h2>
+    <p>
+      <span class="m">f = h(g(x))</span> 처럼 <b>함수 속에 함수</b>가 들어 있으면?
+      x가 변하면 <b>먼저 g가 변하고</b>, 변한 g가 <b>h의 입력으로 들어가</b> f를 변화시킵니다.
+      <b>도미노</b>죠.
+    </p>
+    <p>
+      아래는 <b>세 개의 수직선</b>입니다.
+      맨 위 <span class="m">x</span> 를 조금 움직이면 그 변화가 <span class="m">u = g(x)</span> 로,
+      다시 <span class="m">f = h(u)</span> 로 <b>전달되면서 확대되거나 축소</b>됩니다.
+    </p>
+
+    <div class="panel">
+      <div class="panel-title">② 변화가 사슬을 타고 전달된다</div>
+      <div class="canvas-wrap"><canvas id="cv-chain"></canvas></div>
+
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">x 의 위치</span><span class="val" id="cx-val">1.1</span></span>
+          <input type="range" id="cx" min="0.3" max="1.7" step="0.01" value="1.1">
+        </label>
+        <label class="ctrl">
+          <span class="label-row"><span class="name">x 를 얼마나 밀까 (dx)</span><span class="val" id="cdx-val">0.2</span></span>
+          <input type="range" id="cdx" min="0.01" max="0.35" step="0.005" value="0.2">
+        </label>
+      </div>
+
+      <div class="seg" role="group" aria-label="사슬 선택" style="margin-top:10px">
+        <label><input type="radio" name="ch" value="sincube" checked><span>sin(x³)</span></label>
+        <label><input type="radio" name="ch" value="sqsin"><span>(sin x)²</span></label>
+        <label><input type="radio" name="ch" value="expsq"><span>e^(x²)</span></label>
+      </div>
+
+      <div class="readout">
+        <div class="stat accent"><span class="k">dx</span><span class="v" id="k-dx">–</span></div>
+        <div class="stat purple"><span class="k">du = g′·dx</span><span class="v" id="k-du">–</span></div>
+        <div class="stat pos"><span class="k">df = h′·du</span><span class="v" id="k-df">–</span></div>
+        <div class="stat"><span class="k">안쪽 기어비 g′</span><span class="v" id="k-gp">–</span></div>
+        <div class="stat"><span class="k">바깥 기어비 h′</span><span class="v" id="k-hp">–</span></div>
+        <div class="stat warn"><span class="k">전체 기어비 h′·g′</span><span class="v" id="k-tot">–</span></div>
+      </div>
+      <p class="hint">
+        보라색 화살표(du)와 초록 화살표(df)의 <b>길이 비</b>를 보세요.
+        <b>x 위치를 옮기면 기어비가 달라집니다.</b>
+        어떤 지점에서는 <b>확대</b>되고, 어떤 지점에서는 <b>축소</b>되거나 <b>뒤집힙니다.</b>
+      </p>
+    </div>
+
+    <div class="formula">
+      <div class="name">연쇄법칙 (Chain Rule)</div>
+      <div class="eq" style="font-size:18px">
+        [ h( g(x) ) ]′ = <b>h′( g(x) ) · g′(x)</b>
+      </div>
+      <ul class="where">
+        <li><span class="sym">읽는 말</span><span class="desc">"<b>바깥 미분(안은 그대로) × 안 미분</b>"</span></li>
+        <li><span class="sym">h′(g(x))</span><span class="desc">주의 — h′ 을 <b>x가 아니라 g(x)에서</b> 계산합니다.
+            h가 받는 입력이 x가 아니라 <b>u = g(x)</b> 니까요</span></li>
+        <li><span class="sym">라이프니츠 표기</span><span class="desc">
+            <span class="frac"><span>dy</span><span>dx</span></span> =
+            <span class="frac"><span>dy</span><span>du</span></span> ·
+            <span class="frac"><span>du</span><span>dx</span></span> —
+            <b>du 가 약분되는 것처럼</b> 보입니다. 눈속임이 아니라 <b>실제로 정당</b>합니다(12강)</span></li>
+      </ul>
+    </div>
+
+    <h2 id="s4">4. 기어비로 보는 연쇄법칙</h2>
+    <p>
+      직관은 <b>'민감도의 곱'</b> 또는 <b>'기어비'</b> 입니다.
+      첫 톱니가 x보다 <span class="m">g′</span> 배 빠르게 돌고,
+      둘째 톱니가 다시 <span class="m">h′</span> 배 빠르게 돌면,
+      전체는 <span class="m">g′ × h′</span> 배입니다.
+    </p>
+
+    <div class="callout">
+      <b>일상의 예로</b><br>
+      <b>기온이 1도 오르면 → 에어컨 전력 사용량이 40kWh 늘고 → 전기요금이 kWh당 120원 오른다.</b>
+      <br>
+      그럼 기온 1도당 요금은? <b>40 × 120 = 4,800원</b> 입니다.
+      <b>두 민감도를 곱했죠.</b> 이게 연쇄법칙의 전부입니다.
+      <br><br>
+      단위를 보면 더 명확합니다 —
+      <span class="m">(kWh/도) × (원/kWh) = (원/도)</span>.
+      <b>kWh 가 약분됩니다.</b>
+      라이프니츠 표기의 <span class="m">du</span> 약분이 바로 이 <b>단위 약분</b>입니다.
+    </div>
+
+    <div class="pitfall">
+      <b>안쪽 미분을 빼먹는 것이 가장 흔한 실수입니다</b>
+      <span class="m">(sin(3x))′</span> 을 <span class="m">cos(3x)</span> 라고 쓰면 <b>틀립니다.</b>
+      정답은 <span class="m">cos(3x) · 3 = 3cos(3x)</span> 입니다.
+      <br><br>
+      확인법: <b>안쪽이 3배 빠르게 도니까 전체도 3배 빨라야</b> 합니다.
+      <span class="m">sin(3x)</span> 는 <span class="m">sin x</span> 보다
+      <b>3배 촘촘하게 진동</b>하죠. 그러면 기울기도 <b>3배 가팔라야</b> 합니다.
+      그림을 떠올리면 안 틀립니다.
+    </div>
+
+    <h2 id="s5">5. 실전: 두 규칙을 함께 쓰기</h2>
+    <p>
+      <span class="m">f(x) = x² · sin(x³)</span> 을 미분해 봅시다.
+      <b>구조를 먼저 봅니다</b> — 큰 틀은 <b>곱</b>(<span class="m">x²</span> 곱하기
+      <span class="m">sin(x³)</span>)이고, 뒤 인수 안에 <b>연쇄</b>(<span class="m">x³</span>이 sin 안에)가 들어 있습니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">구조 → 분해 → 조립</div>
+      <div class="eq" style="font-size:14.5px;line-height:2.5;text-align:left;padding-left:8px">
+        ① <b>곱의 법칙</b>: f′ = (x²)′·sin(x³) + x²·(sin(x³))′
+        = 2x·sin(x³) + x²·(sin(x³))′<br>
+        ② <b>연쇄법칙</b>: (sin(x³))′ = cos(x³)·(x³)′ = cos(x³)·3x²<br>
+        ③ <b>조립</b>: &nbsp; <b>f′(x) = 2x·sin(x³) + 3x⁴·cos(x³)</b>
+      </div>
+      <ul class="where">
+        <li><span class="sym">기술의 전부</span><span class="desc"><b>구조를 분해하고, 각 부분에 맞는 규칙을 적용하고, 결과를 조립한다.</b>
+            아무리 복잡해 보여도 이 셋뿐입니다</span></li>
+        <li><span class="sym">검산</span><span class="desc">x=1 에서
+            <span class="m">2·sin1 + 3·cos1 = 1.6829 + 1.6209 = 3.3038</span>.
+            아래 파이썬 셀에서 수치미분과 맞춰봅니다</span></li>
+      </ul>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">③ 조립한 도함수가 정말 맞는가</div>
+      <div class="canvas-wrap"><canvas id="cv-comp"></canvas></div>
+
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">x</span><span class="val" id="vx-val">1</span></span>
+          <input type="range" id="vx" min="-1.6" max="1.6" step="0.01" value="1">
+        </label>
+        <label class="toggle"><input type="checkbox" id="v-num" checked> 수치미분과 겹쳐 보기</label>
+      </div>
+
+      <div class="seg" role="group" aria-label="함수 선택" style="margin-top:10px">
+        <label><input type="radio" name="vf" value="a" checked><span>x²·sin(x³)</span></label>
+        <label><input type="radio" name="vf" value="b"><span>x·cos(x²)</span></label>
+        <label><input type="radio" name="vf" value="c"><span>(x²+1)(sin x + 2)</span></label>
+      </div>
+
+      <div class="readout">
+        <div class="stat accent"><span class="k">f(x)</span><span class="v" id="v-f">–</span></div>
+        <div class="stat pos"><span class="k">손으로 조립한 f′(x)</span><span class="v" id="v-d">–</span></div>
+        <div class="stat purple"><span class="k">수치미분</span><span class="v" id="v-n">–</span></div>
+        <div class="stat warn"><span class="k">차</span><span class="v" id="v-e">–</span></div>
+      </div>
+      <p class="hint">
+        위 곡선의 <b>접선 기울기</b>가 아래 곡선의 <b>높이</b>와 같습니다.
+        <b>봉우리·골짜기에서 아래 곡선이 0을 지나는지</b> 확인해 보세요.
+      </p>
+    </div>
+
+    <h2 id="s6">6. 몫의 미분법 (보너스)</h2>
+    <p>
+      <span class="m">f = g / h</span> 는 <b>새 규칙이 필요 없습니다.</b>
+      <span class="m">g · h⁻¹</span> 로 보고 <b>곱의 법칙 + 연쇄법칙</b>을 쓰면 나옵니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">몫의 미분법</div>
+      <div class="eq" style="font-size:15px;line-height:2.4">
+        (g · h<sup>−1</sup>)′ = g′·h<sup>−1</sup> + g·(−h<sup>−2</sup>·h′)
+        <br>
+        = <b><span class="frac"><span>g′·h − g·h′</span><span>h²</span></span></b>
+      </div>
+      <ul class="where">
+        <li><span class="sym">(h⁻¹)′</span><span class="desc">4강의 <span class="m">(xⁿ)′ = nxⁿ⁻¹</span> 에 n=−1,
+            그리고 <b>연쇄법칙으로 h′ 곱하기</b> — <span class="m">−h⁻²·h′</span></span></li>
+        <li><span class="sym">기억할 점</span><span class="desc">분자의 <b>순서(g′h 가 먼저)</b>가 중요합니다.
+            곱의 법칙과 달리 <b>대칭이 아니거든요</b> — 나눗셈은 위아래가 대등하지 않으니까요</span></li>
+        <li><span class="sym">권장</span><span class="desc">외우기보다 <b><span class="m">g·h⁻¹</span> 로 바꿔서</b>
+            푸는 습관이 실수가 적습니다</span></li>
+      </ul>
+    </div>
+
+    <h2 id="s7">7. 파이썬으로 확인하기</h2>
+
+    <div class="pycell" data-packages="numpy" data-title="5-1. 세 조각으로 쪼개보기">
+    import numpy as np
+
+    g  = lambda x: x**2 + 1
+    h  = lambda x: np.sin(x) + 2
+    gp = lambda x: 2*x
+    hp = lambda x: np.cos(x)
+
+    x = 1.0
+    print(f"g({x}) = {g(x):.6f}   h({x}) = {h(x):.6f}\n")
+    print(f"{'dx':>7} {'오른쪽 띠 h·dg':>16} {'위쪽 띠 g·dh':>16} {'모서리 dg·dh':>15} {'변화율':>12}")
+    for dx in [0.5, 0.1, 0.01, 0.001]:
+        dg = g(x+dx) - g(x)
+        dh = h(x+dx) - h(x)
+        전체 = g(x+dx)*h(x+dx) - g(x)*h(x)
+        assert abs(h(x)*dg + g(x)*dh + dg*dh - 전체) < 1e-12    # 세 조각의 합이 정확히 전체
+        print(f"{dx:>7} {h(x)*dg:>16.6f} {g(x)*dh:>16.6f} {dg*dh:>15.6f} {전체/dx:>12.6f}")
+
+    print(f"\ng'h + gh' = {gp(x)*h(x) + g(x)*hp(x):.6f}   ← 변화율이 여기로 다가간다")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="5-2. (gh)′ = g′h′ 은 왜 틀리나">
+    def 수치미분(f, x, h=1e-6):
+        return (f(x+h) - f(x-h)) / (2*h)
+
+    x = 3.0
+    f = lambda t: t * t                       # x · x
+
+    print(f"진짜 (x·x)′ at x={x} :", 수치미분(f, x))
+    print(f"틀린 계산 (x)′·(x)′  :", 1 * 1)
+    print(f"곱의 법칙 g′h + gh′  :", 1*x + x*1)
+    print("\n→ 미분은 곱셈을 그냥 통과하지 않는다. 두 기여를 '더해야' 한다.")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="5-3. 연쇄법칙 — 기어비의 곱">
+    import numpy as np
+
+    사슬 = {
+        "sin(x³)":  (lambda x: x**3,      lambda x: 3*x**2,
+                     np.sin,              np.cos),
+        "(sin x)²": (np.sin,               np.cos,
+                     lambda u: u**2,       lambda u: 2*u),
+        "e^(x²)":   (lambda x: x**2,       lambda x: 2*x,
+                     np.exp,               np.exp),
+    }
+
+    x = 1.1
+    print(f"x = {x} 에서\n")
+    print(f"{'사슬':>12} {'안 g′':>10} {'바깥 h′(g)':>12} {'곱':>12} {'수치미분':>14}")
+    for 이름, (g, gp, h, hp) in 사슬.items():
+        전체 = lambda t, g=g, h=h: h(g(t))
+        수치 = (전체(x+1e-6) - 전체(x-1e-6)) / 2e-6
+        print(f"{이름:>12} {gp(x):>10.5f} {hp(g(x)):>12.5f} {hp(g(x))*gp(x):>12.5f} {수치:>14.5f}")
+
+    print("\n→ 두 기어비의 곱이 전체 기어비다.")
+    </div>
+
+    <div class="pitfall">
+      <b><code>hp(g(x))</code> 이지 <code>hp(x)</code> 가 아닙니다</b>
+      위 코드에서 바깥 함수의 도함수를 <b><code>g(x)</code> 에서</b> 계산했다는 점을 보세요.
+      <b>h 가 받는 입력이 x 가 아니라 u = g(x)</b> 이기 때문입니다.
+      손으로 풀 때도 <b>가장 자주 틀리는 지점</b>입니다.
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="5-4. 곱 + 연쇄 조립">
+    import numpy as np
+
+    문제들 = [
+        ("x²·sin(x³)",
+         lambda x: x**2 * np.sin(x**3),
+         lambda x: 2*x*np.sin(x**3) + 3*x**4*np.cos(x**3)),
+        ("x·cos(x²)",
+         lambda x: x*np.cos(x**2),
+         lambda x: np.cos(x**2) - 2*x**2*np.sin(x**2)),
+        ("(x²+1)(sin x + 2)",
+         lambda x: (x**2+1)*(np.sin(x)+2),
+         lambda x: 2*x*(np.sin(x)+2) + (x**2+1)*np.cos(x)),
+        ("sin(3x)",
+         lambda x: np.sin(3*x),
+         lambda x: 3*np.cos(3*x)),
+    ]
+
+    print(f"{'식':>22} {'x':>6} {'손으로':>14} {'수치미분':>14} {'차':>10}")
+    for 이름, f, fp in 문제들:
+        for x in [0.7, 1.4]:
+            수치 = (f(x+1e-6) - f(x-1e-6)) / 2e-6
+            print(f"{이름:>22} {x:>6} {fp(x):>14.8f} {수치:>14.8f} {fp(x)-수치:>10.1e}")
+    </div>
+
+    <div class="pycell" data-packages="numpy,sympy" data-title="5-5. sympy 로 검산하기">
+    import sympy as sp
+
+    x = sp.Symbol('x')
+    식들 = [
+        x**2 * sp.sin(x**3),
+        x * sp.cos(x**2),
+        (x**2 + 1) * (sp.sin(x) + 2),
+        sp.sin(x) / (x**2 + 1),          # 몫
+    ]
+
+    for 식 in 식들:
+        print(f"{str(식):>26}  →  {sp.simplify(sp.diff(식, x))}")
+
+    print("\n→ 손으로 조립한 결과와 같은지 확인해보세요.")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="5-6. 연습문제">
+    # 문제 1. (x³ + 2x)(cos x) 를 미분하세요. 5-4 셀의 방식으로 확인해보세요.
+
+    # 문제 2. sin(sin(x)) 를 미분하세요. (연쇄법칙 두 번? 아니면 한 번?)
+
+    # 문제 3. e^(sin(x²)) 를 미분하세요. 사슬이 세 겹입니다.
+
+    # 문제 4. (gh)′ = g′h′ 이 성립하는 g, h 가 있을까요? 있다면 어떤 경우일까요?
+
+    # 아래에 직접 써보세요
+    </div>
+
+    <details style="margin:18px 0">
+      <summary style="cursor:pointer;font-weight:600;color:var(--accent)">모범 답안 보기</summary>
+      <div class="pycell" data-packages="numpy" data-title="모범 답안">
+      import numpy as np
+      수치 = lambda f, x: (f(x+1e-6) - f(x-1e-6)) / 2e-6
+
+      # 문제 1 — 곱의 법칙
+      f1  = lambda x: (x**3 + 2*x) * np.cos(x)
+      f1p = lambda x: (3*x**2 + 2)*np.cos(x) - (x**3 + 2*x)*np.sin(x)
+      print(f"문제 1: 손 {f1p(1.2):.8f}   수치 {수치(f1, 1.2):.8f}\n")
+
+      # 문제 2 — 연쇄법칙 한 번 (바깥 sin, 안 sin)
+      f2  = lambda x: np.sin(np.sin(x))
+      f2p = lambda x: np.cos(np.sin(x)) * np.cos(x)
+      print(f"문제 2: 손 {f2p(1.2):.8f}   수치 {수치(f2, 1.2):.8f}")
+      print("        cos(sin x)·cos x — 바깥 미분(안은 그대로) × 안 미분\n")
+
+      # 문제 3 — 사슬 세 겹: e^u, u = sin v, v = x²
+      f3  = lambda x: np.exp(np.sin(x**2))
+      f3p = lambda x: np.exp(np.sin(x**2)) * np.cos(x**2) * 2*x
+      print(f"문제 3: 손 {f3p(1.2):.8f}   수치 {수치(f3, 1.2):.8f}")
+      print("        기어비를 세 개 곱하면 된다\n")
+
+      # 문제 4 — 지수함수 꼴에서 우연히 성립할 수 있다
+      print("문제 4: g′h + gh′ = g′h′ 이 되려면 특별한 관계가 필요하다.")
+      print("        예: g = h = e^(2x) 이면 좌변 = 2e²ˣ·e²ˣ·2 = 4e⁴ˣ,")
+      print("        우변 = 2e²ˣ·2e²ˣ = 4e⁴ˣ — 같다!")
+      g4 = h4 = lambda x: np.exp(2*x)
+      print(f"        확인 x=0.5: 곱의법칙 {수치(lambda t: g4(t)*h4(t), 0.5):.6f}"
+            f"   g′h′ {수치(g4,0.5)*수치(h4,0.5):.6f}")
+      print("        → '항상 틀린' 게 아니라 '일반적으로 틀린' 것이다. 우연을 규칙으로 착각하면 안 된다.")
+      </div>
+    </details>
+
+    <div class="practice">
+      <b>두 규칙이 실제로 하는 일</b>
+      <ul>
+        <li><b>딥러닝의 역전파는 연쇄법칙 그 자체</b>입니다.
+            층이 100개면 <b>기어비를 100개 곱합니다.</b>
+            각 기어비가 조금씩 작으면 곱이 0으로 붕괴하고(<b>기울기 소실</b>),
+            조금씩 크면 폭발합니다. ResNet의 <b>skip connection</b> 이 이 문제의 해법입니다.</li>
+        <li><b>오차 전파</b> — 여러 단계를 거친 측정의 오차는 <b>민감도의 곱</b>으로 커집니다.</li>
+        <li><b>경제학의 탄력성</b> — 가격 탄력성 × 수요 탄력성의 연쇄가 정책 효과를 결정합니다.</li>
+        <li><b>제어공학의 루프 게인</b> — 여러 블록을 직렬로 이으면 게인이 <b>곱해집니다.</b>
+            정확히 연쇄법칙입니다.</li>
+      </ul>
+    </div>
+
+    <div class="summary">
+      <h3>✎ 스스로 점검</h3>
+      <ul>
+        <li><b>12.</b> 곱의 법칙에서 두 항은 각각 그림의 어떤 조각인가요?
+            <span style="color:var(--text-dim)">(§1)</span></li>
+        <li><b>13.</b> 연쇄법칙을 '기어비'로 설명해 보세요.
+            <span style="color:var(--text-dim)">(§3, §4)</span></li>
+        <li><b>14.</b> <span class="m">x·cos(x²)</span> 를 미분해 보세요.
+            <span style="color:var(--text-dim)">(답: <span class="m">cos(x²) − 2x²·sin(x²)</span> — §5)</span></li>
+      </ul>
+    </div>
+
+    <div class="summary">
+      <h3>5강 요약</h3>
+      <ul>
+        <li><b><span class="m">(g·h)′ = g′h + gh′</span></b> —
+            직사각형에 붙는 <b>오른쪽 띠 + 위쪽 띠</b>. 모서리는 사라집니다.</li>
+        <li><b><span class="m">(g·h)′ ≠ g′h′</span></b> 입니다.
+            <span class="m">(x·x)′ = 2x</span> 이지 1이 아니죠.</li>
+        <li>여기서 <b>상수배</b>(<span class="m">(cg)′ = cg′</span>)와
+            <b>합</b>(<span class="m">(g+h)′ = g′+h′</span>)이 공짜로 나옵니다.</li>
+        <li><b><span class="m">[h(g(x))]′ = h′(g(x))·g′(x)</span></b> —
+            "<b>바깥 미분(안은 그대로) × 안 미분</b>".</li>
+        <li>직관은 <b>기어비의 곱</b>입니다. 단위로 보면 <b>중간 단위가 약분</b>되죠.</li>
+        <li><b>안쪽 미분을 빼먹는 것</b>이 가장 흔한 실수입니다.
+            <span class="m">(sin 3x)′ = 3cos 3x</span>.</li>
+        <li>복잡한 식은 <b>구조 분해 → 규칙 적용 → 조립</b>. 이게 미분 기술의 전부입니다.</li>
+        <li><b>몫</b>은 <span class="m">g·h⁻¹</span> 로 바꾸면 두 규칙만으로 나옵니다.</li>
+      </ul>
+    </div>
+
+    <div class="colab-cta">
+      <div class="colab-text">
+        <b>더 자유롭게 실험하고 싶다면</b><br>
+        이 강의의 실습만 모은 노트북을 Colab에서 열 수 있습니다.
+      </div>
+      <a class="btn" id="colab-link" href="#" target="_blank" rel="noopener">Colab에서 열기</a>
+    </div>
+
+    <p class="next-up">
+      다음 → <b>6강 · 오일러 상수 e — 자기 자신을 낳는 함수</b><br>
+      미적분에는 <b>마법 같은 함수</b>가 하나 있습니다.
+      <span class="m">eˣ</span> — <b>미분해도 <span class="m">eˣ</span>, 적분해도 <span class="m">eˣ</span></b>.
+      그리고 <span class="m">e = 2.71828…</span> 이라는 기묘한 숫자.
+      <b>어디서 왔고 왜 이런 성질을 가질까요?</b>
+    </p>
+
+  </section>
+
+</div>
+
+<script src="../assets/viz.js?v=312b9476b0"></script>
+<script src="../assets/calc.js?v=c1137a5076"></script>
+<script src="../assets/pylab.js?v=cb27f20364"></script>
+<script src="../assets/pycell.js?v=6dacc4c6ce"></script>
+<script>
+(function () {
+  'use strict';
+  var num = CA.num, F = CA.F;
+
+  /* =======================================================
+     패널 ① 팽창하는 직사각형 (곱의 법칙)
+     ======================================================= */
+  var px = 1, pdx = 0.5;
+  function gF(x) { return x * x + 1; }
+  function hF(x) { return Math.sin(x) + 2; }
+  function gP(x) { return 2 * x; }
+  function hP(x) { return Math.cos(x); }
+
+  var gProd = new CA.Graph(document.getElementById('cv-prod'), {
+    equal: true,
+    height: function (w) { return Math.round(V.clamp(w, 240, 400)); },
+    margin: { top: 24, right: 24, bottom: 32, left: 30 }
+  });
+
+  function drawProd() {
+    var g0 = gF(px), h0 = hF(px);
+    var g1 = gF(px + pdx), h1 = hF(px + pdx);
+    var dg = g1 - g0, dh = h1 - h0;
+    var lim = Math.max(g1, h1) * 1.24;
+
+    gProd.xDomain = [-lim * 0.13, lim];
+    gProd.yDomain = [-lim * 0.13, lim];
+    gProd.begin();
+
+    var accent = V.css('--accent'), pos = V.css('--pos'),
+        purple = V.css('--purple'), neg = V.css('--neg');
+
+    gProd.rect(0, 0, g0, h0, { fill: V.css('--accent-soft'), stroke: accent, lineWidth: 2 });
+    gProd.rect(g0, 0, g1, h0, { fill: V.css('--pos-soft'), stroke: pos, lineWidth: 1.6 });
+    gProd.rect(0, h0, g0, h1, { fill: V.css('--purple-soft'), stroke: purple, lineWidth: 1.6 });
+    gProd.rect(g0, h0, g1, h1, { fill: V.css('--neg-soft'), stroke: neg, lineWidth: 1.6 });
+
+    gProd.text(g0 / 2, h0 / 2, 'g·h = ' + num(g0 * h0, 2), { color: accent, size: 13.5 });
+
+    /* 치수선 */
+    var yb = -lim * 0.055;
+    gProd.segment(0, yb, g0, yb, { color: accent, width: 1.6 });
+    gProd.text(g0 / 2, yb, 'g = ' + num(g0, 2), { color: accent, dy: 16, size: 11.5, bg: V.css('--surface') });
+    gProd.segment(g0, yb, g1, yb, { color: pos, width: 2.6 });
+    gProd.text((g0 + g1) / 2, yb, 'dg', { color: pos, dy: 16, size: 11.5, bg: V.css('--surface') });
+
+    var xl = -lim * 0.055;
+    gProd.segment(xl, 0, xl, h0, { color: accent, width: 1.6 });
+    gProd.segment(xl, h0, xl, h1, { color: purple, width: 2.6 });
+    gProd.text(xl, h0 / 2, 'h = ' + num(h0, 2), {
+      color: accent, align: 'right', baseline: 'middle', dx: -5, size: 11.5, bg: V.css('--surface')
+    });
+
+    gProd.legend([
+      { color: pos, text: '오른쪽 띠  h·dg' },
+      { color: purple, text: '위쪽 띠  g·dh' },
+      { color: neg, text: '모서리  dg·dh  (사라진다)' }
+    ]);
+
+    var b1 = h0 * dg, b2 = g0 * dh, cor = dg * dh;
+    V.setText('#p-g', num(g0, 4));
+    V.setText('#p-h', num(h0, 4));
+    V.setText('#p-b1', num(b1, 4));
+    V.setText('#p-b2', num(b2, 4));
+    V.setText('#p-cor', num(cor, 5));
+    V.setText('#p-rate', num((b1 + b2 + cor) / pdx, 4));
+    V.setText('#p-form', num(gP(px) * h0 + g0 * hP(px), 4));
+  }
+
+  V.range('px', function (v) { px = v; drawProd(); }, function (v) { return num(v, 2); });
+  V.range('pd', function (v) { pdx = v; drawProd(); }, function (v) { return num(v, 2); });
+
+  /* =======================================================
+     패널 ② 도미노 — 세 개의 수직선
+     ======================================================= */
+  var chx = 1.1, chdx = 0.2, chk = 'sincube';
+
+  var CH = {
+    sincube: { g: function (x) { return x * x * x; }, gp: function (x) { return 3 * x * x; },
+               h: Math.sin, hp: Math.cos,
+               gl: 'u = x³', hl: 'f = sin u', label: 'sin(x³)' },
+    sqsin:   { g: Math.sin, gp: Math.cos,
+               h: function (u) { return u * u; }, hp: function (u) { return 2 * u; },
+               gl: 'u = sin x', hl: 'f = u²', label: '(sin x)²' },
+    expsq:   { g: function (x) { return x * x; }, gp: function (x) { return 2 * x; },
+               h: Math.exp, hp: Math.exp,
+               gl: 'u = x²', hl: 'f = eᵘ', label: 'e^(x²)' }
+  };
+
+  var cvCh = document.getElementById('cv-chain');
+  var frCh = new CA.Frame(cvCh, function (w) {
+    return Math.round(V.clamp(w * 0.30, 210, 280));
+  });
+
+  /* 수직선 하나 — 값 v0 에서 v1 로 움직인 것을 화살표로 보인다 */
+  function axisRow(c, W, y, lo, hi, v0, v1, color, title, sub) {
+    var padL = 96, padR = 30;
+    var X0 = padL, X1 = W - padR;
+    function px(v) { return X0 + (v - lo) / (hi - lo) * (X1 - X0); }
+
+    c.save();
+    c.strokeStyle = V.css('--text-dim');
+    c.lineWidth = 1.3;
+    c.beginPath(); c.moveTo(X0, y); c.lineTo(X1, y); c.stroke();
+
+    /* 제목 */
+    c.font = '600 12.5px ' + V.FONT;
+    c.fillStyle = color;
+    c.textAlign = 'right'; c.textBaseline = 'middle';
+    c.fillText(title, padL - 12, y);
+    if (sub) {
+      c.font = '11px ' + V.FONT;
+      c.fillStyle = V.css('--text-dim');
+      c.fillText(sub, padL - 12, y + 15);
+    }
+
+    /* 시작점 */
+    c.fillStyle = V.css('--text-dim');
+    c.beginPath(); c.arc(px(v0), y, 4.5, 0, Math.PI * 2); c.fill();
+
+    /* 변화 화살표 */
+    var a = px(v0), b = px(v1);
+    c.strokeStyle = color;
+    c.fillStyle = color;
+    c.lineWidth = 3;
+    c.beginPath(); c.moveTo(a, y); c.lineTo(b, y); c.stroke();
+    var dir = b >= a ? 1 : -1;
+    c.beginPath();
+    c.moveTo(b, y);
+    c.lineTo(b - dir * 9, y - 5);
+    c.lineTo(b - dir * 9, y + 5);
+    c.closePath(); c.fill();
+
+    /* 값 표시 */
+    c.font = '11.5px ' + V.FONT;
+    c.textAlign = 'center'; c.textBaseline = 'bottom';
+    c.fillStyle = color;
+    c.fillText(num(v1 - v0, 4), (a + b) / 2, y - 8);
+    c.restore();
+  }
+
+  function drawChain() {
+    var S = CH[chk];
+    var x0 = chx, x1 = chx + chdx;
+    var u0 = S.g(x0), u1 = S.g(x1);
+    var f0 = S.h(u0), f1 = S.h(u1);
+
+    frCh.begin();
+    var c = frCh.ctx, W = frCh.w, H = frCh.h;
+
+    /* 세 줄에 같은 배율을 쓴다 — 그래야 화살표 길이의 '비'가 곧 기어비가 된다.
+       줄마다 배율이 다르면 어느 화살표든 똑같이 길어 보여서 그림이 아무 말도 못 한다. */
+    var R = Math.max(Math.abs(x1 - x0), Math.abs(u1 - u0), Math.abs(f1 - f0), 1e-9) * 1.55;
+    function span(v0) { return [v0 - R, v0 + R]; }
+    var rx = span(x0), ru = span(u0), rf = span(f0);
+
+    var y1 = Math.round(H * 0.20), y2 = Math.round(H * 0.53), y3 = Math.round(H * 0.86);
+    axisRow(c, W, y1, rx[0], rx[1], x0, x1, V.css('--accent'), 'x', '입력');
+    axisRow(c, W, y2, ru[0], ru[1], u0, u1, V.css('--purple'), S.gl, '중간');
+    axisRow(c, W, y3, rf[0], rf[1], f0, f1, V.css('--pos'), S.hl, '출력');
+
+    /* 줄 사이를 잇는 화살표 */
+    c.save();
+    c.font = '11px ' + V.FONT;
+    c.fillStyle = V.css('--text-dim');
+    c.textAlign = 'right'; c.textBaseline = 'top';
+    c.fillText('세 줄 모두 같은 배율', W - 30, 6);
+    c.strokeStyle = V.css('--text-dim');
+    c.setLineDash([4, 4]);
+    c.lineWidth = 1.2;
+    [[y1, y2, 'g′ = ' + num(S.gp(x0), 3) + ' 배'],
+     [y2, y3, "h′ = " + num(S.hp(u0), 3) + ' 배']].forEach(function (p) {
+      c.beginPath();
+      c.moveTo(W * 0.58, p[0] + 10); c.lineTo(W * 0.58, p[1] - 10);
+      c.stroke();
+      c.save();
+      c.setLineDash([]);
+      c.font = '600 11.5px ' + V.FONT;
+      c.fillStyle = V.css('--surface');
+      var tw = c.measureText(p[2]).width;
+      c.fillRect(W * 0.58 + 5, (p[0] + p[1]) / 2 - 8, tw + 8, 16);
+      c.fillStyle = V.css('--text-dim');
+      c.textAlign = 'left'; c.textBaseline = 'middle';
+      c.fillText(p[2], W * 0.58 + 9, (p[0] + p[1]) / 2);
+      c.restore();
+    });
+    c.restore();
+
+    V.setText('#k-dx', num(chdx, 4));
+    V.setText('#k-du', num(u1 - u0, 5));
+    V.setText('#k-df', num(f1 - f0, 5));
+    V.setText('#k-gp', num(S.gp(x0), 4));
+    V.setText('#k-hp', num(S.hp(u0), 4));
+    V.setText('#k-tot', num(S.hp(u0) * S.gp(x0), 4));
+  }
+
+  V.range('cx', function (v) { chx = v; drawChain(); }, function (v) { return num(v, 2); });
+  V.range('cdx', function (v) { chdx = v; drawChain(); }, function (v) { return num(v, 3); });
+  V.radios('ch', function (v) { chk = v; drawChain(); });
+
+  /* =======================================================
+     패널 ③ 조립한 도함수 검증
+     ======================================================= */
+  var vx = 1, vNum = true, vf = 'a';
+
+  var VF = {
+    a: { f: function (x) { return x * x * Math.sin(x * x * x); },
+         d: function (x) { return 2 * x * Math.sin(x * x * x) + 3 * Math.pow(x, 4) * Math.cos(x * x * x); },
+         yd: [-1.8, 1.8], dyd: [-11, 11], name: 'x²·sin(x³)', dname: "f′ = 2x·sin(x³) + 3x⁴·cos(x³)" },
+    b: { f: function (x) { return x * Math.cos(x * x); },
+         d: function (x) { return Math.cos(x * x) - 2 * x * x * Math.sin(x * x); },
+         yd: [-1.3, 1.3], dyd: [-4.5, 2.2], name: 'x·cos(x²)', dname: "f′ = cos(x²) − 2x²·sin(x²)" },
+    c: { f: function (x) { return (x * x + 1) * (Math.sin(x) + 2); },
+         d: function (x) { return 2 * x * (Math.sin(x) + 2) + (x * x + 1) * Math.cos(x); },
+         yd: [0, 10], dyd: [-6, 12], name: '(x²+1)(sin x + 2)', dname: "f′ = 2x(sin x + 2) + (x²+1)cos x" }
+  };
+
+  function compLayout(w) {
+    var top = Math.round(V.clamp(w * 0.25, 150, 200));
+    var bot = Math.round(V.clamp(w * 0.25, 150, 200));
+    return { top: top, bot: bot, H: top + bot + 14 };
+  }
+
+  var cvComp = document.getElementById('cv-comp');
+  var frComp = new CA.Frame(cvComp, function (w) { return compLayout(w).H; });
+  var gCa = new CA.Graph(cvComp, { frame: frComp, xDomain: [-1.7, 1.7], margin: { top: 16, right: 20, bottom: 26, left: 50 } });
+  var gCb = new CA.Graph(cvComp, { frame: frComp, xDomain: [-1.7, 1.7], margin: { top: 16, right: 20, bottom: 30, left: 50 } });
+
+  function drawComp() {
+    var S = VF[vf];
+    frComp.begin();
+    var L = compLayout(frComp.w);
+
+    gCa.yDomain = S.yd;
+    gCa.plot.margin.top = 16;
+    gCa.plot.margin.bottom = L.H - L.top + 8;
+    gCa.begin();
+    gCa.axes({ xStep: 0.5, yStep: CA.niceStep(S.yd[1] - S.yd[0], 4) });
+    gCa.curve(S.f, { color: V.css('--accent'), width: 2.6, samples: 900 });
+    gCa.lineAt(vx, S.f(vx), S.d(vx), { color: V.css('--pos'), width: 2, span: 0.45 });
+    gCa.dot(vx, S.f(vx), { r: 5, color: V.css('--accent'), stroke: V.css('--surface'), strokeWidth: 2 });
+    gCa.text(-1.62, S.yd[1] - (S.yd[1] - S.yd[0]) * 0.1, 'f(x) = ' + S.name, {
+      color: V.css('--accent'), align: 'left', size: 12.5, bg: V.css('--surface')
+    });
+
+    gCb.yDomain = S.dyd;
+    gCb.plot.margin.top = L.top + 14;
+    gCb.plot.margin.bottom = 30;
+    gCb.begin();
+    gCb.axes({ xStep: 0.5, yStep: CA.niceStep(S.dyd[1] - S.dyd[0], 4), xLabel: 'x →' });
+    if (vNum) {
+      gCb.curve(function (t) { return F.deriv(S.f, t, 1e-5); }, {
+        color: V.css('--neg'), width: 6, alpha: 0.28, samples: 700
+      });
+    }
+    gCb.curve(S.d, { color: V.css('--pos'), width: 2.4, samples: 900 });
+    gCb.dot(vx, S.d(vx), { r: 5, color: V.css('--pos'), stroke: V.css('--surface'), strokeWidth: 2 });
+    gCb.hline(0, { color: V.css('--text-dim'), dash: null, width: 1 });
+    gCb.text(-1.62, S.dyd[1] - (S.dyd[1] - S.dyd[0]) * 0.12, S.dname, {
+      color: V.css('--pos'), align: 'left', size: 12, bg: V.css('--surface')
+    });
+
+    var nd = F.deriv(S.f, vx, 1e-6);
+    V.setText('#v-f', num(S.f(vx), 5));
+    V.setText('#v-d', num(S.d(vx), 5));
+    V.setText('#v-n', num(nd, 5));
+    V.setText('#v-e', (Math.abs(S.d(vx) - nd)).toExponential(1));
+  }
+
+  V.range('vx', function (v) { vx = v; drawComp(); }, function (v) { return num(v, 2); });
+  V.check('v-num', function (v) { vNum = v; drawComp(); });
+  V.radios('vf', function (v) { vf = v; drawComp(); });
+
+  V.onRedraw(function () { drawProd(); drawChain(); drawComp(); });
+  drawProd(); drawChain(); drawComp();
+
+  var a = document.getElementById('colab-link');
+  if (a) a.href = 'https://colab.research.google.com/github/mioon1402/timeseriesdata/blob/main/notebooks/C05-product-chain.ipynb';
+})();
+</script>
+</body>
+</html>
