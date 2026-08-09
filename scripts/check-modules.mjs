@@ -82,6 +82,11 @@ const PAGES = [
   'calc/C05-product-chain.html',
   'calc/C06-euler-e.html',
   'calc/C07-implicit.html',
+  'calc/C08-lhopital.html',
+  'calc/C09-integral.html',
+  'calc/C10-average.html',
+  'calc/C11-taylor.html',
+  'calc/C12-dydx.html',
 ];
 
 /** 캔버스가 없어도 정상인 페이지 (파이썬 실습 강의 등) */

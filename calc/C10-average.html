@@ -1,0 +1,668 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>넓이와 기울기는 무슨 관계일까 · 미적분의 직관</title>
+<meta name="description" content="사인 곡선의 평균 높이는? 이 소박한 질문이 평균값 정리와 기본정리의 두 번째 증명이 됩니다.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%E2%88%AB%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css?v=b7dfb076b2">
+<link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">미적분 10강 · 넓이와 기울기</p>
+    <h1>넓이와 기울기는 무슨 관계일까</h1>
+    <p class="lede">
+      기본정리를 <b>전혀 다른 문</b>에서 다시 들어가 봅니다.
+      출발 질문은 소박합니다 — <b>"사인 곡선의 평균 높이는 얼마일까?"</b>
+      곡선 위엔 점이 <b>무한히 많아서</b>
+      '다 더해서 개수로 나누는' 보통의 평균은 못 씁니다.
+      그런데 이 질문을 파고들면 <b>미적분의 두 봉우리가 한 번 더 만납니다.</b>
+    </p>
+  </header>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 강의에서 배우는 것</b>
+      <ol>
+        <li><a href="#s0">기초 다지기 — 평균이란 무엇인가</a></li>
+        <li><a href="#s1">연속적인 것의 평균 — 넓이로 정의하기</a></li>
+        <li><a href="#s2">발상의 전환 — 높이를 기울기로 읽기</a></li>
+        <li><a href="#s3">경이로운 일치 — 평균값 정리</a></li>
+        <li><a href="#s4">기본정리의 두 번째 증명</a></li>
+        <li><a href="#s5">파이썬으로 확인하기</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s0">0. 기초 다지기 — 평균이란 무엇인가</h2>
+    <p>
+      시험 점수 <b>70, 80, 90</b> 의 평균은 <span class="m">(70+80+90)/3 = 80</span> 입니다.
+      <b>다 더해서 개수로 나눈다.</b>
+    </p>
+    <p>
+      그런데 <b>사인 곡선의 평균 높이</b>는? 곡선 위에는 점이 <b>무한히 많습니다.</b>
+      다 더할 수도 없고, <b>개수도 무한대</b>라 나눌 수도 없습니다.
+      <span class="m">∞ / ∞</span> — 또 부정형이죠(8강).
+    </p>
+
+    <div class="callout">
+      <b>이럴 때 미적분의 방법은 언제나 같습니다</b><br>
+      <b>① 유한한 개수(n개)로 근사한다</b> → <b>② 계산한다</b> → <b>③ n→∞ 극한을 읽는다.</b>
+      <br><br>
+      1강의 고리도, 9강의 리만 합도 전부 이 순서였습니다.
+      이번에도 똑같이 갑니다.
+    </div>
+
+    <h2 id="s1">1. 연속적인 것의 평균 — 넓이로 정의하기</h2>
+    <p>
+      구간 <span class="m">[a, b]</span> 를 <b>n등분</b>해 표본 높이들의 평균을 내봅시다.
+      폭이 <span class="m">Δx = (b−a)/n</span> 이므로 <span class="m">n = (b−a)/Δx</span> 이고:
+    </p>
+
+    <div class="formula">
+      <div class="name">유한 평균 → 연속 평균</div>
+      <div class="eq" style="font-size:15px;line-height:2.5">
+        평균 ≈ <span class="frac"><span>f(x₁) + ⋯ + f(x<sub>n</sub>)</span><span>n</span></span>
+        = <span class="frac"><span>Σ f(x<sub>i</sub>) · Δx</span><span>b − a</span></span>
+        <br>
+        <span class="small">n→∞ 극한에서 분자가 <b>정적분</b>이 되어</span>
+        <br>
+        <b>평균 높이 =
+        <span class="frac"><span>∫<sub>a</sub><sup>b</sup> f(x) dx</span><span>b − a</span></span></b>
+      </div>
+      <ul class="where">
+        <li><span class="sym">한 일</span><span class="desc">분모의 n 을 <b>Δx 로 바꿔치기</b>했을 뿐입니다.
+            <span class="m">1/n = Δx/(b−a)</span> 이니까요</span></li>
+        <li><span class="sym">그림으로</span><span class="desc"><b>곡선 아래 넓이를 구간 길이로 나눈 값</b>.
+            즉 <b>같은 넓이를 갖는 직사각형의 높이</b>입니다</span></li>
+        <li><span class="sym">확인</span><span class="desc">평균선 <b>위로 삐져나온 부분</b>과
+            <b>아래로 모자란 부분</b>의 넓이가 <b>정확히 같습니다</b></span></li>
+      </ul>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">① 같은 넓이를 갖는 직사각형의 높이</div>
+      <div class="canvas-wrap"><canvas id="cv-avg"></canvas></div>
+
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">표본 개수 n (0 = 연속)</span><span class="val" id="an-val">6</span></span>
+          <input type="range" id="an" min="0" max="60" step="1" value="6">
+        </label>
+        <label class="toggle"><input type="checkbox" id="a-fill" checked> 위·아래 넓이 비교 보기</label>
+      </div>
+
+      <div class="seg" role="group" aria-label="함수 선택" style="margin-top:10px">
+        <label><input type="radio" name="ak" value="sin" checked><span>sin x (0~π)</span></label>
+        <label><input type="radio" name="ak" value="sq"><span>x² (0~2)</span></label>
+        <label><input type="radio" name="ak" value="bump"><span>봉우리 두 개</span></label>
+      </div>
+
+      <div class="readout">
+        <div class="stat accent"><span class="k">넓이 ∫</span><span class="v" id="v-area">–</span></div>
+        <div class="stat"><span class="k">구간 길이 b−a</span><span class="v" id="v-len">–</span></div>
+        <div class="stat pos"><span class="k">평균 높이</span><span class="v" id="v-mean">–</span></div>
+        <div class="stat purple"><span class="k">표본 n개의 평균</span><span class="v" id="v-samp">–</span></div>
+        <div class="stat neg"><span class="k">(최소+최대)/2</span><span class="v" id="v-mid">–</span></div>
+      </div>
+      <p class="hint">
+        <b>표본 개수를 늘려 보세요.</b> 점들의 평균이 <b>연속 평균에 수렴</b>합니다.
+        그리고 <b>(최소+최대)/2 는 전혀 다른 값</b>이라는 데 주목하세요.
+      </p>
+    </div>
+
+    <div class="myth">
+      <div class="bad"><b>⚠ 흔한 오해</b>
+        "평균 높이는 <b>(최소 + 최대) ÷ 2</b> 아닌가?"</div>
+      <div class="good"><b>그건 함수가 직선일 때만 맞습니다</b>
+        <span class="m">sin</span> 의 0~π 평균은 <span class="m">(0+1)/2 = 0.5</span> 가 아니라
+        <b><span class="m">2/π ≈ 0.637</span></b> 입니다.
+        <br>
+        이유는 <b>곡선이 위쪽에 머무는 시간이 길기</b> 때문입니다.
+        sin 은 0 근처를 빠르게 지나가고 <b>1 근처에서 오래 머뭅니다.</b>
+        <br>
+        <b>연속적인 것의 평균은 반드시 넓이로 구해야 합니다.</b>
+        "얼마나 높은가"뿐 아니라 <b>"얼마나 오래 그 높이인가"</b> 도 세야 하니까요.</div>
+    </div>
+
+    <h2 id="s2">2. 발상의 전환 — 높이를 기울기로 읽기</h2>
+    <p>
+      이제 <b>도약</b>입니다.
+      <b>f 를 어떤 함수 F 의 도함수라고 봅시다</b> (<span class="m">F′ = f</span>, F는 역도함수).
+    </p>
+    <p>
+      그러면 <b>f 그래프의 각 '높이'</b>는 <b>F 그래프의 각 점 '접선 기울기'</b> 입니다.
+      질문이 통째로 바뀝니다:
+    </p>
+
+    <div class="formula">
+      <div class="name">같은 질문, 다른 언어</div>
+      <div class="eq" style="font-size:16px;line-height:2.4">
+        "<b>f 의 평균 높이</b>" &nbsp;=&nbsp; "<b>F 의 순간 기울기들의 평균</b>"
+      </div>
+      <ul class="where">
+        <li><span class="sym">왜 같은가</span><span class="desc">f 의 <b>높이</b>가 곧 F 의 <b>기울기</b>이기 때문입니다.
+            <b>같은 수의 목록</b>을 평균 내는 거죠</span></li>
+        <li><span class="sym">뭐가 좋은가</span><span class="desc"><b>기울기의 평균</b>이라는 질문에는
+            <b>놀랍도록 단순한 답</b>이 있습니다 — 다음 절</span></li>
+      </ul>
+    </div>
+
+    <h2 id="s3">3. 경이로운 일치 — 평균값 정리</h2>
+    <p>
+      F 의 순간 기울기 평균은
+      <span class="m">(1/(b−a))·∫<sub>a</sub><sup>b</sup> F′ dx</span> 인데,
+      기본정리로 <span class="m">∫<sub>a</sub><sup>b</sup> F′ dx = F(b) − F(a)</span> 이므로:
+    </p>
+
+    <div class="formula">
+      <div class="name">기울기의 평균 = 할선의 기울기</div>
+      <div class="eq" style="font-size:16px;line-height:2.4">
+        F 의 기울기 평균 =
+        <span class="frac"><span>F(b) − F(a)</span><span>b − a</span></span>
+        <br>
+        <span class="small">이것은 정확히 두 끝점 (a, F(a)), (b, F(b)) 를 잇는 <b>할선의 기울기</b></span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">놀라운 점</span><span class="desc"><b>중간의 온갖 오르내림을 다 평균 내면</b>,
+            그 복잡한 경로를 <b>싹 무시한 '처음과 끝을 잇는 직선'</b> 의 기울기와 같아집니다</span></li>
+        <li><span class="sym">평균값 정리</span><span class="desc">평균이니까,
+            <b>어딘가에는 딱 그 기울기를 갖는 점 c 가 있어야</b> 합니다.
+            (연속이면 평균값을 실제로 한 번은 지나가니까요)</span></li>
+        <li><span class="sym">일상의 예</span><span class="desc">서울→부산 400km 를 4시간에 갔다면 평균 100km/h.
+            <b>중간 어느 순간엔 반드시 정확히 100km/h 였습니다.</b>
+            구간단속의 논리가 정확히 이것입니다</span></li>
+      </ul>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">② 할선과 같은 기울기를 갖는 점은 반드시 있다</div>
+      <div class="canvas-wrap"><canvas id="cv-mvt"></canvas></div>
+
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">구간 왼쪽 a</span><span class="val" id="ma-val">0</span></span>
+          <input type="range" id="ma" min="-2" max="1.4" step="0.01" value="0">
+        </label>
+        <label class="ctrl">
+          <span class="label-row"><span class="name">구간 오른쪽 b</span><span class="val" id="mb-val">2</span></span>
+          <input type="range" id="mb" min="-1" max="2.6" step="0.01" value="2">
+        </label>
+      </div>
+
+      <div class="seg" role="group" aria-label="함수 선택" style="margin-top:10px">
+        <label><input type="radio" name="mk" value="cube" checked><span>F(x) = x³/3 − x</span></label>
+        <label><input type="radio" name="mk" value="sin"><span>F(x) = −cos x</span></label>
+        <label><input type="radio" name="mk" value="exp"><span>F(x) = eˣ</span></label>
+      </div>
+
+      <div class="readout">
+        <div class="stat accent"><span class="k">할선 기울기</span><span class="v" id="t-sec">–</span></div>
+        <div class="stat pos"><span class="k">f 의 평균 높이</span><span class="v" id="t-mean">–</span></div>
+        <div class="stat purple"><span class="k">둘의 차</span><span class="v" id="t-gap">–</span></div>
+        <div class="stat warn"><span class="k">평균을 실현하는 점 c</span><span class="v" id="t-c">–</span></div>
+      </div>
+      <p class="hint">
+        <b>위</b>는 F 곡선과 <b>할선</b>(주황), 그리고 <b>할선과 평행한 접선</b>(초록)입니다.
+        <b>아래</b>는 <span class="m">f = F′</span> 와 <b>평균 높이 선</b>입니다.
+        <b>초록 접점의 x 좌표</b>가 아래 그래프에서 <b>평균선과 만나는 지점</b>과 같습니다.
+        그리고 <b>평균선 위·아래의 넓이가 정확히 같죠.</b>
+      </p>
+    </div>
+
+    <h2 id="s4">4. 기본정리의 두 번째 증명</h2>
+    <p>
+      §1~§3 을 <b>거꾸로 읽으면</b> 기본정리가 다시 나옵니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">거꾸로 읽기</div>
+      <div class="eq" style="font-size:14.5px;line-height:2.6;text-align:left;padding-left:10px">
+        넓이 = <b>평균 높이 × 구간 길이</b> &nbsp;<span class="small">(§1의 직사각형)</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;= <b>평균 기울기 × 구간 길이</b> &nbsp;<span class="small">(§2의 관점 전환)</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;=
+        <span class="frac"><span>F(b) − F(a)</span><span>b − a</span></span> × (b − a)
+        &nbsp;<span class="small">(§3의 할선)</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;= <b>F(b) − F(a)</b> ✓
+      </div>
+      <ul class="where">
+        <li><span class="sym">무엇을 얻었나</span><span class="desc"><b>정적분이 왜 '양 끝값의 차'라는 단순한 형태인지</b>,
+            이제 <b>두 개의 다른 길</b>로 도달했습니다</span></li>
+        <li><span class="sym">9강의 길</span><span class="desc">면적 함수 A(x) 를 만들고
+            <b>미분해서</b> <span class="m">A′ = f</span> 를 보였습니다</span></li>
+        <li><span class="sym">10강의 길</span><span class="desc"><b>평균</b>이라는 개념을 통해
+            넓이와 할선을 직접 이었습니다</span></li>
+        <li><span class="sym">좋은 정리의 특징</span><span class="desc"><b>여러 방향에서 도달할 수 있다</b>는 것.
+            그만큼 <b>깊은 곳에 뿌리</b>가 있다는 뜻입니다</span></li>
+      </ul>
+    </div>
+
+    <div class="takeaway">
+      <b>사인으로 확인 ·</b>
+      0~π 에서 sin 의 평균 =
+      <span class="m">[−cos(π) − (−cos 0)] / π = (1+1)/π = 2/π ≈ <b>0.637</b></span>.
+      <b>0과 1 사이를 오르내리니 평균이 0.6쯤</b>이라는 직관과 맞고,
+      위 패널의 <b>초록 평균선</b>이 바로 이 값입니다.
+      그리고 이 계산에서 우리가 한 일은
+      <b>역도함수 <span class="m">−cos</span> 의 양 끝값을 빼고 구간 길이로 나눈 것</b>뿐입니다.
+    </div>
+
+    <h2 id="s5">5. 파이썬으로 확인하기</h2>
+
+    <div class="pycell" data-packages="numpy" data-title="10-1. 표본 평균이 연속 평균으로 수렴한다">
+    import numpy as np
+
+    f, a, b = np.sin, 0, np.pi
+
+    print(f"{'표본 개수 n':>12} {'표본 평균':>16} {'2/π 와의 차':>16}")
+    for n in [2, 4, 10, 100, 10000]:
+        x = a + (np.arange(n) + 0.5) * (b - a) / n
+        평균 = f(x).mean()
+        print(f"{n:>12} {평균:>16.10f} {평균 - 2/np.pi:>16.2e}")
+
+    print(f"\n연속 평균 = ∫sin / π = 2/π = {2/np.pi:.10f}")
+    print(f"(최소+최대)/2 = {(0+1)/2}   ← 완전히 다른 값이다")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="10-2. 왜 0.5 가 아닌가 — 머무는 시간">
+    import numpy as np
+
+    # sin 값을 구간별로 나눠 '얼마나 오래 그 높이에 있는가' 를 세어본다
+    x = np.linspace(0, np.pi, 200001)
+    y = np.sin(x)
+
+    print(f"{'높이 구간':>14} {'머무는 시간 비율':>18}")
+    for lo in np.arange(0, 1.0, 0.2):
+        비율 = np.mean((y >= lo) & (y < lo + 0.2))
+        print(f"  {lo:.1f} ~ {lo+0.2:.1f} {'':>4} {100*비율:>14.2f}%")
+
+    print("\n→ 0.8~1.0 구간에 머무는 시간이 0.0~0.2 보다 훨씬 길다.")
+    print("  높은 곳에 오래 있으니 평균이 0.5 보다 위로 올라간다.")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="10-3. 평균값 정리 — 평균 기울기 = 할선 기울기">
+    import numpy as np
+    from scipy.optimize import brentq
+
+    F  = lambda x: x**3/3 - x
+    f  = lambda x: x**2 - 1        # F′
+
+    a, b = 0.0, 2.0
+    할선 = (F(b) - F(a)) / (b - a)
+
+    # f 의 평균 = 넓이 / 길이 (가운데 리만합)
+    n = 2000000
+    t = a + (np.arange(n) + 0.5) * (b - a) / n
+    평균 = f(t).mean()
+
+    print(f"할선 기울기      = {할선:.10f}")
+    print(f"f 의 평균 높이   = {평균:.10f}")
+    print(f"차               = {할선 - 평균:.2e}\n")
+
+    c = brentq(lambda x: f(x) - 할선, a + 1e-9, b)
+    print(f"평균을 실현하는 점 c = {c:.10f}")
+    print(f"  F′(c) = {f(c):.10f}   ← 할선 기울기와 같다")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="10-4. 평균선 위·아래 넓이가 같다">
+    import numpy as np
+
+    f, a, b = np.sin, 0, np.pi
+    n = 2000000
+    x = a + (np.arange(n) + 0.5) * (b - a) / n
+    dx = (b - a) / n
+    m = f(x).mean()
+
+    위 = np.sum(np.maximum(f(x) - m, 0) * dx)
+    아래 = np.sum(np.maximum(m - f(x), 0) * dx)
+
+    print(f"평균 높이 m = {m:.10f}")
+    print(f"평균선 위로 삐져나온 넓이 = {위:.10f}")
+    print(f"평균선 아래로 모자란 넓이 = {아래:.10f}")
+    print(f"차                        = {위 - 아래:.2e}")
+    print("\n→ 정확히 같다. '평균' 의 정의가 바로 이것이다.")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="10-5. 기본정리를 거꾸로 읽기">
+    import numpy as np
+
+    사례 = [
+        ("sin, [0, π]",      np.sin,           lambda x: -np.cos(x),  0, np.pi),
+        ("x², [0, 2]",       lambda x: x**2,   lambda x: x**3/3,      0, 2),
+        ("eˣ, [0, 1]",       np.exp,           np.exp,                0, 1),
+        ("1/x, [1, e]",      lambda x: 1/x,    np.log,                1, np.e),
+    ]
+
+    print(f"{'함수':>14} {'평균 높이':>14} {'(F(b)-F(a))/(b-a)':>22} {'넓이':>12}")
+    for 이름, f, F, a, b in 사례:
+        n = 500000
+        x = a + (np.arange(n) + 0.5) * (b - a) / n
+        평균 = f(x).mean()
+        공식 = (F(b) - F(a)) / (b - a)
+        print(f"{이름:>14} {평균:>14.8f} {공식:>22.8f} {평균*(b-a):>12.8f}")
+
+    print("\n→ 넓이 = 평균 높이 × 구간 길이 = F(b) - F(a).  기본정리의 두 번째 증명이다.")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="10-6. 연습문제">
+    # 문제 1. cos x 의 0~π/2 평균 높이를 구하세요. (역도함수는 sin x)
+
+    # 문제 2. x² 의 0~1 평균 높이는? 그리고 그 값을 실현하는 점 c 는 어디일까요?
+
+    # 문제 3. 속도 v(t) = 3t² 로 t=0~2 를 달렸습니다.
+    #         평균 속도는? 그리고 정확히 그 속도였던 순간은 언제일까요?
+
+    # 아래에 직접 써보세요
+    </div>
+
+    <details style="margin:18px 0">
+      <summary style="cursor:pointer;font-weight:600;color:var(--accent)">모범 답안 보기</summary>
+      <div class="pycell" data-packages="numpy" data-title="모범 답안">
+      import numpy as np
+
+      def 평균높이(f, a, b, n=1000000):
+          x = a + (np.arange(n) + 0.5) * (b - a) / n
+          return f(x).mean()
+
+      # 문제 1 — (sin(π/2) - sin 0)/(π/2) = 2/π
+      print(f"문제 1: 수치 {평균높이(np.cos, 0, np.pi/2):.8f}   공식 2/π = {2/np.pi:.8f}\n")
+
+      # 문제 2 — 1/3, c = 1/√3
+      m = 평균높이(lambda x: x**2, 0, 1)
+      print(f"문제 2: 평균 = {m:.8f} (= 1/3),  c = √(1/3) = {np.sqrt(1/3):.8f}")
+      print(f"        확인: c² = {(1/3)**0.5**2:.8f}\n")
+
+      # 문제 3 — 평균 속도 4, 그 순간 t = 2/√3
+      m3 = 평균높이(lambda t: 3*t**2, 0, 2)
+      print(f"문제 3: 평균 속도 = {m3:.8f} m/s  (= (2³-0)/2 = 4)")
+      print(f"        3t² = 4 → t = {np.sqrt(4/3):.8f} 초")
+      print("        구간단속이 잡아내는 것이 바로 이 순간이다.")
+      </div>
+    </details>
+
+    <div class="practice">
+      <b>연속 평균이 실제로 하는 일</b>
+      <ul>
+        <li><b>전기공학의 실효값(RMS)</b> — 교류 전압의 "평균 세기"는
+            <span class="m">√(v² 의 평균)</span> 입니다.
+            220V 는 <b>진폭이 아니라 이 적분 평균</b>이에요 (진폭은 약 311V).</li>
+        <li><b>구간 단속</b> — 평균 속도가 제한을 넘으면
+            <b>어느 순간엔 반드시 넘었다</b>는 것이 평균값 정리의 보증입니다.</li>
+        <li><b>신호처리의 DC 성분</b> — 신호의 평균값이 푸리에 급수의 <b>0차 항</b>입니다.</li>
+        <li><b>통계의 기댓값</b> — <span class="m">E[X] = ∫x·p(x)dx</span> 는
+            "<b>값 × 그 값에 머무는 정도</b>"를 적분한 것 — §1의 그림 그대로입니다.</li>
+        <li><b>열역학</b> — 시간 평균 온도, 공간 평균 밀도가 전부 적분 평균입니다.</li>
+      </ul>
+    </div>
+
+    <div class="summary">
+      <h3>✎ 스스로 점검</h3>
+      <ul>
+        <li><b>27.</b> 연속 함수의 평균을 왜 넓이로 정의하나요?
+            <span style="color:var(--text-dim)">(§1)</span></li>
+        <li><b>28.</b> '높이를 기울기로 읽는다'는 발상의 전환을 설명해 보세요.
+            <span style="color:var(--text-dim)">(§2)</span></li>
+        <li><b>29.</b> 순간 기울기들의 평균이 할선 기울기와 같다는 결론이
+            왜 기본정리의 재증명이 되나요?
+            <span style="color:var(--text-dim)">(§4)</span></li>
+      </ul>
+    </div>
+
+    <div class="summary">
+      <h3>10강 요약</h3>
+      <ul>
+        <li>무한히 많은 값의 평균은 <b>다 더해 나눌 수</b> 없습니다.
+            <b>n개로 근사 → 계산 → 극한</b> 이라는 언제나의 순서를 씁니다.</li>
+        <li><b>평균 높이 = <span class="m">∫<sub>a</sub><sup>b</sup> f / (b−a)</span></b> —
+            <b>같은 넓이를 갖는 직사각형의 높이</b>입니다.</li>
+        <li><b>(최소+최대)/2 가 아닙니다.</b>
+            "얼마나 높은가"뿐 아니라 <b>"얼마나 오래 그 높이인가"</b> 를 세야 하니까요.</li>
+        <li>f 를 <b>F 의 도함수로 보면</b>, f 의 <b>높이 평균</b>이 F 의 <b>기울기 평균</b>이 됩니다.</li>
+        <li><b>기울기의 평균 = 할선의 기울기</b>.
+            중간의 오르내림을 다 평균 내면 <b>처음과 끝을 잇는 직선</b>이 남습니다.</li>
+        <li><b>평균값 정리</b>: 그 평균 기울기를 <b>실제로 갖는 점 c 가 반드시 있습니다.</b>
+            구간단속의 논리죠.</li>
+        <li>이 길을 거꾸로 읽으면 <b>기본정리의 두 번째 증명</b>이 됩니다.</li>
+      </ul>
+    </div>
+
+    <div class="colab-cta">
+      <div class="colab-text">
+        <b>더 자유롭게 실험하고 싶다면</b><br>
+        이 강의의 실습만 모은 노트북을 Colab에서 열 수 있습니다.
+      </div>
+      <a class="btn" id="colab-link" href="#" target="_blank" rel="noopener">Colab에서 열기</a>
+    </div>
+
+    <p class="next-up">
+      다음 → <b>11강 · 테일러 급수 — 곡선을 다항식으로 번역하기</b><br>
+      계산기는 <span class="m">sin(0.7)</span> 을 어떻게 구할까요?
+      <b>사인의 '진짜 값'을 아는 게 아닙니다.</b>
+      <b>덧셈·곱셈만으로 계산되는 다항식</b>으로 사인을 흉내 내서,
+      원하는 자릿수까지 계산합니다. 그 <b>번역 사전</b>이 테일러 급수입니다.
+    </p>
+
+  </section>
+
+</div>
+
+<script src="../assets/viz.js?v=312b9476b0"></script>
+<script src="../assets/calc.js?v=c1137a5076"></script>
+<script src="../assets/pylab.js?v=cb27f20364"></script>
+<script src="../assets/pycell.js?v=6dacc4c6ce"></script>
+<script>
+(function () {
+  'use strict';
+  var num = CA.num, F = CA.F;
+
+  /* =======================================================
+     패널 ① 연속 평균
+     ======================================================= */
+  var an = 6, aFill = true, ak = 'sin';
+
+  var AK = {
+    sin:  { f: Math.sin, a: 0, b: Math.PI, yd: [-0.15, 1.25],
+            name: 'f(x) = sin x', mn: 0, mx: 1, xs: 0.5 },
+    sq:   { f: function (x) { return x * x; }, a: 0, b: 2, yd: [-0.4, 4.5],
+            name: 'f(x) = x²', mn: 0, mx: 4, xs: 0.5 },
+    bump: { f: function (x) { return 1.4 + Math.sin(x) + 0.6 * Math.sin(3 * x); },
+            a: 0, b: Math.PI * 2, yd: [-0.6, 3.4],
+            name: 'f(x) = 1.4 + sin x + 0.6 sin 3x', mn: null, mx: null, xs: 1 }
+  };
+
+  var gAvg = new CA.Graph(document.getElementById('cv-avg'), {
+    height: function (w) { return Math.round(Math.max(240, Math.min(330, w * 0.44))); },
+    margin: { top: 20, right: 20, bottom: 42, left: 52 }
+  });
+
+  function drawAvg() {
+    var S = AK[ak];
+    var mean = F.integral(S.f, S.a, S.b, 4000) / (S.b - S.a);
+    var pad = (S.b - S.a) * 0.06;
+
+    gAvg.xDomain = [S.a - pad, S.b + pad];
+    gAvg.yDomain = S.yd;
+    gAvg.begin();
+    gAvg.axes({ xStep: S.xs, yStep: CA.niceStep(S.yd[1] - S.yd[0], 4), xLabel: 'x →' });
+
+    /* 같은 넓이의 직사각형 */
+    gAvg.rect(S.a, 0, S.b, mean, {
+      fill: V.css('--pos-soft'), stroke: V.css('--pos'), lineWidth: 2
+    });
+
+    /* 위로 삐져나온 부분 / 아래로 모자란 부분 */
+    if (aFill) {
+      var N = 400, i, x0, x1, y0, y1;
+      for (i = 0; i < N; i++) {
+        x0 = S.a + (S.b - S.a) * i / N;
+        x1 = S.a + (S.b - S.a) * (i + 1) / N;
+        y0 = S.f((x0 + x1) / 2);
+        if (y0 > mean) {
+          gAvg.rect(x0, mean, x1, y0, { fill: V.css('--accent-soft') });
+        } else {
+          gAvg.rect(x0, y0, x1, mean, { fill: V.css('--neg-soft') });
+        }
+      }
+    }
+
+    gAvg.curve(S.f, { color: V.css('--accent'), width: 2.8, from: S.a, to: S.b });
+    gAvg.hline(mean, { color: V.css('--pos'), width: 2.2, dash: null });
+    gAvg.text(S.a + (S.b - S.a) * 0.06, mean, '평균 높이 ' + num(mean, 4), {
+      color: V.css('--pos'), align: 'left', dy: -8, size: 12, bg: V.css('--surface')
+    });
+
+    /* 표본 점들 */
+    var samp = null;
+    if (an > 0) {
+      var s = 0;
+      for (var k = 0; k < an; k++) {
+        var xk = S.a + (k + 0.5) * (S.b - S.a) / an;
+        s += S.f(xk);
+        gAvg.dot(xk, S.f(xk), { r: 3.6, color: V.css('--purple') });
+        gAvg.segment(xk, 0, xk, S.f(xk), { color: V.css('--purple'), width: 1, alpha: 0.5 });
+      }
+      samp = s / an;
+    }
+
+    gAvg.legend([
+      { color: V.css('--accent'), text: '평균선 위로 삐져나온 넓이' },
+      { color: V.css('--neg'), text: '평균선 아래로 모자란 넓이 (같다)' }
+    ], { corner: 'tr' });
+
+    var area = mean * (S.b - S.a);
+    V.setText('#v-area', num(area, 5));
+    V.setText('#v-len', num(S.b - S.a, 4));
+    V.setText('#v-mean', num(mean, 5));
+    V.setText('#v-samp', samp === null ? '연속' : num(samp, 5));
+    V.setText('#v-mid', S.mn === null ? '—' : num((S.mn + S.mx) / 2, 4));
+  }
+
+  V.range('an', function (v) { an = v; drawAvg(); },
+    function (v) { return v === 0 ? '연속' : String(v); });
+  V.check('a-fill', function (v) { aFill = v; drawAvg(); });
+  V.radios('ak', function (v) { ak = v; drawAvg(); });
+
+  /* =======================================================
+     패널 ② 평균값 정리
+     ======================================================= */
+  var ma = 0, mb = 2, mk = 'cube';
+
+  var MK = {
+    cube: { F: function (x) { return x * x * x / 3 - x; }, f: function (x) { return x * x - 1; },
+            Fd: [-2.6, 2.6], fd: [-1.6, 6.5], name: 'F(x) = x³/3 − x', fname: "f = F′ = x² − 1" },
+    sin:  { F: function (x) { return -Math.cos(x); }, f: Math.sin,
+            Fd: [-1.4, 1.4], fd: [-1.3, 1.3], name: 'F(x) = −cos x', fname: "f = F′ = sin x" },
+    exp:  { F: Math.exp, f: Math.exp,
+            Fd: [-0.4, 8], fd: [-0.4, 8], name: 'F(x) = eˣ', fname: "f = F′ = eˣ" }
+  };
+
+  function mvtLayout(w) {
+    var top = Math.round(V.clamp(w * 0.26, 160, 215));
+    var bot = Math.round(V.clamp(w * 0.24, 150, 200));
+    return { top: top, H: top + bot + 14 };
+  }
+
+  var cvMvt = document.getElementById('cv-mvt');
+  var frMvt = new CA.Frame(cvMvt, function (w) { return mvtLayout(w).H; });
+  var gF = new CA.Graph(cvMvt, { frame: frMvt, xDomain: [-2.3, 2.9], margin: { top: 16, right: 20, bottom: 24, left: 52 } });
+  var gf = new CA.Graph(cvMvt, { frame: frMvt, xDomain: [-2.3, 2.9], margin: { top: 16, right: 20, bottom: 32, left: 52 } });
+
+  function drawMvt() {
+    var S = MK[mk];
+    var a = Math.min(ma, mb - 0.15), b = Math.max(mb, ma + 0.15);
+    var sec = (S.F(b) - S.F(a)) / (b - a);
+
+    /* 평균을 실현하는 점 c — f(c) = sec 인 곳을 격자 탐색 후 이분법 */
+    var c = null, N = 600, i, x0, x1;
+    for (i = 0; i < N; i++) {
+      x0 = a + (b - a) * i / N;
+      x1 = a + (b - a) * (i + 1) / N;
+      if ((S.f(x0) - sec) * (S.f(x1) - sec) <= 0) {
+        var lo = x0, hi = x1;
+        for (var k = 0; k < 60; k++) {
+          var mid = (lo + hi) / 2;
+          if ((S.f(lo) - sec) * (S.f(mid) - sec) <= 0) hi = mid; else lo = mid;
+        }
+        c = (lo + hi) / 2;
+        break;
+      }
+    }
+
+    frMvt.begin();
+    var L = mvtLayout(frMvt.w);
+
+    /* --- 위: F 와 할선 --- */
+    gF.yDomain = S.Fd;
+    gF.plot.margin.top = 16;
+    gF.plot.margin.bottom = L.H - L.top + 6;
+    gF.begin();
+    gF.axes({ xStep: 0.5, yStep: CA.niceStep(S.Fd[1] - S.Fd[0], 4) });
+    gF.curve(S.F, { color: V.css('--accent'), width: 2.6 });
+    gF.segment(a, S.F(a), b, S.F(b), { color: V.css('--warn'), width: 2.6 });
+    gF.dot(a, S.F(a), { r: 4.5, color: V.css('--warn') });
+    gF.dot(b, S.F(b), { r: 4.5, color: V.css('--warn') });
+    if (c !== null) {
+      gF.lineAt(c, S.F(c), sec, { color: V.css('--pos'), width: 2.4, span: 0.9 });
+      gF.dot(c, S.F(c), { r: 5.5, color: V.css('--pos'), stroke: V.css('--surface'), strokeWidth: 2 });
+      gF.vline(c, { color: V.css('--pos'), dash: [4, 4], width: 1.2 });
+    }
+    gF.text(-2.22, S.Fd[1] - (S.Fd[1] - S.Fd[0]) * 0.1, S.name, {
+      color: V.css('--accent'), align: 'left', size: 12.5, bg: V.css('--surface')
+    });
+    gF.legend([
+      { color: V.css('--warn'), text: '할선 — 처음과 끝을 잇는 직선' },
+      { color: V.css('--pos'), text: '할선과 평행한 접선' }
+    ], { corner: 'br' });
+
+    /* --- 아래: f = F′ 와 평균선 --- */
+    gf.yDomain = S.fd;
+    gf.plot.margin.top = L.top + 14;
+    gf.plot.margin.bottom = 32;
+    gf.begin();
+    gf.axes({ xStep: 0.5, yStep: CA.niceStep(S.fd[1] - S.fd[0], 4), xLabel: 'x →' });
+
+    /* 평균선 위·아래 넓이 */
+    var M = 300, j, u0, u1, v0;
+    for (j = 0; j < M; j++) {
+      u0 = a + (b - a) * j / M;
+      u1 = a + (b - a) * (j + 1) / M;
+      v0 = S.f((u0 + u1) / 2);
+      if (v0 > sec) gf.rect(u0, sec, u1, v0, { fill: V.css('--accent-soft') });
+      else gf.rect(u0, v0, u1, sec, { fill: V.css('--neg-soft') });
+    }
+    gf.curve(S.f, { color: V.css('--purple'), width: 2.6 });
+    gf.segment(a, sec, b, sec, { color: V.css('--pos'), width: 2.4 });
+    if (c !== null) {
+      gf.vline(c, { color: V.css('--pos'), dash: [4, 4], width: 1.2 });
+      gf.dot(c, sec, { r: 5.5, color: V.css('--pos'), stroke: V.css('--surface'), strokeWidth: 2 });
+    }
+    gf.text(-2.22, S.fd[1] - (S.fd[1] - S.fd[0]) * 0.11, S.fname + '   평균 = ' + num(sec, 3), {
+      color: V.css('--purple'), align: 'left', size: 12, bg: V.css('--surface')
+    });
+
+    var mean = F.integral(S.f, a, b, 3000) / (b - a);
+    V.setText('#t-sec', num(sec, 6));
+    V.setText('#t-mean', num(mean, 6));
+    V.setText('#t-gap', (sec - mean).toExponential(1));
+    V.setText('#t-c', c === null ? '—' : num(c, 5));
+  }
+
+  V.range('ma', function (v) { ma = v; drawMvt(); }, function (v) { return num(v, 2); });
+  V.range('mb', function (v) { mb = v; drawMvt(); }, function (v) { return num(v, 2); });
+  V.radios('mk', function (v) { mk = v; drawMvt(); });
+
+  V.onRedraw(function () { drawAvg(); drawMvt(); });
+  drawAvg(); drawMvt();
+
+  var a = document.getElementById('colab-link');
+  if (a) a.href = 'https://colab.research.google.com/github/mioon1402/timeseriesdata/blob/main/notebooks/C10-average.ipynb';
+})();
+</script>
+</body>
+</html>

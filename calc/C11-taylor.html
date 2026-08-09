@@ -1,0 +1,724 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>테일러 급수 — 곡선을 다항식으로 번역하기 · 미적분의 직관</title>
+<meta name="description" content="값·기울기·곡률을 차례로 맞추면 다항식이 곡선을 흉내 냅니다. 계산기가 sin 을 구하는 법.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%E2%88%AB%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css?v=b7dfb076b2">
+<link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">미적분 11강 · 테일러 급수</p>
+    <h1>테일러 급수 — 곡선을 다항식으로 번역하기</h1>
+    <p class="lede">
+      계산기는 <span class="m">sin(0.7)</span> 을 어떻게 구할까요?
+      <b>사인의 '진짜 값'을 아는 게 아닙니다.</b>
+      <b>덧셈·곱셈만으로 계산되는 다항식</b>으로 사인을 흉내 내서,
+      원하는 자릿수까지 계산합니다.
+      그 <b>번역 사전</b>이 <b>테일러 급수</b>입니다.
+    </p>
+  </header>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 강의에서 배우는 것</b>
+      <ol>
+        <li><a href="#s0">기초 다지기 — 왜 다항식인가</a></li>
+        <li><a href="#s1">단계별로 닮아가기 — 값·기울기·곡률</a></li>
+        <li><a href="#s2">차수를 올리면 어디까지 따라오나</a></li>
+        <li><a href="#s3">팩토리얼은 왜 나오나</a></li>
+        <li><a href="#s4">수렴 반경 — 만능은 아니다</a></li>
+        <li><a href="#s5">공학에서의 쓰임 — 선형화</a></li>
+        <li><a href="#s6">파이썬으로 확인하기</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s0">0. 기초 다지기 — 왜 다항식인가</h2>
+    <p>
+      컴퓨터가 <b>확실히 할 수 있는 연산</b>은 딱 넷입니다 —
+      <b>더하기, 빼기, 곱하기, 나누기.</b>
+      <span class="m">sin</span>, <span class="m">e<sup>x</sup></span>, <span class="m">ln</span> 같은 함수는
+      <b>이 넷으로 정의되지 않습니다.</b>
+    </p>
+    <p>
+      그런데 <b>다항식</b>(<span class="m">c₀ + c₁x + c₂x² + ⋯</span>)은 <b>덧셈과 곱셈만으로</b> 계산됩니다.
+      그래서 <b>"복잡한 함수를 다항식으로 흉내 낼 수 있다면"</b> 계산이 가능해집니다.
+    </p>
+
+    <div class="callout">
+      <b>2강의 국소 선형성이 출발점입니다</b><br>
+      2강에서 <b>확대하면 곡선이 직선이 된다</b>고 했습니다.
+      그건 <b>1차 다항식으로 흉내 낸 것</b>이었죠 —
+      <span class="m">f(x) ≈ f(a) + f′(a)(x−a)</span>.
+      <br><br>
+      테일러 급수는 여기서 <b>한 걸음 더 나갑니다.</b>
+      "1차로 부족하면 <b>2차, 3차, 4차… 를 계속 붙이면</b> 되지 않나?"
+      <b>바로 그것입니다.</b>
+    </div>
+
+    <h2 id="s1">1. 단계별로 닮아가기 — 값·기울기·곡률</h2>
+    <p>
+      x=0 근처에서 <span class="m">cos(x)</span> 를 흉내 낼 다항식
+      <span class="m">P(x) = c₀ + c₁x + c₂x² + ⋯</span> 의 계수를 하나씩 정합시다.
+      <b>조건을 하나 걸 때마다 한 계수가 결정됩니다.</b>
+    </p>
+
+    <div class="panel">
+      <div class="panel-title">① 조건을 하나씩 걸어 계수를 정한다</div>
+      <div class="canvas-wrap"><canvas id="cv-step"></canvas></div>
+
+      <div class="seg" role="group" aria-label="차수 선택" style="margin-top:6px">
+        <label><input type="radio" name="st" value="0" checked><span>0차 — 값 맞추기</span></label>
+        <label><input type="radio" name="st" value="1"><span>1차 — 기울기 맞추기</span></label>
+        <label><input type="radio" name="st" value="2"><span>2차 — 휘어짐 맞추기</span></label>
+        <label><input type="radio" name="st" value="4"><span>4차</span></label>
+      </div>
+
+      <div class="readout">
+        <div class="stat accent"><span class="k">지금 근사식</span><span class="v" id="s-eq">–</span></div>
+        <div class="stat pos"><span class="k">맞춘 것</span><span class="v" id="s-what">–</span></div>
+        <div class="stat purple"><span class="k">x = 1 에서의 오차</span><span class="v" id="s-e1">–</span></div>
+        <div class="stat warn"><span class="k">x = 2 에서의 오차</span><span class="v" id="s-e2">–</span></div>
+      </div>
+      <p class="hint">
+        <b>0차</b>는 높이만, <b>1차</b>는 높이와 방향, <b>2차</b>는 거기에 <b>휘어짐</b>까지 맞춥니다.
+        2차에서 처음으로 <b>포물선 <span class="m">1 − x²/2</span></b> 가 되죠.
+      </p>
+    </div>
+
+    <div class="formula">
+      <div class="name">cos(x) 의 계수를 하나씩</div>
+      <div class="eq" style="font-size:14.5px;line-height:2.5;text-align:left;padding-left:10px">
+        <b>0차 — 위치 맞추기:</b> cos(0) = 1 이니 P(0) = c₀ = <b>1</b><br>
+        <b>1차 — 방향 맞추기:</b> cos′(0) = −sin(0) = 0 이니 <b>c₁ = 0</b><br>
+        <b>2차 — 휘어짐 맞추기:</b> cos″(0) = −1, P″(0) = 2c₂ 이므로 <b>c₂ = −1/2</b><br>
+        <b>4차, 6차… 계속:</b> 같은 방식으로 c₄ = <b>1/24</b>, c₆ = <b>−1/720</b>. 홀수 차수는 전부 0
+      </div>
+      <ul class="where">
+        <li><span class="sym">c₂ 계산</span><span class="desc"><span class="m">P = c₀ + c₁x + c₂x²</span> 를
+            두 번 미분하면 <span class="m">2c₂</span>. 이것이 <span class="m">cos″(0) = −1</span> 과 같아야 하므로
+            <span class="m">c₂ = −1/2</span></span></li>
+        <li><span class="sym">홀수가 0인 이유</span><span class="desc">cos 은 <b>y축 대칭</b>(우함수)입니다.
+            <b>홀수 차수는 대칭을 깨므로</b> 계수가 0이어야 하죠</span></li>
+      </ul>
+    </div>
+
+    <div class="formula">
+      <div class="name">cos 과 eˣ 의 급수</div>
+      <div class="eq" style="font-size:15px;line-height:2.4">
+        cos(x) ≈ 1 − <span class="frac"><span>x²</span><span>2!</span></span>
+        + <span class="frac"><span>x⁴</span><span>4!</span></span>
+        − <span class="frac"><span>x⁶</span><span>6!</span></span> + ⋯
+        <br>
+        e<sup>x</sup> ≈ 1 + x + <span class="frac"><span>x²</span><span>2!</span></span>
+        + <span class="frac"><span>x³</span><span>3!</span></span> + ⋯
+        <br>
+        sin(x) ≈ x − <span class="frac"><span>x³</span><span>3!</span></span>
+        + <span class="frac"><span>x⁵</span><span>5!</span></span> − ⋯
+      </div>
+      <ul class="where">
+        <li><span class="sym">eˣ 는 왜 전부 1</span><span class="desc">몇 번을 미분해도 <span class="m">eˣ</span> 이고
+            0에서 값이 1이니, <b>모든 도함수 값이 1</b>입니다(6강)</span></li>
+        <li><span class="sym">부호가 번갈아</span><span class="desc">sin·cos 은 미분할 때마다
+            <b>cos → −sin → −cos → sin</b> 으로 <b>4주기</b>를 돕니다.
+            그래서 <b>+ − + −</b> 가 반복되죠</span></li>
+      </ul>
+    </div>
+
+    <h2 id="s2">2. 차수를 올리면 어디까지 따라오나</h2>
+
+    <div class="panel">
+      <div class="panel-title">② 차수를 올려 보세요</div>
+      <div class="canvas-wrap"><canvas id="cv-tay"></canvas></div>
+
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">다항식의 차수 n</span><span class="val" id="tn-val">2</span></span>
+          <input type="range" id="tn" min="0" max="20" step="1" value="2">
+        </label>
+        <label class="ctrl">
+          <span class="label-row"><span class="name">오차를 잴 지점 x</span><span class="val" id="tx-val">2</span></span>
+          <input type="range" id="tx" min="-6" max="6" step="0.02" value="2">
+        </label>
+        <label class="toggle"><input type="checkbox" id="t-all"> 낮은 차수들도 함께 보기</label>
+      </div>
+
+      <div class="seg" role="group" aria-label="함수 선택" style="margin-top:10px">
+        <label><input type="radio" name="tf" value="cos" checked><span>cos x</span></label>
+        <label><input type="radio" name="tf" value="sin"><span>sin x</span></label>
+        <label><input type="radio" name="tf" value="exp"><span>eˣ</span></label>
+        <label><input type="radio" name="tf" value="log"><span>ln(1+x)</span></label>
+      </div>
+
+      <div class="readout">
+        <div class="stat accent"><span class="k">참값 f(x)</span><span class="v" id="y-true">–</span></div>
+        <div class="stat purple"><span class="k">n차 근사</span><span class="v" id="y-app">–</span></div>
+        <div class="stat neg"><span class="k">오차</span><span class="v" id="y-err">–</span></div>
+        <div class="stat pos"><span class="k">오차가 0.001 미만인 범위</span><span class="v" id="y-range">–</span></div>
+      </div>
+      <p class="hint">
+        <b>차수를 올릴수록 근사가 유효한 범위가 넓어집니다.</b>
+        <span class="m">cos</span> 은 2차에서 ±0.4 정도, 10차면 ±3 이상까지 따라옵니다.
+        그런데 <b><span class="m">ln(1+x)</span> 는 아무리 차수를 올려도 x = 1 을 못 넘습니다</b> — §4의 이야기입니다.
+      </p>
+    </div>
+
+    <h2 id="s3">3. 팩토리얼은 왜 나오나</h2>
+    <p>
+      분모의 <span class="m">2!, 4!, 6!</span> 은 어디서 왔을까요?
+    </p>
+
+    <div class="formula">
+      <div class="name">n! 의 정체</div>
+      <div class="eq" style="font-size:15px;line-height:2.4">
+        x<sup>n</sup> 을 n번 미분하면 &nbsp;
+        n · (n−1) · ⋯ · 1 = <b>n!</b>
+        <br>
+        <span class="small">n번째 도함수를 원래 함수와 <b>정확히</b> 맞추려면 이 n! 을 <b>미리 나눠 상쇄</b>해둬야 한다</span>
+        <br>
+        <b>f(x) = <span class="sig">Σ</span>
+        <span class="frac"><span>f<sup>(n)</sup>(0)</span><span>n!</span></span> · x<sup>n</sup></b>
+      </div>
+      <ul class="where">
+        <li><span class="sym">확인</span><span class="desc"><span class="m">x³</span> 을 세 번 미분하면
+            <span class="m">3·2·1 = 6 = 3!</span>. 그래서 <span class="m">x³/3!</span> 을 세 번 미분하면
+            <b>정확히 1</b>이 됩니다</span></li>
+        <li><span class="sym">f<sup>(n)</sup></span><span class="desc"><b>n번 미분한 함수</b>.
+            <span class="m">f⁗</span> 처럼 프라임을 계속 붙이기 어려워서 쓰는 표기입니다</span></li>
+        <li><span class="sym">중심을 옮기면</span><span class="desc">x=a 근처를 흉내 내려면
+            <span class="m">x<sup>n</sup></span> 대신 <span class="m">(x−a)<sup>n</sup></span>,
+            <span class="m">f<sup>(n)</sup>(0)</span> 대신 <span class="m">f<sup>(n)</sup>(a)</span>.
+            그게 <b>일반 테일러 급수</b>입니다</span></li>
+        <li><span class="sym">암기가 아니다</span><span class="desc">n! 은 <b>'값·기울기·곡률·… 을 차례로 맞춘다'</b>는
+            발상의 <b>자연스러운 부산물</b>입니다</span></li>
+      </ul>
+    </div>
+
+    <h2 id="s4">4. 수렴 반경 — 만능은 아니다</h2>
+    <p>
+      <b>주의 하나.</b> 급수가 <b>어디서나</b> 원래 함수와 같아지는 건 아닙니다.
+    </p>
+
+    <div class="panel">
+      <div class="panel-title">③ 근사에는 유효 사거리가 있다</div>
+      <div class="canvas-wrap"><canvas id="cv-rad"></canvas></div>
+
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">차수 n</span><span class="val" id="rd-val">6</span></span>
+          <input type="range" id="rd" min="1" max="40" step="1" value="6">
+        </label>
+      </div>
+
+      <div class="seg" role="group" aria-label="함수 선택" style="margin-top:10px">
+        <label><input type="radio" name="rk" value="geo" checked><span>1/(1−x)</span></label>
+        <label><input type="radio" name="rk" value="inv2"><span>1/(1+x²) ← 수상한 경우</span></label>
+        <label><input type="radio" name="rk" value="log"><span>ln(1+x)</span></label>
+        <label><input type="radio" name="rk" value="expc"><span>eˣ ← 반경 무한</span></label>
+      </div>
+
+      <div class="readout">
+        <div class="stat accent"><span class="k">수렴 반경</span><span class="v" id="d-R">–</span></div>
+        <div class="stat neg"><span class="k">특이점 위치</span><span class="v" id="d-sing">–</span></div>
+        <div class="stat purple"><span class="k">x = 0.9 에서의 오차</span><span class="v" id="d-e09">–</span></div>
+        <div class="stat warn"><span class="k">x = 1.2 에서의 오차</span><span class="v" id="d-e12">–</span></div>
+      </div>
+      <p class="hint">
+        <b>차수를 끝까지 올려 보세요.</b> 수렴 반경 <b>안</b>에서는 근사가 곡선에 붙지만,
+        <b>밖</b>에서는 차수를 올릴수록 <b>오히려 더 크게 빗나갑니다.</b>
+      </p>
+    </div>
+
+    <div class="formula">
+      <div class="name">수렴 반경이란</div>
+      <div class="eq" style="font-size:15px;line-height:2.3">
+        <span class="m">1/(1−x)</span> 의 급수 &nbsp; 1 + x + x² + x³ + ⋯ &nbsp; 는
+        <b>|x| &lt; 1</b> 에서만 수렴한다
+      </div>
+      <ul class="where">
+        <li><span class="sym">왜 1인가</span><span class="desc">x=1 에서 함수가 <b>무한대로 터집니다</b>(특이점).
+            <b>중심에서 그 특이점까지의 거리</b>가 수렴 반경입니다</span></li>
+        <li><span class="sym">수상한 경우</span><span class="desc"><span class="m">1/(1+x²)</span> 는
+            <b>실수 어디서도 멀쩡한데</b> 수렴 반경이 <b>1</b> 입니다.
+            <b>복소수 <span class="m">x = ±i</span> 에 특이점이 숨어</b> 있기 때문이죠</span></li>
+        <li><span class="sym">교훈</span><span class="desc">"실수 그래프만 봐서는 <b>왜 여기서 멈추는지 알 수 없다</b>" —
+            급수의 거동은 <b>복소평면에서만 완전히 보입니다</b></span></li>
+        <li><span class="sym">eˣ, sin, cos</span><span class="desc">특이점이 <b>아예 없어서</b>
+            수렴 반경이 <b>무한대</b>입니다. 어디서든 급수가 통하죠</span></li>
+      </ul>
+    </div>
+
+    <div class="pitfall">
+      <b>실무에서의 의미</b>
+      "이 근사는 <b>어디까지 믿을 수 있는가</b>"를 항상 물어야 합니다.
+      <br>
+      진자의 <span class="m">sin θ ≈ θ</span> 근사는 <b>θ 가 작을 때만</b> 통합니다 —
+      θ=0.1rad(5.7°)에서 오차 0.017%, θ=1rad(57°)에서는 <b>18%</b> 입니다.
+      <b>큰 진폭 진자에 이 근사를 쓰면 주기 계산이 통째로 틀립니다.</b>
+      <br><br>
+      <b>근사에는 유효 사거리가 있습니다.</b>
+    </div>
+
+    <h2 id="s5">5. 공학에서의 쓰임 — 선형화</h2>
+
+    <div class="callout">
+      <b>테일러 1차 근사(접선으로 바꾸기)가 곧 선형화입니다</b><br>
+      진자의 <span class="m">sin(θ) ≈ θ</span> 근사처럼,
+      <b>비선형 시스템을 동작점 근처에서 직선으로 바꿔</b> 다루는 것 —
+      <b>제어공학에서 모델을 세우는 첫 단계</b>입니다.
+      <br><br>
+      계산기·컴퓨터의 함수 계산, 미분방정식의 급수해법,
+      물리학의 <b>섭동 이론</b>, 기계학습의 <b>2차 최적화(뉴턴법)</b> 도
+      전부 이 급수 위에 서 있습니다.
+    </div>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>근사</th><th>조건</th><th>쓰이는 곳</th></tr></thead>
+        <tbody>
+          <tr><td class="m">sin θ ≈ θ</td><td>θ 작을 때</td><td>단진자, 광학의 근축 근사</td></tr>
+          <tr><td class="m">cos θ ≈ 1 − θ²/2</td><td>θ 작을 때</td><td>진자의 위치에너지</td></tr>
+          <tr><td class="m">e<sup>x</sup> ≈ 1 + x</td><td>x 작을 때</td><td>복리·감쇠의 1차 근사</td></tr>
+          <tr><td class="m">ln(1+x) ≈ x</td><td>x 작을 때</td><td>수익률, dB 계산</td></tr>
+          <tr><td class="m">(1+x)<sup>n</sup> ≈ 1 + nx</td><td>x 작을 때</td><td>오차 전파, 상대론의 저속 근사</td></tr>
+          <tr><td class="m">1/(1−x) ≈ 1 + x</td><td>x 작을 때</td><td>피드백 루프 게인</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 id="s6">6. 파이썬으로 확인하기</h2>
+
+    <div class="pycell" data-packages="numpy" data-title="11-1. 차수를 올리며 cos 을 따라잡기">
+    import numpy as np
+    from math import factorial
+
+    def 테일러_cos(x, n):
+        """n차까지의 부분합"""
+        return sum((-1)**(k//2) * x**k / factorial(k) for k in range(0, n+1, 2))
+
+    print(f"{'x':>5} {'참값 cos x':>14}", "".join(f"{f'{n}차':>13}" for n in [2, 4, 6, 8, 10]))
+    for x in [0.5, 1.0, 2.0, 3.0]:
+        print(f"{x:>5} {np.cos(x):>14.8f}",
+              "".join(f"{테일러_cos(x, n):>13.6f}" for n in [2, 4, 6, 8, 10]))
+
+    print("\n→ x 가 클수록 더 높은 차수가 필요하다.")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="11-2. 계수가 나오는 원리 — n번 미분">
+    from math import factorial
+    import numpy as np
+
+    def n계도함수(f, x, n, h=1e-3):
+        """중심차분을 n번 반복 (교육용 — 정확도는 낮다)"""
+        if n == 0: return f(x)
+        return (n계도함수(f, x+h, n-1, h) - n계도함수(f, x-h, n-1, h)) / (2*h)
+
+    print(f"{'n':>3} {'cos⁽ⁿ⁾(0) (수치)':>18} {'/ n!':>14} {'실제 계수':>14}")
+    실제 = [1, 0, -1/2, 0, 1/24, 0, -1/720]
+    for n in range(7):
+        d = n계도함수(np.cos, 0.0, n)
+        print(f"{n:>3} {d:>18.6f} {d/factorial(n):>14.8f} {실제[n]:>14.8f}")
+
+    print("\n→ 계수 = (n번 미분한 값) ÷ n!.  n! 은 xⁿ 을 n번 미분할 때 튀어나오는 값을 상쇄한다.")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="11-3. 유효 범위가 얼마나 넓어지나">
+    import numpy as np
+    from math import factorial
+
+    def 유효범위(n, 허용=1e-3, 상한=12.0):
+        """|테일러 - cos| < 허용 인 가장 큰 x"""
+        x = np.linspace(0, 상한, 200001)
+        오차 = np.abs(sum((-1)**(k//2) * x**k / factorial(k) for k in range(0, n+1, 2)) - np.cos(x))
+        나쁜 = np.where(오차 >= 허용)[0]
+        return 상한 if len(나쁜) == 0 else x[나쁜[0]]
+
+    print(f"{'차수':>6} {'오차 < 0.001 인 범위':>22}")
+    for n in [2, 4, 6, 8, 10, 14, 20]:
+        print(f"{n:>6} {'±' + f'{유효범위(n):.3f}':>22}")
+
+    print("\n→ 차수를 올릴수록 '유효 사거리' 가 넓어진다. cos 은 수렴 반경이 무한이라 끝없이 넓힐 수 있다.")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="11-4. 수렴 반경 — 1/(1−x)">
+    import numpy as np
+
+    def 등비부분합(x, n):
+        return sum(x**k for k in range(n+1))
+
+    print(f"{'x':>6} {'참값 1/(1-x)':>16}", "".join(f"{f'{n}항':>14}" for n in [5, 10, 20, 40]))
+    for x in [0.5, 0.9, 0.99, 1.2]:
+        참 = 1/(1-x) if x != 1 else float('inf')
+        print(f"{x:>6} {참:>16.6f}", "".join(f"{등비부분합(x, n):>14.4f}" for n in [5, 10, 20, 40]))
+
+    print("\n→ |x| < 1 이면 수렴, |x| > 1 이면 항을 늘릴수록 더 크게 발산한다.")
+    print("  x=0.99 는 수렴하지만 아주 느리다 — 반경 경계에 가까울수록 느려진다.")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="11-5. 실수에서 멀쩡한데 반경이 1인 함수">
+    import numpy as np
+
+    # 1/(1+x²) 의 급수: 1 - x² + x⁴ - x⁶ + ...
+    def 급수(x, n):
+        return sum((-1)**k * x**(2*k) for k in range(n+1))
+
+    print("1/(1+x²) — 실수 어디서도 무한대가 되지 않는다. 그런데…\n")
+    print(f"{'x':>6} {'참값':>14} {'10항':>16} {'30항':>16}")
+    for x in [0.5, 0.9, 1.1, 1.5]:
+        print(f"{x:>6} {1/(1+x**2):>14.8f} {급수(x, 10):>16.4f} {급수(x, 30):>16.4f}")
+
+    print("\n→ |x| > 1 에서 발산한다. 실수 그래프만 봐서는 이유를 알 수 없다.")
+    print("  복소수 x = ±i 에서 1+x² = 0 이 되어 특이점이 있기 때문이다.")
+    print("  중심 0 에서 ±i 까지의 거리가 1 — 그것이 수렴 반경이다.")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="11-6. sin θ ≈ θ 는 언제까지 통하나">
+    import numpy as np
+
+    print(f"{'θ (rad)':>10} {'θ (도)':>10} {'sin θ':>14} {'상대 오차':>12}")
+    for θ in [0.01, 0.1, 0.3, 0.5, 1.0, 1.5]:
+        오차 = abs(θ - np.sin(θ)) / np.sin(θ)
+        print(f"{θ:>10} {np.degrees(θ):>10.1f} {np.sin(θ):>14.8f} {100*오차:>11.3f}%")
+
+    print("\n→ 5.7°(0.1rad) 에서 0.17%, 57°(1rad) 에서 18%.")
+    print("  '작은 진동' 가정이 깨지면 진자의 주기 공식이 통째로 틀린다.")
+    </div>
+
+    <div class="pycell" data-packages="numpy,sympy" data-title="11-7. sympy 로 급수 뽑기">
+    import sympy as sp
+
+    x = sp.Symbol('x')
+    for 식 in [sp.cos(x), sp.sin(x), sp.exp(x), sp.log(1+x), 1/(1-x), sp.tan(x)]:
+        print(f"{str(식):>12} → {sp.series(식, x, 0, 8)}")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="11-8. 연습문제">
+    # 문제 1. eˣ 의 5차 근사로 e = e¹ 을 계산하고 참값과 비교하세요.
+
+    # 문제 2. tan x 의 3차 근사는 x + x³/3 입니다.
+    #         8강 연습문제의 lim (tan x - x)/x³ = 1/3 이 왜 그런지 설명해보세요.
+
+    # 문제 3. √(1+x) ≈ 1 + x/2 - x²/8 입니다. √1.1 을 이 식으로 계산하고
+    #         참값과 비교하세요.
+
+    # 아래에 직접 써보세요
+    </div>
+
+    <details style="margin:18px 0">
+      <summary style="cursor:pointer;font-weight:600;color:var(--accent)">모범 답안 보기</summary>
+      <div class="pycell" data-packages="numpy" data-title="모범 답안">
+      import numpy as np
+      from math import factorial
+
+      # 문제 1
+      근사 = sum(1**k / factorial(k) for k in range(6))
+      print(f"문제 1: 5차 근사 {근사:.10f}   참값 e = {np.e:.10f}   오차 {abs(근사-np.e):.2e}")
+      print(f"        10차까지 가면 {sum(1/factorial(k) for k in range(11)):.10f}\n")
+
+      # 문제 2
+      print("문제 2: tan x ≈ x + x³/3 이므로 tan x - x ≈ x³/3")
+      print("        따라서 (tan x - x)/x³ ≈ 1/3.  로피탈 세 번보다 훨씬 빠르다")
+      for x in [0.1, 0.01]:
+          print(f"        x={x}: {(np.tan(x)-x)/x**3:.8f}")
+      print()
+
+      # 문제 3
+      x = 0.1
+      근사3 = 1 + x/2 - x**2/8
+      print(f"문제 3: 근사 {근사3:.10f}   참값 √1.1 = {np.sqrt(1.1):.10f}")
+      print(f"        오차 {abs(근사3-np.sqrt(1.1)):.2e}  ← 소수 넷째 자리까지 맞는다")
+      </div>
+    </details>
+
+    <div class="practice">
+      <b>테일러 급수가 실제로 하는 일</b>
+      <ul>
+        <li><b>계산기·라이브러리</b> — <code>sin</code>, <code>exp</code>, <code>log</code> 의 실제 구현이
+            급수(또는 그 변형인 미니맥스 다항식)입니다.</li>
+        <li><b>제어공학</b> — 비선형 플랜트를 <b>동작점에서 선형화</b>해 전달함수를 세웁니다.</li>
+        <li><b>수치해석</b> — 룽게-쿠타법, 유한차분법의 오차 분석이 전부 테일러 전개입니다.</li>
+        <li><b>기계학습</b> — 뉴턴법·L-BFGS 는 손실함수의 <b>2차 테일러 근사</b>를 최소화합니다.</li>
+        <li><b>물리학</b> — 상대론의 <span class="m">γ ≈ 1 + v²/2c²</span> 에서
+            <span class="m">E = mc² + ½mv²</span> 이 나옵니다. <b>고전역학이 상대론의 1차 근사</b>죠.</li>
+      </ul>
+    </div>
+
+    <div class="summary">
+      <h3>✎ 스스로 점검</h3>
+      <ul>
+        <li><b>30.</b> 0차·1차·2차 근사는 각각 무엇을 맞추나요?
+            <span style="color:var(--text-dim)">(§1)</span></li>
+        <li><b>31.</b> 분모에 n! 이 붙는 이유는?
+            <span style="color:var(--text-dim)">(§3)</span></li>
+        <li><b>32.</b> '수렴 반경'이 있다는 것은 실무적으로 어떤 주의를 뜻하나요?
+            <span style="color:var(--text-dim)">(§4, §5)</span></li>
+      </ul>
+    </div>
+
+    <div class="summary">
+      <h3>11강 요약</h3>
+      <ul>
+        <li>컴퓨터는 <b>사칙연산만</b> 할 수 있습니다. 그래서 복잡한 함수를
+            <b>다항식으로 번역</b>합니다.</li>
+        <li><b>값 → 기울기 → 곡률 → …</b> 를 차례로 맞추면 계수가 하나씩 결정됩니다.</li>
+        <li><b><span class="m">f(x) = Σ f<sup>(n)</sup>(0)/n! · xⁿ</span></b>.
+            <b>n! 은 xⁿ 을 n번 미분할 때 튀어나오는 값을 상쇄</b>하려고 붙습니다.</li>
+        <li><b>차수를 올릴수록 유효 범위가 넓어집니다.</b></li>
+        <li>다만 <b>수렴 반경</b>이 있습니다. <b>중심에서 가장 가까운 특이점까지의 거리</b>죠.</li>
+        <li><span class="m">1/(1+x²)</span> 처럼 <b>실수에서 멀쩡한데도 반경이 유한</b>할 수 있습니다 —
+            <b>복소평면에 숨은 특이점</b> 때문입니다.</li>
+        <li><b>1차 근사 = 선형화</b>. 제어공학이 모델을 세우는 첫걸음입니다.</li>
+        <li><b>근사에는 유효 사거리가 있습니다.</b> 항상 "어디까지 믿을 수 있나"를 물으세요.</li>
+      </ul>
+    </div>
+
+    <div class="colab-cta">
+      <div class="colab-text">
+        <b>더 자유롭게 실험하고 싶다면</b><br>
+        이 강의의 실습만 모은 노트북을 Colab에서 열 수 있습니다.
+      </div>
+      <a class="btn" id="colab-link" href="#" target="_blank" rel="noopener">Colab에서 열기</a>
+    </div>
+
+    <p class="next-up">
+      다음 → <b>12강 · dy/dx 는 왜 분수처럼 작동하나</b> (마지막 강의)<br>
+      5강에서 연쇄법칙의 <span class="m">du</span> 가 <b>약분되는</b> 걸 봤습니다.
+      그런데 교과서는 <b>"dy/dx 는 분수가 아니다"</b> 라고 가르치죠.
+      <b>분수가 아니라면서 왜 분수처럼 다뤄도 늘 정답이 나올까요?</b>
+      이 미스터리의 역사와 해답, 그리고 <b>부분적분의 기하학적 정체</b>까지 다룹니다.
+    </p>
+
+  </section>
+
+</div>
+
+<script src="../assets/viz.js?v=312b9476b0"></script>
+<script src="../assets/calc.js?v=c1137a5076"></script>
+<script src="../assets/pylab.js?v=cb27f20364"></script>
+<script src="../assets/pycell.js?v=6dacc4c6ce"></script>
+<script>
+(function () {
+  'use strict';
+  var num = CA.num;
+
+  function fact(n) { var r = 1; for (var i = 2; i <= n; i++) r *= i; return r; }
+
+  /* 테일러 부분합 — 계수를 직접 준다 */
+  function partial(coefs, x, n) {
+    var s = 0;
+    for (var k = 0; k <= n && k < coefs.length; k++) s += coefs[k] * Math.pow(x, k);
+    return s;
+  }
+
+  /* 각 함수의 x=0 계수 c_k */
+  function coefsOf(kind, N) {
+    var c = [], k;
+    for (k = 0; k <= N; k++) {
+      if (kind === 'cos') c.push(k % 2 ? 0 : Math.pow(-1, k / 2) / fact(k));
+      else if (kind === 'sin') c.push(k % 2 === 0 ? 0 : Math.pow(-1, (k - 1) / 2) / fact(k));
+      else if (kind === 'exp') c.push(1 / fact(k));
+      else if (kind === 'log') c.push(k === 0 ? 0 : Math.pow(-1, k + 1) / k);
+      else if (kind === 'geo') c.push(1);
+      else if (kind === 'inv2') c.push(k % 2 ? 0 : Math.pow(-1, k / 2));
+      else c.push(0);
+    }
+    return c;
+  }
+
+  /* =======================================================
+     패널 ① 계수를 하나씩
+     ======================================================= */
+  var st = 0;
+  var COS_C = coefsOf('cos', 20);
+
+  var gStep = new CA.Graph(document.getElementById('cv-step'), {
+    xDomain: [-3.4, 3.4], yDomain: [-2.2, 2.0],
+    height: function (w) { return Math.round(Math.max(240, Math.min(320, w * 0.44))); },
+    margin: { top: 20, right: 20, bottom: 42, left: 50 }
+  });
+
+  var STEP_INFO = {
+    0: { eq: 'P(x) = 1', what: '값만 (P(0) = 1)' },
+    1: { eq: 'P(x) = 1', what: '값 + 기울기 (c₁ = 0)' },
+    2: { eq: 'P(x) = 1 − x²/2', what: '값 + 기울기 + 휘어짐' },
+    4: { eq: 'P(x) = 1 − x²/2 + x⁴/24', what: '4차 도함수까지' }
+  };
+
+  function drawStep() {
+    gStep.begin();
+    gStep.axes({ xStep: 0.5, yStep: 0.5, xLabel: 'x →' });
+
+    gStep.curve(Math.cos, { color: V.css('--accent'), width: 2.8 });
+    gStep.curve(function (x) { return partial(COS_C, x, st); }, {
+      color: V.css('--purple'), width: 2.6
+    });
+    gStep.dot(0, 1, { r: 5.5, color: V.css('--pos'), stroke: V.css('--surface'), strokeWidth: 2 });
+
+    gStep.legend([
+      { color: V.css('--accent'), text: 'cos x' },
+      { color: V.css('--purple'), text: STEP_INFO[st].eq }
+    ], { corner: 'bl' });
+
+    V.setText('#s-eq', STEP_INFO[st].eq);
+    V.setText('#s-what', STEP_INFO[st].what);
+    V.setText('#s-e1', num(Math.abs(partial(COS_C, 1, st) - Math.cos(1)), 5));
+    V.setText('#s-e2', num(Math.abs(partial(COS_C, 2, st) - Math.cos(2)), 5));
+  }
+
+  V.radios('st', function (v) { st = parseInt(v, 10); drawStep(); });
+
+  /* =======================================================
+     패널 ② 차수 올리기
+     ======================================================= */
+  var tn = 2, tx = 2, tAll = false, tf = 'cos';
+
+  var TF = {
+    cos: { f: Math.cos, xd: [-6.5, 6.5], yd: [-2.4, 2.4], name: 'cos x' },
+    sin: { f: Math.sin, xd: [-6.5, 6.5], yd: [-2.4, 2.4], name: 'sin x' },
+    exp: { f: Math.exp, xd: [-3.2, 3.2], yd: [-2, 12], name: 'eˣ' },
+    log: { f: function (x) { return x > -1 ? Math.log(1 + x) : NaN; },
+           xd: [-1.6, 2.6], yd: [-2.6, 1.8], name: 'ln(1+x)' }
+  };
+
+  var gTay = new CA.Graph(document.getElementById('cv-tay'), {
+    height: function (w) { return Math.round(Math.max(250, Math.min(340, w * 0.46))); },
+    margin: { top: 20, right: 20, bottom: 42, left: 50 }
+  });
+
+  function drawTay() {
+    var S = TF[tf];
+    var C = coefsOf(tf, 22);
+    gTay.xDomain = S.xd;
+    gTay.yDomain = S.yd;
+    gTay.begin();
+    gTay.axes({
+      xStep: CA.niceStep(S.xd[1] - S.xd[0], 6),
+      yStep: CA.niceStep(S.yd[1] - S.yd[0], 4),
+      xLabel: 'x →'
+    });
+
+    if (tAll) {
+      [1, 2, 3, 5, 8, 12].forEach(function (k) {
+        if (k >= tn) return;
+        gTay.curve(function (x) { return partial(C, x, k); }, {
+          color: V.css('--text-dim'), width: 1.3, alpha: 0.5
+        });
+      });
+    }
+
+    gTay.curve(S.f, { color: V.css('--accent'), width: 3 });
+    gTay.curve(function (x) { return partial(C, x, tn); }, { color: V.css('--purple'), width: 2.6 });
+
+    gTay.vline(tx, { color: V.css('--text-dim'), dash: [4, 4], width: 1.2 });
+    var yt = S.f(tx), ya = partial(C, tx, tn);
+    if (isFinite(yt)) gTay.dot(tx, yt, { r: 5, color: V.css('--accent'), stroke: V.css('--surface'), strokeWidth: 2 });
+    if (isFinite(ya)) gTay.dot(tx, ya, { r: 5, color: V.css('--purple'), stroke: V.css('--surface'), strokeWidth: 2 });
+
+    gTay.legend([
+      { color: V.css('--accent'), text: S.name },
+      { color: V.css('--purple'), text: tn + '차 근사' }
+    ], { corner: 'tl' });
+
+    /* 오차 0.001 미만 범위 (0 에서 바깥으로) */
+    var lim = 0, step = 0.01;
+    var hi = Math.min(6.4, S.xd[1]);
+    for (var u = 0; u <= hi; u += step) {
+      var e = Math.abs(partial(C, u, tn) - S.f(u));
+      if (!(e < 1e-3)) break;
+      lim = u;
+    }
+
+    V.setText('#y-true', isFinite(yt) ? num(yt, 6) : '—');
+    V.setText('#y-app', num(ya, 6));
+    V.setText('#y-err', isFinite(yt) ? Math.abs(ya - yt).toExponential(2) : '—');
+    V.setText('#y-range', '0 ~ ' + num(lim, 2));
+  }
+
+  V.range('tn', function (v) { tn = v; drawTay(); });
+  V.range('tx', function (v) { tx = v; drawTay(); }, function (v) { return num(v, 2); });
+  V.check('t-all', function (v) { tAll = v; drawTay(); });
+  V.radios('tf', function (v) { tf = v; drawTay(); });
+
+  /* =======================================================
+     패널 ③ 수렴 반경
+     ======================================================= */
+  var rd = 6, rk = 'geo';
+
+  var RK = {
+    geo:  { f: function (x) { return x < 1 ? 1 / (1 - x) : NaN; }, R: 1,
+            sing: 'x = 1 (실수)', xd: [-1.6, 1.6], yd: [-3, 6], name: '1/(1−x)' },
+    inv2: { f: function (x) { return 1 / (1 + x * x); }, R: 1,
+            sing: 'x = ±i (복소수!)', xd: [-2.2, 2.2], yd: [-1.6, 2.2], name: '1/(1+x²)' },
+    log:  { f: function (x) { return x > -1 ? Math.log(1 + x) : NaN; }, R: 1,
+            sing: 'x = −1 (실수)', xd: [-1.6, 2.2], yd: [-3, 2], name: 'ln(1+x)' },
+    expc: { f: Math.exp, R: Infinity,
+            sing: '없음', xd: [-3, 3], yd: [-2, 12], name: 'eˣ' }
+  };
+
+  var gRad = new CA.Graph(document.getElementById('cv-rad'), {
+    height: function (w) { return Math.round(Math.max(250, Math.min(340, w * 0.46))); },
+    margin: { top: 20, right: 20, bottom: 42, left: 50 }
+  });
+
+  function drawRad() {
+    var S = RK[rk];
+    var kind = rk === 'expc' ? 'exp' : rk;
+    var C = coefsOf(kind, 44);
+
+    gRad.xDomain = S.xd;
+    gRad.yDomain = S.yd;
+    gRad.begin();
+    gRad.axes({
+      xStep: CA.niceStep(S.xd[1] - S.xd[0], 5),
+      yStep: CA.niceStep(S.yd[1] - S.yd[0], 4),
+      xLabel: 'x →'
+    });
+
+    /* 수렴 반경 안쪽을 칠한다 */
+    if (isFinite(S.R)) {
+      gRad.rect(-S.R, S.yd[0], S.R, S.yd[1], { fill: V.css('--pos-soft') });
+      gRad.vline(-S.R, { color: V.css('--pos'), dash: [6, 4], width: 1.6 });
+      gRad.vline(S.R, { color: V.css('--pos'), dash: [6, 4], width: 1.6 });
+    }
+
+    gRad.curve(S.f, { color: V.css('--accent'), width: 3, samples: 1200 });
+    gRad.curve(function (x) { return partial(C, x, rd); }, {
+      color: V.css('--purple'), width: 2.6, samples: 1200
+    });
+
+    gRad.legend([
+      { color: V.css('--accent'), text: S.name },
+      { color: V.css('--purple'), text: rd + '차 부분합' },
+      { color: V.css('--pos'), text: '수렴하는 범위', dash: [6, 4] }
+    ], { corner: 'bl' });
+
+    function err(x) {
+      var t = S.f(x), a = partial(C, x, rd);
+      return isFinite(t) ? Math.abs(a - t) : Math.abs(a);
+    }
+    V.setText('#d-R', isFinite(S.R) ? String(S.R) : '무한대');
+    V.setText('#d-sing', S.sing);
+    V.setText('#d-e09', err(0.9).toExponential(2));
+    V.setText('#d-e12', err(1.2).toExponential(2));
+  }
+
+  V.range('rd', function (v) { rd = v; drawRad(); });
+  V.radios('rk', function (v) { rk = v; drawRad(); });
+
+  V.onRedraw(function () { drawStep(); drawTay(); drawRad(); });
+  drawStep(); drawTay(); drawRad();
+
+  var a = document.getElementById('colab-link');
+  if (a) a.href = 'https://colab.research.google.com/github/mioon1402/timeseriesdata/blob/main/notebooks/C11-taylor.ipynb';
+})();
+</script>
+</body>
+</html>

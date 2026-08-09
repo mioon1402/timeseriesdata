@@ -1,0 +1,745 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dy/dx는 왜 분수처럼 작동하나 · 미적분의 직관</title>
+<meta name="description" content="'분수가 아니다'라면서 왜 약분이 늘 맞을까요. 무한소의 유령과 20세기의 반전, 그리고 부분적분의 기하학적 정체.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%E2%88%AB%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css?v=b7dfb076b2">
+<link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">미적분 12강 · dy/dx의 비밀 (마지막 강의)</p>
+    <h1>dy/dx는 왜 분수처럼 작동하나</h1>
+    <p class="lede">
+      5강에서 연쇄법칙 <span class="m">(dy/du)(du/dx)</span> 의 du 가 <b>약분되는</b> 걸 봤습니다.
+      치환적분에서도 dx 를 자유롭게 옮기죠.
+      그런데 교과서는 <b>"dy/dx 는 분수가 아니다"</b> 라고 가르칩니다.
+      <b>분수가 아니라면서 왜 분수처럼 다뤄도 늘 정답이 나올까요?</b>
+      이 미스터리의 <b>역사와 해답</b>입니다.
+    </p>
+  </header>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 강의에서 배우는 것</b>
+      <ol>
+        <li><a href="#s0">기초 다지기 — 무엇이 문제인가</a></li>
+        <li><a href="#s1">무한소의 유령 — 라이프니츠의 꿈</a></li>
+        <li><a href="#s2">20세기의 반전 — 접선 위의 진짜 좌표</a></li>
+        <li><a href="#s3">라이프니츠 표기법이 300년을 살아남은 이유</a></li>
+        <li><a href="#s4">부록 · 부분적분법의 기하학적 정체</a></li>
+        <li><a href="#s5">파이썬으로 확인하기</a></li>
+        <li><a href="#s6">맺으며 — 전체를 한 장의 그림으로</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s0">0. 기초 다지기 — 무엇이 문제인가</h2>
+    <p>
+      먼저 <b>무엇이 이상한지</b> 정확히 짚읍시다.
+    </p>
+
+    <div class="formula">
+      <div class="name">분수처럼 다루는 세 가지 장면</div>
+      <div class="eq" style="font-size:14.5px;line-height:2.6;text-align:left;padding-left:10px">
+        <b>① 연쇄법칙 (5강)</b> &nbsp;
+        <span class="frac"><span>dy</span><span>dx</span></span> =
+        <span class="frac"><span>dy</span><span>du</span></span> ·
+        <span class="frac"><span>du</span><span>dx</span></span>
+        &nbsp;<span class="small">— du 가 약분된 것처럼 보인다</span><br>
+        <b>② 치환적분</b> &nbsp; u = g(x) 로 놓고 <b>du = g′(x) dx</b> 로 바꿔 쓴다<br>
+        <b>③ 변수분리형 미분방정식</b> &nbsp;
+        <span class="frac"><span>dy</span><span>dx</span></span> = ky &nbsp;→&nbsp;
+        <span class="frac"><span>dy</span><span>y</span></span> = k dx &nbsp;→&nbsp; 양변 적분
+      </div>
+      <ul class="where">
+        <li><span class="sym">공통점</span><span class="desc"><b>dy 와 dx 를 따로 떼어내</b> 곱하고 나누고 옮깁니다</span></li>
+        <li><span class="sym">교과서의 입장</span><span class="desc">"<span class="m">dy/dx</span> 는
+            <b>쪼갤 수 없는 한 덩어리 기호</b>다.
+            <span class="m">lim<sub>h→0</sub>[f(x+h)−f(x)]/h</span> 의 <b>줄임말</b>일 뿐이다."</span></li>
+        <li><span class="sym">그런데</span><span class="desc">쪼갤 수 없다면서 <b>쪼개서 계산해도 늘 맞습니다.</b>
+            <b>왜죠?</b></span></li>
+      </ul>
+    </div>
+
+    <h2 id="s1">1. 무한소의 유령 — 라이프니츠의 꿈</h2>
+    <p>
+      <b>17세기 라이프니츠</b>는 dx 를
+      <b>'0보다 크지만 어떤 양수보다도 작은 양(무한소)'</b> 으로 보고
+      <span class="m">dy/dx</span> 를 <b>그 비율</b>로 다뤘습니다.
+    </p>
+    <p>
+      강력했지만 <b>논리가 위태로웠습니다</b> — <b>dx 는 0인가 아닌가?</b>
+      계산 도중에는 <b>0이 아니어야</b> 나눌 수 있고(3강!),
+      마지막에는 <b>0이어야</b> 답이 깔끔해집니다.
+      철학자 <b>버클리</b>는 이를 <b>"사라진 양들의 유령"</b> 이라 조롱했습니다.
+    </p>
+    <p>
+      19세기에 <b>코시·바이어슈트라스</b>가 무한소 없이
+      <b>극한(ε-δ, 8강)만으로</b> 미적분을 다시 세웠고,
+      그 과정에서 <span class="m">dy/dx</span> 는
+      <b>'쪼갤 수 없는 한 덩어리 기호'</b> 로 가르치게 됐습니다.
+    </p>
+
+    <div class="callout">
+      <b>그건 '교육적 안전장치'였습니다</b><br>
+      엄밀함을 모르는 학생이 무한소를 함부로 다루다 <b>오류에 빠지는 걸 막기 위한</b> 조치였습니다.
+      실제로 무한소를 잘못 쓰면
+      <span class="m">dx² 을 dx 와 같은 급으로 취급</span>하는 등의 사고가 나기 쉽죠(4강).
+      <br><br>
+      그러니 <b>"분수가 아니다"</b> 는 <b>거짓말이 아니라 조심스러운 요약</b>입니다.
+      다만 <b>전부는 아닙니다.</b>
+    </div>
+
+    <h2 id="s2">2. 20세기의 반전 — 접선 위의 진짜 좌표</h2>
+    <p>
+      그런데 <b>20세기 수학(미분형식 이론)</b>이 반전을 만듭니다.
+      <b>dx 와 dy 에게 떳떳한 독립적 의미를 주는 방법</b>이 <b>엄밀하게</b> 개발된 것입니다.
+    </p>
+    <p>
+      아이디어는 이렇습니다:
+      <b>곡선 위 한 점에 붙은 접선을 그 자체로 하나의 작은 좌표계로 삼습니다.</b>
+      그 접선 위에서 <b>가로 방향 변화를 dx</b>, <b>세로 방향 변화를 dy</b> 라 부르면 —
+      이 둘은 <b>무한소가 아니라 유한한, 보통의 수</b>입니다.
+    </p>
+
+    <div class="panel">
+      <div class="panel-title">① 곡선 위가 아니라 '접선 위'에서 재면</div>
+      <div class="canvas-wrap"><canvas id="cv-tan"></canvas></div>
+
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">기준점 x₀</span><span class="val" id="dx0-val">1</span></span>
+          <input type="range" id="dx0" min="0.3" max="2.2" step="0.01" value="1">
+        </label>
+        <label class="ctrl">
+          <span class="label-row"><span class="name">dx (접선 위에서 오른쪽으로)</span><span class="val" id="ddx-val">0.8</span></span>
+          <input type="range" id="ddx" min="0.05" max="1.2" step="0.01" value="0.8">
+        </label>
+      </div>
+
+      <div class="seg" role="group" aria-label="함수 선택" style="margin-top:10px">
+        <label><input type="radio" name="df" value="sq" checked><span>f(x) = x²</span></label>
+        <label><input type="radio" name="df" value="sqrt"><span>√x</span></label>
+        <label><input type="radio" name="df" value="sin"><span>sin x</span></label>
+      </div>
+
+      <div class="readout">
+        <div class="stat purple"><span class="k">dx (접선 위)</span><span class="v" id="d-dx">–</span></div>
+        <div class="stat pos"><span class="k">dy = f′(x₀)·dx</span><span class="v" id="d-dy">–</span></div>
+        <div class="stat accent"><span class="k">dy / dx</span><span class="v" id="d-ratio">–</span></div>
+        <div class="stat"><span class="k">f′(x₀)</span><span class="v" id="d-fp">–</span></div>
+        <div class="stat neg"><span class="k">Δy (곡선 위)</span><span class="v" id="d-Dy">–</span></div>
+        <div class="stat warn"><span class="k">Δy − dy</span><span class="v" id="d-gap">–</span></div>
+      </div>
+      <p class="hint">
+        <b>dy 는 초록 접선 위에서</b>, <b>Δy 는 파란 곡선 위에서</b> 잰 세로 변화입니다.
+        <b>둘은 다릅니다</b> — 그리고 <b>dx 를 줄이면 차이가 사라지죠.</b>
+        하지만 <b>접선 위에서만큼은</b> <span class="m">dy = f′(x₀)·dx</span> 가
+        <b>근사가 아니라 정확한 등식</b>입니다. dx 가 크든 작든요.
+      </p>
+    </div>
+
+    <div class="formula">
+      <div class="name">접선 위에서 성립하는 정확한 등식</div>
+      <div class="eq" style="font-size:18px">
+        dy = f′(x) · dx
+      </div>
+      <ul class="where">
+        <li><span class="sym">어디서 성립하나</span><span class="desc"><b>곡선이 아니라 '접선 위에서'</b>.
+            그래서 <b>근사(≈)가 아니라 등식(=)</b> 입니다</span></li>
+        <li><span class="sym">dx, dy 의 정체</span><span class="desc"><b>무한소가 아니라 유한한 보통의 수</b>입니다.
+            "접선 좌표계에서의 좌표"죠</span></li>
+        <li><span class="sym">그래서</span><span class="desc"><span class="m">dy/dx</span> 는
+            <b>두 유한량의 진짜 비율</b>이고,
+            <b>나누고 곱하고 약분하는 모든 대수 조작이 완전히 정당</b>합니다</span></li>
+        <li><span class="sym">연쇄법칙의 du</span><span class="desc">약분이 <b>눈속임이 아니라 실제 연산</b>입니다.
+            치환적분의 <span class="m">dx = (dx/du)du</span> 도 마찬가지</span></li>
+      </ul>
+    </div>
+
+    <div class="myth">
+      <div class="bad"><b>⚠ 그럼 교과서가 틀렸나요?</b></div>
+      <div class="good"><b>아닙니다 — 수준이 다른 이야기입니다</b>
+        <b>고등학교·대학 1학년 수준</b>에서 <span class="m">dy/dx</span> 를 한 덩어리로 보는 것은
+        <b>안전하고 옳습니다.</b> 극한 정의만으로 모든 계산이 됩니다.
+        <br>
+        <b>미분형식을 배운 뒤</b>에는 dx, dy 각각에 <b>독립적인 의미</b>를 줄 수 있고,
+        그때 <b>분수 취급이 정당해집니다.</b>
+        <br>
+        <b>"분수가 아니다"</b> 는 <b>"아직은 그렇게 생각하지 마라"</b> 라는 뜻이었던 셈입니다.
+        <b>라이프니츠의 직관이 옳았음을 현대 수학이 증명해준</b> 셈이고요.</div>
+    </div>
+
+    <h2 id="s3">3. 라이프니츠 표기법이 300년을 살아남은 이유</h2>
+
+    <div class="formula">
+      <div class="name">기호가 스스로 말한다</div>
+      <div class="eq" style="font-size:15px;line-height:2.5;text-align:left;padding-left:10px">
+        <span class="frac"><span>dy</span><span>dx</span></span>
+        &nbsp;→&nbsp; <b>'세로 ÷ 가로'</b> 라는 <b>미분의 기하</b><br>
+        ∫ f(x) dx
+        &nbsp;→&nbsp; <b>'높이 × 폭을 연속으로 다 더한다'</b> 는 <b>적분의 기하</b>
+      </div>
+      <ul class="where">
+        <li><span class="sym">좋은 기호란</span><span class="desc"><b>계산만 쉽게 하는 게 아니라</b>,
+            각 단계가 <b>무엇을 의미하는지 스스로 말해주는</b> 것입니다</span></li>
+        <li><span class="sym">뉴턴의 표기</span><span class="desc">뉴턴은 <span class="m">ẏ</span>(점 표기)를 썼습니다.
+            <b>간결하지만 '무엇에 대한 변화율인지'가 안 보입니다.</b>
+            그래서 오늘날 대부분의 분야가 <b>라이프니츠 표기</b>를 씁니다</span></li>
+        <li><span class="sym">단위가 보인다</span><span class="desc"><span class="m">dv/dt</span> 는
+            <b>m/s²</b> 임이 기호에서 바로 읽힙니다.
+            <span class="m">∂T/∂x</span> 는 <b>℃/m</b>. <b>단위 검산이 표기에서 나옵니다</b></span></li>
+      </ul>
+    </div>
+
+    <h2 id="s4">4. 부록 · 부분적분법의 기하학적 정체</h2>
+    <p>
+      부분적분 공식 <span class="m">∫u dv = uv − ∫v du</span> 는 보통
+      <b>곱의 미분 <span class="m">d(uv) = u dv + v du</span> 의 양변을 적분</b>해 유도합니다.
+      대수적으로 완벽하지만 <b>'왜 uv 가 나오고 왜 빼는지'</b> 그림을 주진 않죠.
+      여기서는 <b>u-v 평면의 면적 나누기</b>로 봅니다 — <b>초등학교 수준의 그림</b>으로 환원됩니다.
+    </p>
+
+    <div class="formula">
+      <div class="name">A.1 새 좌표계: u-v 평면</div>
+      <div class="eq" style="font-size:14.5px;line-height:2.4">
+        x-y 평면을 잠시 접고, <b>가로축을 u, 세로축을 v</b> 로 하는 평면을 그린다.
+        <br>
+        x 가 a 에서 b 로 변하면 점 <b>(u(x), v(x))</b> 가 이 평면 위에 <b>곡선 하나</b>를 그린다.
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">② 곡선이 나누는 두 영토</div>
+      <div class="canvas-wrap"><canvas id="cv-parts"></canvas></div>
+
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">구간 오른쪽 b</span><span class="val" id="pb-val">1</span></span>
+          <input type="range" id="pb" min="0.2" max="1.8" step="0.01" value="1">
+        </label>
+        <label class="toggle"><input type="checkbox" id="p-udv" checked> ∫u dv (왼쪽·세로로 쌓은 영토)</label>
+        <label class="toggle"><input type="checkbox" id="p-vdu" checked> ∫v du (아래쪽·가로로 쌓은 영토)</label>
+      </div>
+
+      <div class="seg" role="group" aria-label="예제 선택" style="margin-top:10px">
+        <label><input type="radio" name="pk" value="xex" checked><span>u = x, v = eˣ</span></label>
+        <label><input type="radio" name="pk" value="xsin"><span>u = x, v = −cos x</span></label>
+        <label><input type="radio" name="pk" value="lnx"><span>u = ln x, v = x</span></label>
+      </div>
+
+      <div class="readout">
+        <div class="stat accent"><span class="k">∫ u dv (왼쪽 영토)</span><span class="v" id="p-A">–</span></div>
+        <div class="stat purple"><span class="k">∫ v du (아래 영토)</span><span class="v" id="p-B">–</span></div>
+        <div class="stat pos"><span class="k">둘의 합</span><span class="v" id="p-sum">–</span></div>
+        <div class="stat warn"><span class="k">u(b)v(b) − u(a)v(a)</span><span class="v" id="p-uv">–</span></div>
+      </div>
+      <p class="hint">
+        <b>두 영토의 합</b>이 <b>큰 직사각형 − 작은 직사각형</b>과 정확히 같습니다.
+        구하기 <b>어려운 쪽</b>을, <b>전체에서 쉬운 쪽을 빼서</b> 얻는 것 — 그게 부분적분입니다.
+      </p>
+    </div>
+
+    <div class="formula">
+      <div class="name">A.2 두 영토의 합 = uv 의 순변화량</div>
+      <div class="eq" style="font-size:15.5px;line-height:2.4">
+        u(b)v(b) − u(a)v(a) = ∫ u dv + ∫ v du
+        <br>
+        <span class="small">정리하면</span><br>
+        <b>∫ u dv = uv − ∫ v du</b>
+      </div>
+      <ul class="where">
+        <li><span class="sym">∫u dv</span><span class="desc"><b>세로로 쌓은 면적</b>.
+            각 순간의 <b>u</b> 에 <b>높이 변화 dv</b> 를 곱해 더한 것</span></li>
+        <li><span class="sym">∫v du</span><span class="desc"><b>가로로 쌓은 면적</b>.
+            각 순간의 <b>v</b> 에 <b>가로 변화 du</b> 를 곱해 더한 것</span></li>
+        <li><span class="sym">합이 왜 uv 인가</span><span class="desc">둘을 합치면
+            <b>큰 직사각형 u(b)v(b)</b> 에서 <b>작은 직사각형 u(a)v(a)</b> 를 뺀 것,
+            즉 <b>uv 의 순변화량</b>이 됩니다</span></li>
+      </ul>
+    </div>
+
+    <div class="takeaway">
+      <b>A.3 우회 전략 — 면적 맞바꾸기 ·</b>
+      뜻은 이렇습니다:
+      <b>구하기 어려운 쪽 면적을, 전체 직사각형에서 구하기 쉬운 반대쪽 면적을 빼서 얻는다.</b>
+      <br>
+      예컨대 <span class="m">∫x·eˣdx</span> 가 어려우면 <span class="m">u=x, v=eˣ</span> 로 놓고
+      반대쪽 <span class="m">∫eˣdx</span>(쉬움)를 빼는 식이죠.
+      <br>
+      <b>1강에서 원을 삼각형으로 바꾼 것과 같은 정신</b> —
+      어려운 모양을 <b>'큰 단순한 도형 − 나머지'</b> 로 표현하는 <b>보완의 원리</b>입니다.
+    </div>
+
+    <h2 id="s5">5. 파이썬으로 확인하기</h2>
+
+    <div class="pycell" data-packages="numpy" data-title="12-1. 접선 위에서는 dy = f′(x)dx 가 정확하다">
+    import numpy as np
+
+    f  = lambda x: x**2
+    fp = lambda x: 2*x
+    x0 = 1.0
+
+    print(f"{'dx':>8} {'dy (접선 위)':>16} {'Δy (곡선 위)':>16} {'차':>12}")
+    for dx in [1.0, 0.5, 0.1, 0.01]:
+        dy = fp(x0) * dx                      # 접선 위 — 정의상 정확
+        Δy = f(x0 + dx) - f(x0)               # 곡선 위 — 실제 변화
+        print(f"{dx:>8} {dy:>16.8f} {Δy:>16.8f} {Δy-dy:>12.8f}")
+
+    print("\n→ dy 와 Δy 는 다르다. 차이는 정확히 dx² (4강의 '두 번 작은 것').")
+    print("  그런데 dy/dx 는 dx 가 무엇이든 언제나 정확히 f′(x₀) = 2 다.")
+    for dx in [1.0, 0.5, 0.1, 0.01]:
+        print(f"    dx={dx:<6} dy/dx = {fp(x0)*dx/dx}")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="12-2. 연쇄법칙의 du 약분이 진짜인지">
+    import numpy as np
+
+    g  = lambda x: x**3          # u = g(x)
+    gp = lambda x: 3*x**2
+    h  = np.sin                  # y = h(u)
+    hp = np.cos
+
+    x, dx = 1.1, 0.001
+
+    du = gp(x) * dx              # 접선 위에서의 u 변화
+    dy = hp(g(x)) * du           # 접선 위에서의 y 변화
+
+    print(f"dx = {dx}")
+    print(f"du = g′(x)·dx      = {du:.10f}")
+    print(f"dy = h′(g(x))·du   = {dy:.10f}")
+    print(f"dy/dx              = {dy/dx:.10f}")
+    print(f"(dy/du)·(du/dx)    = {(dy/du)*(du/dx):.10f}")
+    print(f"h′(g(x))·g′(x)     = {hp(g(x))*gp(x):.10f}")
+    print("\n→ du 가 실제로 약분된다. 눈속임이 아니라 유한한 수들의 진짜 나눗셈이다.")
+    </div>
+
+    <div class="pycell" data-packages="numpy,scipy" data-title="12-3. 부분적분 — 두 영토의 넓이">
+    import numpy as np
+    from scipy.integrate import quad
+
+    # u = x, v = e^x,  x: 0 → 1
+    u,  v  = lambda x: x,        np.exp
+    up, vp = lambda x: 1.0,      np.exp
+    a, b = 0.0, 1.0
+
+    A = quad(lambda x: u(x) * vp(x), a, b)[0]      # ∫u dv  (세로로 쌓은 영토)
+    B = quad(lambda x: v(x) * up(x), a, b)[0]      # ∫v du  (가로로 쌓은 영토)
+    uv = u(b)*v(b) - u(a)*v(a)
+
+    print(f"∫u dv (왼쪽 영토)   = {A:.10f}")
+    print(f"∫v du (아래 영토)   = {B:.10f}")
+    print(f"두 영토의 합        = {A+B:.10f}")
+    print(f"u(b)v(b)-u(a)v(a)   = {uv:.10f}")
+    print(f"\n∫u dv = uv - ∫v du = {uv - B:.10f}   ← A 와 같다")
+    print("\n손으로: ∫₀¹ x·eˣ dx = [x·eˣ]₀¹ - ∫₀¹ eˣ dx = e - (e-1) = 1")
+    </div>
+
+    <div class="pycell" data-packages="numpy,scipy" data-title="12-4. 부분적분이 실제로 유용한 예">
+    import numpy as np
+    from scipy.integrate import quad
+
+    예제 = [
+        ("∫₀¹ x·eˣ dx",     lambda x: x*np.exp(x),      1.0),
+        ("∫₁ᵉ ln x dx",     np.log,                     1.0),
+        ("∫₀^π x·sin x dx", lambda x: x*np.sin(x),      np.pi),
+        ("∫₀¹ x²·eˣ dx",    lambda x: x**2*np.exp(x),   np.e - 2),
+    ]
+    구간 = [(0,1), (1,np.e), (0,np.pi), (0,1)]
+
+    for (이름, f, 손), (a, b) in zip(예제, 구간):
+        print(f"{이름:>18}  수치 {quad(f,a,b)[0]:.10f}   손계산 {손:.10f}")
+
+    print("\n→ ∫ln x dx 는 u=ln x, v=x 로 놓으면 ∫v du = ∫1 dx 가 되어 순식간에 풀린다.")
+    print("  '어려운 쪽을 쉬운 쪽으로 맞바꾸는' 전략이다.")
+    </div>
+
+    <div class="pycell" data-packages="numpy,sympy" data-title="12-5. 변수분리 — dy 와 dx 를 실제로 옮겨본다">
+    import sympy as sp
+
+    x = sp.Symbol('x')
+    y = sp.Function('y')
+
+    # dy/dx = k·y  →  dy/y = k dx  →  ln y = kx + C  →  y = y0 e^(kx)
+    k = sp.Symbol('k')
+    해 = sp.dsolve(sp.Eq(y(x).diff(x), k*y(x)), y(x))
+    print("dy/dx = k·y 의 해 :", 해)
+    print()
+
+    # dy/dx = x/y  →  y dy = x dx  →  y²/2 = x²/2 + C  →  y² - x² = 상수 (쌍곡선)
+    해2 = sp.dsolve(sp.Eq(y(x).diff(x), x/y(x)), y(x))
+    print("dy/dx = x/y 의 해 :", 해2)
+    print("\n→ '양변에 dx 를 곱해 넘긴다' 는 조작이 정확한 답을 준다.")
+    print("  접선 위의 좌표로 보면 이 조작이 왜 정당한지 알 수 있다.")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="12-6. 연습문제">
+    # 문제 1. f(x) = √x, x₀ = 4 에서 dx = 0.1 일 때
+    #         dy (접선 위) 와 Δy (곡선 위) 를 각각 구하고 차이를 보세요.
+    #         이것이 '미분을 이용한 근사계산' 의 정체입니다. √4.1 ≈ ?
+
+    # 문제 2. ∫₀^π x·cos x dx 를 부분적분으로 손으로 풀고 수치로 확인하세요.
+
+    # 문제 3. dy/dx = -y/x 를 변수분리로 풀어보세요. (답: xy = 상수)
+
+    # 아래에 직접 써보세요
+    </div>
+
+    <details style="margin:18px 0">
+      <summary style="cursor:pointer;font-weight:600;color:var(--accent)">모범 답안 보기</summary>
+      <div class="pycell" data-packages="numpy,scipy" data-title="모범 답안">
+      import numpy as np
+      from scipy.integrate import quad
+
+      # 문제 1
+      x0, dx = 4.0, 0.1
+      dy = (1/(2*np.sqrt(x0))) * dx
+      Δy = np.sqrt(x0+dx) - np.sqrt(x0)
+      print(f"문제 1: dy = {dy:.8f}   Δy = {Δy:.8f}   차 = {Δy-dy:.2e}")
+      print(f"        √4.1 ≈ 2 + {dy:.6f} = {2+dy:.6f},  참값 {np.sqrt(4.1):.6f}")
+      print("        공학 계산기가 없던 시절의 '미분을 이용한 근사' 가 이것이다\n")
+
+      # 문제 2 — ∫x cos x dx = x sin x + cos x
+      손 = (np.pi*np.sin(np.pi) + np.cos(np.pi)) - (0 + np.cos(0))
+      print(f"문제 2: 손계산 [x sin x + cos x]₀^π = {손:.10f}")
+      print(f"        수치     {quad(lambda x: x*np.cos(x), 0, np.pi)[0]:.10f}\n")
+
+      # 문제 3 — dy/y = -dx/x → ln y = -ln x + C → xy = 상수
+      print("문제 3: dy/y = -dx/x  →  ln|y| = -ln|x| + C  →  xy = 상수")
+      print("        4강의 '넓이가 보존되는 직사각형' 이 정확히 이 곡선이다!")
+      for x in [0.5, 1, 2, 4]:
+          print(f"        x={x:<4} y=1/x={1/x:<8.4f}  xy={x*(1/x)}")
+      </div>
+    </details>
+
+    <div class="callout">
+      <b>이 시리즈 전체의 총정리 — 미적분의 세 문장</b><br><br>
+      <b>① 미분: 복잡한 변화를 순간적으로 단순화하라.</b>
+      충분히 확대하면 곡선도 직선입니다.
+      <span class="m">f(x+dx) ≈ f(x) + f′(x)·dx</span>.
+      <br><br>
+      <b>② 적분: 전체를 무한히 많은 조각으로 나눠 합쳐라.</b>
+      때론 <b>조각을 재배열하는 쪽</b>이 더 쉽습니다 (원 → 삼각형).
+      <br><br>
+      <b>③ 기본정리: 변화율의 누적이 곧 총 변화량이다.</b>
+      미분의 언어와 적분의 언어는 <b>같은 진실의 두 표현</b>입니다.
+    </div>
+
+    <h2 id="s6">6. 맺으며 — 전체를 한 장의 그림으로</h2>
+    <p>
+      <b>원의 넓이</b>라는 초등 문제에서 출발해 <b>무한소의 철학</b>까지 왔습니다.
+      마지막으로 전부를 한 표에 모읍니다.
+      각 줄의 <b>'한 줄 직관'</b>이 <b>해당 그림과 함께 떠오른다면</b>,
+      이 시리즈는 제 역할을 다한 것입니다.
+    </p>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>강</th><th>개념</th><th>한 줄 직관</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td><a href="C01-circle-area.html">원의 넓이</a></td><td>쪼개고, 근사하고, 합치고, 극한</td></tr>
+          <tr><td>2</td><td><a href="C02-limit.html">극한</a></td><td>도착이 아니라 접근 — 확대하면 직선</td></tr>
+          <tr><td>3</td><td><a href="C03-derivative.html">미분의 역설</a></td><td>순간 = 0으로 줄인 평균의 목적지</td></tr>
+          <tr><td>4</td><td><a href="C04-power-rule.html">기하 미분공식</a></td><td>자랄 때 새로 붙는 경계의 크기</td></tr>
+          <tr><td>5</td><td><a href="C05-product-chain.html">곱·연쇄법칙</a></td><td>띠 두 개의 합 / 민감도의 곱</td></tr>
+          <tr><td>6</td><td><a href="C06-euler-e.html">e</a></td><td>높이가 곧 기울기가 되도록 지목한 밑</td></tr>
+          <tr><td>7</td><td><a href="C07-implicit.html">음함수 미분</a></td><td>등고선을 벗어나지 않는 균형 조건</td></tr>
+          <tr><td>8</td><td><a href="C08-lhopital.html">로피탈 · ε-δ</a></td><td>0/0은 기울기의 경주 / 극한은 공방 게임</td></tr>
+          <tr><td>9</td><td><a href="C09-integral.html">적분 · 기본정리</a></td><td>조각의 합 = 넓이, 넓이의 변화율 = 높이</td></tr>
+          <tr><td>10</td><td><a href="C10-average.html">넓이와 기울기</a></td><td>내부 기울기의 평균 = 끝점 할선</td></tr>
+          <tr><td>11</td><td><a href="C11-taylor.html">테일러 급수</a></td><td>값·기울기·곡률을 차례로 맞춘 다항식</td></tr>
+          <tr><td>12</td><td>dy/dx의 비밀</td><td>접선 위에서는 진짜 분수</td></tr>
+          <tr><td>부록</td><td>부분적분</td><td>전체 직사각형에서 반대쪽 빼기</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="summary">
+      <h3>✎ 스스로 점검</h3>
+      <ul>
+        <li><b>33.</b> 교과서가 'dy/dx 는 분수가 아니다'라고 가르치게 된 <b>역사적 이유</b>는?
+            <span style="color:var(--text-dim)">(§1)</span></li>
+        <li><b>34.</b> '접선 위의 좌표'라는 관점에서 <span class="m">dy = f′(x)dx</span> 가
+            <b>정확한 등식</b>인 이유는?
+            <span style="color:var(--text-dim)">(§2)</span></li>
+        <li><b>35.</b> u-v 평면에서 <span class="m">∫u dv</span> 와 <span class="m">∫v du</span> 는
+            각각 어느 영토인가요?
+            <span style="color:var(--text-dim)">(§4)</span></li>
+        <li><b>36.</b> '면적 맞바꾸기'라는 별명이 붙는 이유는?
+            <span style="color:var(--text-dim)">(§4)</span></li>
+      </ul>
+    </div>
+
+    <div class="summary">
+      <h3>12강 요약</h3>
+      <ul>
+        <li><b>라이프니츠</b>는 dx 를 <b>무한소</b>로 보고 dy/dx 를 그 비율로 다뤘습니다.
+            강력했지만 <b>'0인가 아닌가'</b> 라는 논리적 약점이 있었죠.</li>
+        <li><b>19세기</b>에 극한(ε-δ)으로 미적분을 다시 세우면서
+            dy/dx 는 <b>'쪼갤 수 없는 한 덩어리'</b> 가 되었습니다 — <b>교육적 안전장치</b>였습니다.</li>
+        <li><b>20세기 미분형식 이론</b>은 dx, dy 에 <b>떳떳한 의미</b>를 줬습니다.
+            <b>접선을 하나의 좌표계로 삼는 것</b>이죠.</li>
+        <li>그 위에서 <b><span class="m">dy = f′(x)·dx</span></b> 는
+            <b>근사가 아니라 정확한 등식</b>이고, dx·dy 는 <b>유한한 보통의 수</b>입니다.</li>
+        <li>그래서 <b>약분·이항 같은 대수 조작이 전부 정당</b>합니다.</li>
+        <li><b>좋은 기호는 스스로 말합니다.</b>
+            <span class="m">dy/dx</span> 는 '세로÷가로', <span class="m">∫f dx</span> 는 '높이×폭의 합'.</li>
+        <li><b>부분적분</b>은 <b>u-v 평면의 두 영토</b>입니다.
+            어려운 쪽을 <b>전체 직사각형 − 쉬운 쪽</b>으로 맞바꾸는 것이죠.</li>
+      </ul>
+    </div>
+
+    <div class="practice">
+      <b>다음 봉우리로</b>
+      <ul>
+        <li><b>공업수학</b> — 미분방정식, 라플라스 변환, 푸리에 급수.
+            전부 이 시리즈의 도구 위에 서 있습니다.</li>
+        <li><b>제어공학</b> — 6강의 <span class="m">e</span>, 11강의 <b>선형화</b>,
+            8강의 <b>안정성 판정</b>이 그대로 쓰입니다.</li>
+        <li><b>다변수 미적분</b> — 7강의 <b>등고선과 기울기 벡터</b>가 출발점입니다.</li>
+        <li><b>3부 선형대수</b> — 다변수 미적분은 선형대수와 만나
+            <b>야코비 행렬·헤세 행렬</b>이 됩니다.</li>
+      </ul>
+    </div>
+
+    <div class="callout">
+      <b>진정한 이해는 공식 암기가 아니라 그 뒤의 그림에서 옵니다</b><br>
+      이 시리즈의 그림들이 머릿속에 박혔다면,
+      이제 <b>공업수학과 제어공학</b>이라는 다음 봉우리로 넘어갈 준비가 된 것입니다.
+      <b>거기서 막히는 개념이 나오면 이 시리즈의 그림 중 하나로 되돌려 생각하세요.</b>
+      대부분의 벽은 <b>직관의 빈자리</b>에서 생기고, 그 자리는 <b>그림으로 메울 수 있습니다.</b>
+      <br><br>
+      <b><i>계산은 이미 할 줄 압니다. 이제 그 계산이 무엇을 그리고 있는지도 볼 수 있습니다.</i></b>
+    </div>
+
+    <div class="colab-cta">
+      <div class="colab-text">
+        <b>더 자유롭게 실험하고 싶다면</b><br>
+        이 강의의 실습만 모은 노트북을 Colab에서 열 수 있습니다.
+      </div>
+      <a class="btn" id="colab-link" href="#" target="_blank" rel="noopener">Colab에서 열기</a>
+    </div>
+
+    <p class="next-up">
+      <b>4부 미적분의 직관, 여기까지입니다.</b><br>
+      다른 부도 둘러보세요 —
+      <a href="../index.html">1부 눈으로 보는 통계 · 2부 파이썬으로 직접 해보기 · 3부 눈으로 보는 선형대수</a>
+    </p>
+
+  </section>
+
+</div>
+
+<script src="../assets/viz.js?v=312b9476b0"></script>
+<script src="../assets/calc.js?v=c1137a5076"></script>
+<script src="../assets/pylab.js?v=cb27f20364"></script>
+<script src="../assets/pycell.js?v=6dacc4c6ce"></script>
+<script>
+(function () {
+  'use strict';
+  var num = CA.num, F = CA.F;
+
+  /* =======================================================
+     패널 ① 접선 위의 dx, dy
+     ======================================================= */
+  var dx0 = 1, ddx = 0.8, df = 'sq';
+
+  var DF = {
+    sq:   { f: function (x) { return x * x; }, d: function (x) { return 2 * x; },
+            lo: 0.3, hi: 2.2, name: 'f(x) = x²' },
+    sqrt: { f: Math.sqrt, d: function (x) { return 0.5 / Math.sqrt(x); },
+            lo: 0.3, hi: 2.2, name: 'f(x) = √x' },
+    sin:  { f: Math.sin, d: Math.cos,
+            lo: 0.3, hi: 2.2, name: 'f(x) = sin x' }
+  };
+
+  var gTan = new CA.Graph(document.getElementById('cv-tan'), {
+    height: function (w) { return Math.round(Math.max(250, Math.min(340, w * 0.46))); },
+    margin: { top: 20, right: 22, bottom: 42, left: 52 }
+  });
+
+  function drawTan() {
+    var S = DF[df];
+    var x0 = V.clamp(dx0, S.lo, S.hi);
+    var y0 = S.f(x0), m = S.d(x0);
+    var x1 = x0 + ddx;
+    var dy = m * ddx;                     // 접선 위
+    var Dy = S.f(x1) - y0;                // 곡선 위
+
+    /* 두 값이 다 보이도록 범위를 잡는다 */
+    var ys = [y0, y0 + dy, S.f(x1), 0];
+    var lo = Math.min.apply(null, ys), hi = Math.max.apply(null, ys);
+    var pad = (hi - lo) * 0.28 + 0.2;
+    gTan.xDomain = [Math.max(0, x0 - 0.9), x1 + 0.5];
+    gTan.yDomain = [lo - pad, hi + pad];
+    gTan.begin();
+    gTan.axes({
+      xStep: CA.niceStep(gTan.plot.xDomain[1] - gTan.plot.xDomain[0], 5),
+      yStep: CA.niceStep(gTan.plot.yDomain[1] - gTan.plot.yDomain[0], 4),
+      xLabel: 'x →'
+    });
+
+    gTan.curve(S.f, { color: V.css('--accent'), width: 2.8, samples: 900 });
+    gTan.lineAt(x0, y0, m, { color: V.css('--pos'), width: 2.6 });
+
+    /* 접선 위의 직각삼각형 — 이것이 dx, dy */
+    gTan.slopeTriangle(x0, y0, ddx, m, {
+      color: V.css('--purple'), fill: V.css('--purple-soft'),
+      dxLabel: 'dx = ' + num(ddx, 3), dyLabel: 'dy = ' + num(dy, 3)
+    });
+
+    /* 곡선 위의 실제 변화 Δy */
+    gTan.segment(x1, y0 + dy, x1, y0 + Dy, { color: V.css('--neg'), width: 3 });
+    gTan.dot(x1, S.f(x1), { r: 5, color: V.css('--neg'), stroke: V.css('--surface'), strokeWidth: 2 });
+    gTan.dot(x1, y0 + dy, { r: 5, color: V.css('--pos'), stroke: V.css('--surface'), strokeWidth: 2 });
+    gTan.dot(x0, y0, { r: 5.5, color: V.css('--accent'), stroke: V.css('--surface'), strokeWidth: 2 });
+    gTan.text(x1, (y0 + dy + y0 + Dy) / 2, 'Δy − dy', {
+      color: V.css('--neg'), dx: 9, align: 'left', baseline: 'middle', size: 11.5, bg: V.css('--surface')
+    });
+
+    gTan.legend([
+      { color: V.css('--accent'), text: S.name + ' — 곡선' },
+      { color: V.css('--pos'), text: '접선 — 여기서 dx, dy 를 잰다' },
+      { color: V.css('--neg'), text: '곡선과 접선의 어긋남' }
+    ], { corner: 'tl' });
+
+    V.setText('#d-dx', num(ddx, 4));
+    V.setText('#d-dy', num(dy, 5));
+    V.setText('#d-ratio', num(dy / ddx, 6));
+    V.setText('#d-fp', num(m, 6));
+    V.setText('#d-Dy', num(Dy, 5));
+    V.setText('#d-gap', num(Dy - dy, 5));
+  }
+
+  V.range('dx0', function (v) { dx0 = v; drawTan(); }, function (v) { return num(v, 2); });
+  V.range('ddx', function (v) { ddx = v; drawTan(); }, function (v) { return num(v, 2); });
+  V.radios('df', function (v) { df = v; drawTan(); });
+
+  /* =======================================================
+     패널 ② 부분적분 — u-v 평면의 두 영토
+     ======================================================= */
+  var pb = 1, showUdv = true, showVdu = true, pk = 'xex';
+
+  var PK = {
+    xex:  { u: function (x) { return x; }, v: Math.exp,
+            up: function () { return 1; }, vp: Math.exp,
+            a: 0, name: 'u = x,  v = eˣ', note: '∫ x·eˣ dx' },
+    xsin: { u: function (x) { return x; }, v: function (x) { return -Math.cos(x); },
+            up: function () { return 1; }, vp: Math.sin,
+            a: 0, name: 'u = x,  v = −cos x', note: '∫ x·sin x dx' },
+    lnx:  { u: Math.log, v: function (x) { return x; },
+            up: function (x) { return 1 / x; }, vp: function () { return 1; },
+            a: 1, name: 'u = ln x,  v = x', note: '∫ ln x dx' }
+  };
+
+  var gParts = new CA.Graph(document.getElementById('cv-parts'), {
+    height: function (w) { return Math.round(Math.max(260, Math.min(350, w * 0.5))); },
+    margin: { top: 20, right: 24, bottom: 42, left: 56 }
+  });
+
+  function drawParts() {
+    var S = PK[pk];
+    var a = S.a, b = Math.max(a + 0.12, pb);
+    var ua = S.u(a), va = S.v(a), ub = S.u(b), vb = S.v(b);
+
+    /* 곡선 (u(x), v(x)) 를 x = a..b 에서 */
+    var N = 260, i, pts = [];
+    for (i = 0; i <= N; i++) {
+      var t = a + (b - a) * i / N;
+      pts.push([S.u(t), S.v(t)]);
+    }
+
+    var us = pts.map(function (p) { return p[0]; }).concat([0]);
+    var vs = pts.map(function (p) { return p[1]; }).concat([0]);
+    var uLo = Math.min.apply(null, us), uHi = Math.max.apply(null, us);
+    var vLo = Math.min.apply(null, vs), vHi = Math.max.apply(null, vs);
+    var pu = (uHi - uLo) * 0.16 + 0.08, pv = (vHi - vLo) * 0.16 + 0.08;
+
+    gParts.xDomain = [uLo - pu, uHi + pu];
+    gParts.yDomain = [vLo - pv, vHi + pv];
+    gParts.begin();
+    gParts.axes({
+      xStep: CA.niceStep(uHi - uLo + 2 * pu, 5),
+      yStep: CA.niceStep(vHi - vLo + 2 * pv, 4),
+      xLabel: 'u →', yLabel: '↑ v'
+    });
+
+    /* ∫v du — 곡선 아래(v 방향 바닥까지) 가로로 쌓은 영토 */
+    if (showVdu) {
+      gParts.poly(
+        [[ua, va]].concat(pts).concat([[ub, va], [ua, va]]),
+        { fill: V.css('--purple-soft'), close: true }
+      );
+    }
+    /* ∫u dv — 곡선 왼쪽(u 방향) 세로로 쌓은 영토 */
+    if (showUdv) {
+      gParts.poly(
+        [[ua, va]].concat(pts).concat([[ua, vb], [ua, va]]),
+        { fill: V.css('--accent-soft'), close: true }
+      );
+    }
+
+    /* 큰 직사각형 / 작은 직사각형 */
+    gParts.rect(0, 0, ub, vb, { stroke: V.css('--pos'), lineWidth: 1.8, dash: [6, 4] });
+    if (Math.abs(ua) > 1e-9 && Math.abs(va) > 1e-9) {
+      gParts.rect(0, 0, ua, va, { stroke: V.css('--warn'), lineWidth: 1.6, dash: [4, 4] });
+    }
+
+    gParts.poly(pts, { stroke: V.css('--text'), width: 2.8, close: false });
+    gParts.dot(ua, va, { r: 5.5, color: V.css('--warn'), stroke: V.css('--surface'), strokeWidth: 2 });
+    gParts.dot(ub, vb, { r: 5.5, color: V.css('--pos'), stroke: V.css('--surface'), strokeWidth: 2 });
+    gParts.text(ua, va, 'P (시작)', {
+      color: V.css('--warn'), dx: 8, dy: 16, align: 'left', size: 11.5, bg: V.css('--surface')
+    });
+    gParts.text(ub, vb, 'Q (끝)', {
+      color: V.css('--pos'), dx: -8, dy: -9, align: 'right', size: 11.5, bg: V.css('--surface')
+    });
+
+    gParts.legend([
+      { color: V.css('--accent'), text: '∫ u dv — 세로로 쌓은 영토' },
+      { color: V.css('--purple'), text: '∫ v du — 가로로 쌓은 영토' },
+      { color: V.css('--pos'), text: '큰 직사각형 u(b)·v(b)', dash: [6, 4] }
+    ], { corner: 'bl' });
+
+    var A = F.integral(function (x) { return S.u(x) * S.vp(x); }, a, b, 2000);
+    var B = F.integral(function (x) { return S.v(x) * S.up(x); }, a, b, 2000);
+    var uv = ub * vb - ua * va;
+
+    V.setText('#p-A', num(A, 6));
+    V.setText('#p-B', num(B, 6));
+    V.setText('#p-sum', num(A + B, 6));
+    V.setText('#p-uv', num(uv, 6));
+  }
+
+  V.range('pb', function (v) { pb = v; drawParts(); }, function (v) { return num(v, 2); });
+  V.check('p-udv', function (v) { showUdv = v; drawParts(); });
+  V.check('p-vdu', function (v) { showVdu = v; drawParts(); });
+  V.radios('pk', function (v) {
+    pk = v;
+    pb = v === 'lnx' ? 2.2 : 1;
+    var r = document.getElementById('pb');
+    r.min = v === 'lnx' ? 1.1 : 0.2;
+    r.max = v === 'lnx' ? 3.5 : (v === 'xsin' ? Math.PI : 1.8);
+    r.value = pb;
+    var out = document.getElementById('pb-val');
+    if (out) out.textContent = num(pb, 2);
+    drawParts();
+  });
+
+  V.onRedraw(function () { drawTan(); drawParts(); });
+  drawTan(); drawParts();
+
+  var a = document.getElementById('colab-link');
+  if (a) a.href = 'https://colab.research.google.com/github/mioon1402/timeseriesdata/blob/main/notebooks/C12-dydx.ipynb';
+})();
+</script>
+</body>
+</html>

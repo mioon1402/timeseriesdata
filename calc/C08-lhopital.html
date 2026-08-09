@@ -6,8 +6,8 @@
 <title>로피탈 정리와 입실론-델타 · 미적분의 직관</title>
 <meta name="description" content="0/0은 누가 더 빨리 0으로 가는가의 경주입니다. 그리고 '한없이 가까이'를 공방 게임으로 못 박습니다.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%E2%88%AB%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="../assets/viz.css">
-<link rel="stylesheet" href="../assets/pycell.css">
+<link rel="stylesheet" href="../assets/viz.css?v=b7dfb076b2">
+<link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
 </head>
 <body>
 <div class="wrap">
@@ -106,9 +106,11 @@
         <div class="stat warn"><span class="k">실제 극한 (수치)</span><span class="v" id="r-lim">–</span></div>
       </div>
       <p class="hint">
-        위 그림은 <b>분자 f 와 분모 g 를 따로</b> 그린 것입니다.
-        <b>둘 다 0을 지나갑니다.</b> 확대해 보면 둘 다 <b>직선처럼</b> 보이고(2강),
-        비율은 <b>두 직선의 기울기 비</b>로 결정됩니다.
+        <b>위</b>는 <b>분자 f 와 분모 g 를 따로</b> 그린 것입니다. <b>둘 다 0을 지나가죠.</b>
+        확대해 보면 둘 다 <b>직선처럼</b> 보이고(2강), 비율은 <b>두 직선의 기울기 비</b>로 결정됩니다.
+        <br>
+        <b>아래</b>는 그 <b>비 f/g</b> 입니다. <b>x=0 에 구멍이 뚫려</b> 있지만,
+        함수는 <b>그 구멍이 어떤 값으로 메워져야 하는지</b> 분명히 가리키고 있습니다.
       </p>
     </div>
 
@@ -522,10 +524,10 @@
 
 </div>
 
-<script src="../assets/viz.js"></script>
-<script src="../assets/calc.js"></script>
-<script src="../assets/pylab.js"></script>
-<script src="../assets/pycell.js"></script>
+<script src="../assets/viz.js?v=312b9476b0"></script>
+<script src="../assets/calc.js?v=c1137a5076"></script>
+<script src="../assets/pylab.js?v=cb27f20364"></script>
+<script src="../assets/pycell.js?v=6dacc4c6ce"></script>
 <script>
 (function () {
   'use strict';
@@ -549,33 +551,48 @@
             fn: '1 − cos x', gn: 'x²', lim: 0.5 }
   };
 
-  var gRace = new CA.Graph(document.getElementById('cv-race'), {
-    equal: 'x',
-    height: function (w) { return Math.round(Math.max(250, Math.min(340, w * 0.44))); },
-    margin: { top: 18, right: 20, bottom: 40, left: 52 }
+  function raceLayout(w) {
+    var top = Math.round(V.clamp(w * 0.26, 160, 215));
+    var bot = Math.round(V.clamp(w * 0.24, 150, 200));
+    return { top: top, H: top + bot + 14 };
+  }
+
+  var cvRace = document.getElementById('cv-race');
+  var frRace = new CA.Frame(cvRace, function (w) { return raceLayout(w).H; });
+  var gRace = new CA.Graph(cvRace, {
+    frame: frRace, equal: 'x', margin: { top: 16, right: 20, bottom: 24, left: 54 }
+  });
+  var gRatio = new CA.Graph(cvRace, {
+    frame: frRace, margin: { top: 16, right: 20, bottom: 32, left: 54 }
   });
 
   function drawRace() {
     var S = PR[pr];
     var w = 1.5 * Math.pow(10, -rz);
+
+    frRace.begin();
+    var L = raceLayout(frRace.w);
+
+    /* --- 위: 분자와 분모를 따로 --- */
     gRace.xDomain = [S.a - w, S.a + w];
     gRace.yDomain = [-w, w];
+    gRace.plot.margin.top = 16;
+    gRace.plot.margin.bottom = L.H - L.top + 6;
     gRace.begin();
 
     var step = CA.niceStep(2 * w, 4);
     gRace.axes({
       xStep: step, yStep: step,
       xFormat: function (v) { return num(v, 6); },
-      yFormat: function (v) { return num(v, 6); },
-      xLabel: 'x →'
+      yFormat: function (v) { return num(v, 6); }
     });
 
     var fp = F.deriv(S.f, S.a, w * 1e-4 + 1e-9);
     var gp = F.deriv(S.g, S.a, w * 1e-4 + 1e-9);
 
     if (showTan) {
-      gRace.lineAt(S.a, 0, fp, { color: V.css('--accent'), width: 6, alpha: 0.22 });
-      gRace.lineAt(S.a, 0, gp, { color: V.css('--purple'), width: 6, alpha: 0.22 });
+      gRace.lineAt(S.a, 0, fp, { color: V.css('--accent'), width: 7, alpha: 0.22 });
+      gRace.lineAt(S.a, 0, gp, { color: V.css('--purple'), width: 7, alpha: 0.22 });
     }
     gRace.curve(S.f, { color: V.css('--accent'), width: 2.6, samples: 900 });
     gRace.curve(S.g, { color: V.css('--purple'), width: 2.6, samples: 900 });
@@ -586,9 +603,38 @@
       { color: V.css('--purple'), text: '분모  ' + S.gn }
     ], { corner: 'tl' });
 
-    /* 실제 극한 (수치) */
-    var e = 1e-7;
-    var real = S.f(S.a + e) / S.g(S.a + e);
+    /* --- 아래: 비 f/g. 구멍이 뚫려 있다 --- */
+    var real = S.f(S.a + 1e-7) / S.g(S.a + 1e-7);
+    var mid = isFinite(S.lim) ? S.lim : 0;
+    var half = isFinite(S.lim) ? Math.max(0.9, Math.abs(S.lim) * 0.9) : 12;
+    gRatio.xDomain = [S.a - w, S.a + w];
+    gRatio.yDomain = [mid - half, mid + half];
+    gRatio.plot.margin.top = L.top + 14;
+    gRatio.plot.margin.bottom = 32;
+    gRatio.begin();
+    gRatio.axes({
+      xStep: step,
+      yStep: CA.niceStep(2 * half, 4),
+      xFormat: function (v) { return num(v, 6); },
+      xLabel: 'x →'
+    });
+    gRatio.curve(function (x) {
+      return Math.abs(x - S.a) < 1e-13 ? NaN : S.f(x) / S.g(x);
+    }, { color: V.css('--pos'), width: 2.6, samples: 1400 });
+
+    if (isFinite(S.lim)) {
+      gRatio.hline(S.lim, { color: V.css('--text-dim'), dash: [6, 4], width: 1.4 });
+      gRatio.dot(S.a, S.lim, {
+        r: 5.5, color: V.css('--surface'), stroke: V.css('--pos'), strokeWidth: 2.4
+      });
+      gRatio.text(S.a, S.lim, '구멍 — 여기서는 정의 안 됨', {
+        color: V.css('--pos'), dx: 12, dy: -8, align: 'left', size: 11.5, bg: V.css('--surface')
+      });
+    }
+    gRatio.text(S.a - w * 0.94, mid + half * 0.78,
+      '비  ' + S.fn + ' / ' + S.gn, {
+      color: V.css('--pos'), align: 'left', size: 12.5, bg: V.css('--surface')
+    });
 
     V.setText('#r-fp', num(fp, 5));
     V.setText('#r-gp', num(gp, 5));

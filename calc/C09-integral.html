@@ -1,0 +1,735 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>적분과 미적분학의 기본 정리 · 미적분의 직관</title>
+<meta name="description" content="직사각형을 무한히 늘리면 넓이가 나오고, 그 넓이를 미분하면 원래 높이가 돌아옵니다. 미적분 최대의 통찰.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%E2%88%AB%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/viz.css?v=b7dfb076b2">
+<link rel="stylesheet" href="../assets/pycell.css?v=72530cfb9a">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="site-nav"><a href="../index.html">← 전체 목록</a></nav>
+
+  <header class="mod-head">
+    <p class="eyebrow">미적분 9강 · 적분과 기본정리</p>
+    <h1>적분과 미적분학의 기본 정리</h1>
+    <p class="lede">
+      미분이 <b>'쪼개서 순간을 보는'</b> 것이라면,
+      적분은 <b>'조각을 모아 전체를 복원하는'</b> 것입니다.
+      그리고 이 강의의 정점에서,
+      <b>두 연산이 서로를 정확히 되돌리는 역연산</b>이라는
+      <b>미적분 최대의 통찰</b>을 만납니다.
+    </p>
+  </header>
+
+  <section class="notes">
+
+    <div class="toc">
+      <b>이 강의에서 배우는 것</b>
+      <ol>
+        <li><a href="#s0">기초 다지기 — 1강으로 돌아가기</a></li>
+        <li><a href="#s1">속도에서 거리로 — 왜 넓이인가</a></li>
+        <li><a href="#s2">리만 합 — 직사각형으로 채우고 극한 보내기</a></li>
+        <li><a href="#s3">적분 기호 읽기</a></li>
+        <li><a href="#s4">면적 함수 — 적분을 움직이게 만들기</a></li>
+        <li><a href="#s5">미적분학 기본정리</a></li>
+        <li><a href="#s6">왜 이것이 혁명인가</a></li>
+        <li><a href="#s7">파이썬으로 확인하기</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s0">0. 기초 다지기 — 1강으로 돌아가기</h2>
+    <p>
+      사실 우리는 <b>이미 적분을 했습니다.</b>
+      1강에서 원을 고리로 쪼개 <span class="m">Σ 2πr·dr</span> 을 만들었죠.
+      <b>[높이] × [폭] 을 전부 더한다</b> — 이게 적분의 전부입니다.
+    </p>
+
+    <div class="callout">
+      <b>적분은 '거꾸로 미분'이 아니라 '무한히 잘게 나눠 더하기'입니다</b><br>
+      많은 사람이 적분을 <b>"미분 공식을 거꾸로 외우는 것"</b> 으로 배웁니다.
+      그러면 <b>적분이 무엇을 계산하는지</b>를 영영 모르게 됩니다.
+      <br><br>
+      <b>적분의 정의는 넓이(무한 합)입니다.</b>
+      거꾸로 미분하기(역도함수 찾기)는 그 넓이를 <b>빠르게 계산하는 방법</b>일 뿐이에요.
+      <b>그 둘을 잇는 다리가 이 강의의 주인공</b>, 미적분학 기본정리입니다.
+    </div>
+
+    <h2 id="s1">1. 속도에서 거리로 — 왜 넓이인가</h2>
+    <p>
+      <b>속도가 일정하면</b> 거리 = 속도 × 시간으로 끝납니다.
+      문제는 <b>속도가 계속 변한다</b>는 것이죠.
+    </p>
+    <p>
+      해법은 이제 익숙합니다 — <b>시간을 아주 작은 dt 로 쪼갭니다.</b>
+      그 짧은 동안엔 속도가 <b>거의 일정</b>하니 미세 거리
+      <span class="m">ds ≈ v(t)·dt</span>.
+      이 조각들을 전부 더하면 <b>총 거리</b>입니다.
+    </p>
+    <p>
+      그런데 <span class="m">v(t)·dt</span> 는 <b>폭 dt, 높이 v(t) 인 직사각형의 넓이</b>이므로,
+      <b>총 거리 = 속도 곡선 아래의 넓이</b>가 됩니다.
+    </p>
+
+    <div class="panel">
+      <div class="panel-title">① 속도 곡선 아래 넓이 = 이동 거리</div>
+      <div class="canvas-wrap"><canvas id="cv-vel"></canvas></div>
+
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">지금 시각 t</span><span class="val" id="vt-val">2</span></span>
+          <input type="range" id="vt" min="0" max="4" step="0.01" value="2">
+        </label>
+        <label class="ctrl">
+          <span class="label-row"><span class="name">시간을 몇 조각으로</span><span class="val" id="vn-val">8</span></span>
+          <input type="range" id="vn" min="1" max="60" step="1" value="8">
+        </label>
+      </div>
+
+      <div class="seg" role="group" aria-label="속도 선택" style="margin-top:10px">
+        <label><input type="radio" name="vk" value="const" checked><span>일정한 속도</span></label>
+        <label><input type="radio" name="vk" value="lin"><span>일정하게 빨라짐</span></label>
+        <label><input type="radio" name="vk" value="wave"><span>들쭉날쭉</span></label>
+      </div>
+
+      <div class="readout">
+        <div class="stat accent"><span class="k">지금 속도 v(t)</span><span class="v" id="w-v">–</span></div>
+        <div class="stat purple"><span class="k">직사각형으로 잰 거리</span><span class="v" id="w-app">–</span></div>
+        <div class="stat pos"><span class="k">정확한 거리 (넓이)</span><span class="v" id="w-exact">–</span></div>
+        <div class="stat warn"><span class="k">오차</span><span class="v" id="w-err">–</span></div>
+      </div>
+      <p class="hint">
+        <b>일정한 속도</b>에서는 조각이 하나여도 정확합니다 (직사각형이니까요).
+        <b>속도가 변하면</b> 조각을 잘게 쪼개야 정확해집니다 — <b>조각 수를 늘려 보세요.</b>
+      </p>
+    </div>
+
+    <h2 id="s2">2. 리만 합 — 직사각형으로 채우고 극한 보내기</h2>
+    <p>
+      이 방법에 이름이 있습니다. <b>리만 합</b>입니다.
+      1강의 고리 분해와 <b>똑같은 네 박자</b>죠 —
+      <b>쪼개고, 직사각형으로 근사하고, 합치고, 극한을 보낸다.</b>
+    </p>
+
+    <div class="panel">
+      <div class="panel-title">② 직사각형 개수를 늘려 보세요</div>
+      <div class="canvas-wrap"><canvas id="cv-riem"></canvas></div>
+
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">직사각형 개수 n</span><span class="val" id="rn-val">6</span></span>
+          <input type="range" id="rn" min="1" max="120" step="1" value="6">
+        </label>
+      </div>
+
+      <div class="seg" role="group" aria-label="함수 선택" style="margin-top:10px">
+        <label><input type="radio" name="rf" value="sq" checked><span>x² (0~1)</span></label>
+        <label><input type="radio" name="rf" value="sin"><span>sin x (0~π)</span></label>
+        <label><input type="radio" name="rf" value="exp"><span>eˣ (0~1)</span></label>
+        <label><input type="radio" name="rf" value="bell"><span>종 모양 (−2~2)</span></label>
+      </div>
+
+      <div class="seg" role="group" aria-label="높이를 어디서 재는가" style="margin-top:10px">
+        <label><input type="radio" name="rm" value="left" checked><span>왼쪽 끝 높이</span></label>
+        <label><input type="radio" name="rm" value="mid"><span>가운데 높이</span></label>
+        <label><input type="radio" name="rm" value="right"><span>오른쪽 끝 높이</span></label>
+      </div>
+
+      <div class="readout">
+        <div class="stat"><span class="k">폭 Δx</span><span class="v" id="i-dx">–</span></div>
+        <div class="stat accent"><span class="k">리만 합 Σ f(xᵢ)·Δx</span><span class="v" id="i-sum">–</span></div>
+        <div class="stat pos"><span class="k">참값 ∫</span><span class="v" id="i-true">–</span></div>
+        <div class="stat warn"><span class="k">오차</span><span class="v" id="i-err">–</span></div>
+        <div class="stat purple"><span class="k">상대 오차</span><span class="v" id="i-rel">–</span></div>
+      </div>
+      <p class="hint">
+        <b>왼쪽 끝</b>은 모자라고 <b>오른쪽 끝</b>은 넘칩니다(증가함수일 때).
+        <b>가운데</b>는 놀랍도록 정확하죠 — 1강의 고리에서 본 바로 그 현상입니다.
+        n=100 에서 오차를 비교해 보세요: 왼쪽 <b>−0.005</b>, 가운데 <b>−0.0000083</b>.
+      </p>
+    </div>
+
+    <h2 id="s3">3. 적분 기호 읽기</h2>
+
+    <div class="formula">
+      <div class="name">정적분의 정의</div>
+      <div class="eq" style="font-size:17px">
+        ∫<sub>a</sub><sup>b</sup> f(x) <i>dx</i> =
+        lim<sub>&nbsp;n→∞</sub> <span class="sig">Σ</span> f(x<sub>i</sub>) · Δx
+      </div>
+      <ul class="where">
+        <li><span class="sym">∫</span><span class="desc"><b>합(Sum)의 S 를 길게 늘인 것</b>.
+            <b>Σ 의 연속판</b>입니다</span></li>
+        <li><span class="sym">a, b</span><span class="desc">더하기 시작하는 곳과 끝내는 곳</span></li>
+        <li><span class="sym">f(x)</span><span class="desc">조각의 <b>높이</b></span></li>
+        <li><span class="sym">dx</span><span class="desc">조각의 <b>폭</b>. 무한히 가늘어진 Δx</span></li>
+        <li><span class="sym">읽는 법</span><span class="desc">"<b>높이 × 폭 을 a부터 b까지 전부 더하라</b>."
+            <b>기호 자체가 그림을 담고</b> 있습니다</span></li>
+        <li><span class="sym">부호</span><span class="desc">f 가 <b>음수인 구간</b>의 넓이는 <b>음수로</b> 셉니다.
+            속도가 음수면 <b>뒤로 간</b> 거리니까요</span></li>
+      </ul>
+    </div>
+
+    <h2 id="s4">4. 면적 함수 — 적분을 움직이게 만들기</h2>
+    <p>
+      여기서 <b>결정적인 발상</b>입니다.
+      <b>오른쪽 끝을 변수로 풀어놓습니다.</b>
+      시작점 a 는 고정하고, <b>x 까지의 넓이</b>를
+      <span class="m">A(x) = ∫<sub>a</sub><sup>x</sup> f(t) dt</span> 라 부릅시다.
+    </p>
+    <p>
+      x 를 오른쪽으로 밀면 넓이가 자라니 <b>A(x) 도 하나의 함수</b>입니다.
+      질문: <b>이 넓이 함수의 변화율 A′(x) 는 무엇일까요?</b>
+    </p>
+
+    <div class="panel">
+      <div class="panel-title">③ 오른쪽 끝을 밀면 넓이는 얼마나 자라나</div>
+      <div class="canvas-wrap"><canvas id="cv-area"></canvas></div>
+
+      <div class="controls">
+        <label class="ctrl">
+          <span class="label-row"><span class="name">오른쪽 끝 x</span><span class="val" id="ax-val">1.5</span></span>
+          <input type="range" id="ax" min="0.02" max="4" step="0.01" value="1.5">
+        </label>
+        <label class="ctrl">
+          <span class="label-row"><span class="name">오른쪽 끝을 미는 양 dx</span><span class="val" id="ad-val">0.3</span></span>
+          <input type="range" id="ad" min="0.01" max="0.6" step="0.01" value="0.3">
+        </label>
+        <label class="toggle"><input type="checkbox" id="a-reveal"> 면적 함수 A(x) 전체 보이기</label>
+      </div>
+
+      <div class="seg" role="group" aria-label="함수 선택" style="margin-top:10px">
+        <label><input type="radio" name="af" value="lin" checked><span>f(x) = x/2 + 1</span></label>
+        <label><input type="radio" name="af" value="sq"><span>f(x) = x²/4</span></label>
+        <label><input type="radio" name="af" value="wave"><span>f(x) = 1 + sin x</span></label>
+      </div>
+
+      <div class="readout">
+        <div class="stat accent"><span class="k">지금 높이 f(x)</span><span class="v" id="q-f">–</span></div>
+        <div class="stat pos"><span class="k">지금까지의 넓이 A(x)</span><span class="v" id="q-a">–</span></div>
+        <div class="stat purple"><span class="k">새로 늘어난 넓이 dA</span><span class="v" id="q-da">–</span></div>
+        <div class="stat warn"><span class="k">dA / dx</span><span class="v" id="q-rate">–</span></div>
+        <div class="stat neg"><span class="k">f(x) 와의 차</span><span class="v" id="q-gap">–</span></div>
+      </div>
+      <p class="hint">
+        <b>dx 를 왼쪽 끝까지 밀어보세요.</b>
+        <span class="m">dA/dx</span> 가 <b>정확히 f(x) 가 됩니다.</b>
+        새로 늘어나는 부분이 <b>폭 dx, 높이 f(x) 인 얇은 띠</b>이기 때문이죠.
+        그리고 <b>[면적 함수 전체 보이기]</b> 를 켜면 아래에 A(x) 곡선이 나타납니다 —
+        <b>그 곡선의 접선 기울기가 위 곡선의 높이</b>입니다.
+      </p>
+    </div>
+
+    <div class="formula">
+      <div class="name">미적분학 기본정리</div>
+      <div class="eq" style="font-size:15px;line-height:2.5;text-align:left;padding-left:10px">
+        <b>제1정리</b> &nbsp; A(x) = ∫<sub>a</sub><sup>x</sup> f(t) dt &nbsp;이면&nbsp;
+        <b>A′(x) = f(x)</b><br>
+        <span class="small">&nbsp;&nbsp;→ 적분해 넓이를 만들고 미분하면 <b>원래 함수로 되돌아온다</b></span><br><br>
+        <b>제2정리</b> &nbsp; F′ = f 인 F(역도함수)를 하나 찾으면
+        <br>&nbsp;&nbsp;
+        <b>∫<sub>a</sub><sup>b</sup> f(x) dx = F(b) − F(a)</b><br>
+        <span class="small">&nbsp;&nbsp;→ 무수한 직사각형을 더하는 대신 <b>양 끝값만 빼면</b> 넓이가 나온다</span>
+      </div>
+      <ul class="where">
+        <li><span class="sym">제1정리의 증명</span><span class="desc">x 를 dx 만큼 밀 때 늘어나는 넓이는
+            <b>폭 dx, 높이 f(x) 인 얇은 띠</b>입니다 (그 좁은 구간에서 f 는 거의 일정).
+            즉 <span class="m">dA ≈ f(x)·dx</span> ⟹ <span class="m">A′(x) = f(x)</span></span></li>
+        <li><span class="sym">제2정리가 따라오는 이유</span><span class="desc">A 와 F 는 <b>도함수가 같으므로</b>
+            <b>상수만큼만 차이</b>납니다. <span class="m">A(a) = 0</span> 이니
+            <span class="m">A(x) = F(x) − F(a)</span>. x=b 를 넣으면 끝</span></li>
+        <li><span class="sym">한 문장</span><span class="desc"><b>변화율의 누적이 총 변화량이다.</b>
+            속도 v = s′ 에 적용하면
+            <span class="m">∫<sub>a</sub><sup>b</sup> v dt = s(b) − s(a)</span> —
+            직관적으로도 완벽히 타당하죠</span></li>
+      </ul>
+    </div>
+
+    <h2 id="s5">5. 미적분학 기본정리</h2>
+    <p>
+      이제 <b>1강의 예고편</b>이 정식으로 증명되었습니다.
+      <b>넓이를 미분하면 높이</b>, <b>높이를 적분하면 넓이</b>.
+    </p>
+
+    <div class="takeaway">
+      <b>왜 이것이 '기본'정리인가 ·</b>
+      미분과 적분은 <b>완전히 다른 질문</b>에서 출발했습니다.
+      하나는 <b>"이 순간 얼마나 빨리 변하나"</b>, 다른 하나는 <b>"전부 모으면 얼마인가"</b>.
+      <b>서로 아무 관계가 없어 보입니다.</b>
+      <br>
+      그런데 <b>둘이 정확히 서로를 되돌린다</b>는 것이 밝혀졌죠.
+      이것이 뉴턴과 라이프니츠가 <b>'미적분학을 발명했다'</b> 고 평가받는 이유입니다 —
+      미분도 적분도 그들 이전에 이미 있었지만,
+      <b>둘을 잇는 다리</b>를 놓은 것이 그들이었습니다.
+    </div>
+
+    <h2 id="s6">6. 왜 이것이 혁명인가 — 계산 예시</h2>
+    <p>
+      <span class="m">∫<sub>0</sub><sup>1</sup> x² dx</span> 를 <b>정의대로(리만 합)</b> 구하면
+      <span class="m">Σi²</span> 공식까지 동원되는 상당한 대수가 필요하고, 답은 <b>1/3</b> 입니다.
+    </p>
+    <p>
+      <b>기본정리로는?</b> 미분하면 <span class="m">x²</span> 이 되는 함수 하나를 찾습니다 —
+      <span class="m">x³/3</span>. 그러면:
+    </p>
+
+    <div class="formula">
+      <div class="name">두 줄로 끝난다</div>
+      <div class="eq" style="font-size:17px">
+        ∫<sub>0</sub><sup>1</sup> x² dx = <span class="frac"><span>1³</span><span>3</span></span> −
+        <span class="frac"><span>0³</span><span>3</span></span> = <b>1/3</b>
+      </div>
+      <ul class="where">
+        <li><span class="sym">무엇이 바뀌었나</span><span class="desc"><b>넓이 계산</b>이라는 어려운 문제가
+            <b>'거꾸로 미분하기'</b> 라는 훨씬 쉬운 문제로 바뀌었습니다</span></li>
+        <li><span class="sym">역도함수 표</span><span class="desc">4강의 미분 공식을 <b>거꾸로 읽으면</b> 됩니다.
+            <span class="m">∫xⁿ dx = x<sup>n+1</sup>/(n+1)</span>,
+            <span class="m">∫eˣ dx = eˣ</span>,
+            <span class="m">∫(1/x) dx = ln|x|</span></span></li>
+        <li><span class="sym">+C 는 왜</span><span class="desc">부정적분에는 <b>상수 C</b> 가 붙습니다 —
+            미분하면 사라지니까요. 정적분에서는 <b>빼면서 상쇄</b>되어 신경 쓸 필요가 없습니다</span></li>
+      </ul>
+    </div>
+
+    <div class="myth">
+      <div class="bad"><b>⚠ 흔한 오해</b>
+        "적분은 <b>미분 공식을 거꾸로 외우는 것</b>이다."</div>
+      <div class="good"><b>반만 맞습니다</b>
+        적분의 <b>정의</b>는 어디까지나 <b>넓이(무한 합)</b> 입니다.
+        역도함수 찾기는 그 넓이를 <b>빠르게 계산하는 방법</b>일 뿐이에요.
+        <br>
+        정의와 계산법을 혼동하면, 나중에 <b>역도함수가 없는 함수</b>의
+        <b>수치적분</b>을 만났을 때 길을 잃습니다.
+        <br>
+        <span class="m">e<sup>−x²</sup></span>(정규분포!)는 <b>초등함수 역도함수가 존재하지 않습니다.</b>
+        그래도 넓이는 멀쩡히 있고, 컴퓨터로 계산할 수 있죠 — <b>정의가 넓이이기 때문</b>입니다.</div>
+    </div>
+
+    <h2 id="s7">7. 파이썬으로 확인하기</h2>
+
+    <div class="pycell" data-packages="numpy" data-title="9-1. 리만 합 — 세 가지 방식">
+    import numpy as np
+
+    def 리만(f, a, b, n, 방식="left"):
+        dx = (b - a) / n
+        i = np.arange(n)
+        x = a + (i + {"left": 0, "mid": 0.5, "right": 1}[방식]) * dx
+        return np.sum(f(x) * dx)
+
+    f, a, b, 참값 = lambda x: x**2, 0, 1, 1/3
+
+    print(f"{'n':>6} {'왼쪽':>14} {'가운데':>14} {'오른쪽':>14}")
+    for n in [1, 6, 20, 100, 1000, 100000]:
+        print(f"{n:>6}", "".join(f"{리만(f,a,b,n,m):>14.8f}" for m in ["left","mid","right"]))
+
+    print(f"\n참값 = {참값:.8f}")
+    print("→ 왼쪽은 모자라고 오른쪽은 넘친다. 가운데가 압도적으로 정확하다.")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="9-2. 오차가 줄어드는 속도">
+    print(f"{'n':>8} {'왼쪽 오차':>14} {'가운데 오차':>16}")
+    for n in [10, 100, 1000, 10000]:
+        왼 = 리만(f, a, b, n, "left") - 참값
+        가 = 리만(f, a, b, n, "mid") - 참값
+        print(f"{n:>8} {왼:>14.2e} {가:>16.2e}")
+
+    print("\n→ n 을 10배 하면 왼쪽 오차는 10배, 가운데 오차는 100배 줄어든다.")
+    print("  왼쪽은 O(1/n), 가운데는 O(1/n²). '두 번 작은 것' 이 여기서도 나온다(4강).")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="9-3. 면적 함수를 미분하면 원래 함수">
+    import numpy as np
+
+    def 면적(f, a, x, n=20000):
+        """a 부터 x 까지의 넓이 (가운데 리만합)"""
+        if x == a: return 0.0
+        dx = (x - a) / n
+        t = a + (np.arange(n) + 0.5) * dx
+        return np.sum(f(t) * dx)
+
+    g = lambda x: 1 + np.sin(x)          # 아무 함수나
+    a = 0.0
+
+    print(f"{'x':>6} {'A(x)':>14} {'A′(x) (수치)':>16} {'f(x)':>14}")
+    for x in [0.5, 1.0, 2.0, 3.0, 4.0]:
+        A  = 면적(g, a, x)
+        Ap = (면적(g, a, x+1e-5) - 면적(g, a, x-1e-5)) / 2e-5
+        print(f"{x:>6} {A:>14.8f} {Ap:>16.8f} {g(x):>14.8f}")
+
+    print("\n→ A′(x) 와 f(x) 가 같다. 제1정리다.")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="9-4. 제2정리 — 양 끝값만 빼면 끝">
+    import numpy as np
+
+    문제 = [
+        ("∫₀¹ x² dx",      lambda x: x**2,     lambda x: x**3/3,        0, 1),
+        ("∫₀² 3x² dx",     lambda x: 3*x**2,   lambda x: x**3,          0, 2),
+        ("∫₀^π sin x dx",  np.sin,             lambda x: -np.cos(x),    0, np.pi),
+        ("∫₁ᵉ (1/x) dx",   lambda x: 1/x,      np.log,                  1, np.e),
+        ("∫₀¹ eˣ dx",      np.exp,             np.exp,                  0, 1),
+    ]
+
+    print(f"{'식':>18} {'리만합 (n=100만)':>20} {'F(b) − F(a)':>18}")
+    for 이름, f, F, a, b in 문제:
+        수치 = 리만(f, a, b, 1000000, "mid")
+        공식 = F(b) - F(a)
+        print(f"{이름:>18} {수치:>20.10f} {공식:>18.10f}")
+
+    print("\n→ 완전히 같다. 무한 합을 뺄셈 하나로 대신했다.")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="9-5. 역도함수가 없어도 넓이는 있다">
+    import numpy as np
+
+    # e^(-x²) 는 초등함수로 된 역도함수가 존재하지 않는다.
+    # 그래도 넓이는 멀쩡히 있고, 정의(무한 합)대로 계산할 수 있다.
+    f = lambda x: np.exp(-x**2)
+
+    print("∫ e^(-x²) dx  (정규분포의 심장)")
+    for b in [1, 2, 3, 5, 10]:
+        print(f"  -{b} ~ {b} : {리만(f, -b, b, 2000000, 'mid'):.10f}")
+
+    print(f"\n  전체 (-∞~∞) 의 참값 √π = {np.sqrt(np.pi):.10f}")
+    print("\n→ '거꾸로 미분' 이 불가능해도 넓이는 계산된다.")
+    print("  적분의 정의가 넓이이기 때문이다. 이 구분이 실무에서 결정적이다.")
+    </div>
+
+    <div class="pycell" data-packages="numpy,scipy" data-title="9-6. scipy 로 확인">
+    from scipy.integrate import quad
+    import numpy as np
+
+    for 이름, f, a, b in [
+        ("∫₀¹ x²",        lambda x: x**2,      0, 1),
+        ("∫₀^π sin x",    np.sin,              0, np.pi),
+        ("∫₋∞^∞ e^(-x²)", lambda x: np.exp(-x**2), -np.inf, np.inf),
+    ]:
+        값, 오차 = quad(f, a, b)
+        print(f"{이름:>18} = {값:.12f}   (추정 오차 {오차:.1e})")
+
+    print("\n→ quad 는 적응형 구적법이다. 리만합보다 훨씬 적은 계산으로 훨씬 정확하다.")
+    print("  하지만 원리는 같다 — '높이 × 폭을 잘 골라 더한다'.")
+    </div>
+
+    <div class="pycell" data-packages="numpy" data-title="9-7. 연습문제">
+    # 문제 1. ∫₀² 3x² dx 를 기본정리로 계산하고 리만합으로 확인하세요. (답: 8)
+
+    # 문제 2. ∫₀^(2π) sin x dx 는 얼마일까요? 그림을 떠올려 예상한 뒤 계산하세요.
+
+    # 문제 3. 속도가 v(t) = 3t² 인 물체가 t=0 에서 t=2 까지 간 거리는?
+    #         위치 함수 s(t) 를 찾아 s(2) - s(0) 으로 구해보세요.
+
+    # 아래에 직접 써보세요
+    </div>
+
+    <details style="margin:18px 0">
+      <summary style="cursor:pointer;font-weight:600;color:var(--accent)">모범 답안 보기</summary>
+      <div class="pycell" data-packages="numpy" data-title="모범 답안">
+      import numpy as np
+
+      # 문제 1 — 역도함수 x³
+      print(f"문제 1: F(2)-F(0) = {2**3 - 0**3},  리만합 = {리만(lambda x: 3*x**2, 0, 2, 10**6, 'mid'):.8f}\n")
+
+      # 문제 2 — 0 (위 반주기와 아래 반주기가 상쇄)
+      print(f"문제 2: {리만(np.sin, 0, 2*np.pi, 10**6, 'mid'):.10f}")
+      print("        0 이다. 0~π 의 +2 와 π~2π 의 -2 가 정확히 상쇄된다.")
+      print("        '넓이' 가 아니라 '부호 있는 넓이' 라는 점이 중요하다.\n")
+
+      # 문제 3 — s(t) = t³
+      print(f"문제 3: s(t)=t³ 이므로 s(2)-s(0) = {2**3 - 0}")
+      print(f"        확인: {리만(lambda t: 3*t**2, 0, 2, 10**6, 'mid'):.8f}")
+      print("        3강에서 s(t)=t³ 을 미분해 v=3t² 를 얻었다. 지금은 그 반대로 갔다.")
+      </div>
+    </details>
+
+    <div class="practice">
+      <b>적분이 실제로 하는 일</b>
+      <ul>
+        <li><b>확률</b> — 확률밀도함수 아래 넓이가 곧 확률입니다.
+            정규분포 표가 <span class="m">∫e<sup>−x²/2</sup></span> 를 미리 계산해 둔 것이죠(1부 3강).</li>
+        <li><b>전기공학</b> — 전하량 <span class="m">Q = ∫i dt</span>,
+            에너지 <span class="m">W = ∫p dt</span>, RMS 값도 전부 적분입니다.</li>
+        <li><b>신호처리</b> — 푸리에 변환이 <span class="m">∫f(t)e<sup>−iωt</sup>dt</span> 입니다.</li>
+        <li><b>기계공학</b> — 도심, 관성 모멘트, 응력 분포의 합력이 전부 적분.</li>
+        <li><b>수치해석</b> — 역도함수가 없거나 데이터만 있을 때는
+            <b>사다리꼴·심프슨 법칙</b>으로 직접 더합니다(1부 8강).</li>
+      </ul>
+    </div>
+
+    <div class="summary">
+      <h3>✎ 스스로 점검</h3>
+      <ul>
+        <li><b>24.</b> '속도 곡선 아래 넓이 = 이동 거리'인 이유를 직사각형으로 설명해 보세요.
+            <span style="color:var(--text-dim)">(§1)</span></li>
+        <li><b>25.</b> 면적 함수 A(x) 를 미분하면 왜 f(x) 가 나오나요?
+            <span style="color:var(--text-dim)">(§4)</span></li>
+        <li><b>26.</b> <span class="m">∫<sub>0</sub><sup>2</sup> 3x² dx</span> 를 기본정리로 계산해 보세요.
+            <span style="color:var(--text-dim)">(답: 8 — 역도함수 <span class="m">x³</span>)</span></li>
+      </ul>
+    </div>
+
+    <div class="summary">
+      <h3>9강 요약</h3>
+      <ul>
+        <li><b>변하는 양의 누적</b>은 <b>곡선 아래 넓이</b>입니다.
+            잘게 쪼개면 각 조각이 <b>높이 × 폭</b> 인 직사각형이니까요.</li>
+        <li><b>리만 합</b> <span class="m">Σ f(xᵢ)Δx</span> 의 <b>n→∞ 극한</b>이 정적분입니다.
+            1강의 네 박자 그대로죠.</li>
+        <li><b>가운데 높이</b>로 재면 오차가 <span class="m">O(1/n²)</span> 로 훨씬 빨리 줄어듭니다.</li>
+        <li><b><span class="m">∫f(x)dx</span></b> 는 "<b>높이 × 폭을 전부 더하라</b>"의 줄임말.
+            <b>∫ 는 Σ 를 늘인 것</b>입니다.</li>
+        <li><b>제1정리</b>: <span class="m">A(x) = ∫<sub>a</sub><sup>x</sup> f</span> 이면
+            <b><span class="m">A′(x) = f(x)</span></b> — 늘어나는 부분이 <b>얇은 띠</b>이기 때문.</li>
+        <li><b>제2정리</b>: <b><span class="m">∫<sub>a</sub><sup>b</sup> f = F(b) − F(a)</span></b> —
+            <b>무한 합이 뺄셈 하나</b>가 됩니다.</li>
+        <li><b>적분의 정의는 넓이</b>이고, 역도함수는 <b>계산 요령</b>입니다.
+            <span class="m">e<sup>−x²</sup></span> 처럼 역도함수가 없어도 넓이는 있습니다.</li>
+      </ul>
+    </div>
+
+    <div class="colab-cta">
+      <div class="colab-text">
+        <b>더 자유롭게 실험하고 싶다면</b><br>
+        이 강의의 실습만 모은 노트북을 Colab에서 열 수 있습니다.
+      </div>
+      <a class="btn" id="colab-link" href="#" target="_blank" rel="noopener">Colab에서 열기</a>
+    </div>
+
+    <p class="next-up">
+      다음 → <b>10강 · 넓이와 기울기는 무슨 관계일까</b><br>
+      기본정리를 <b>전혀 다른 문</b>에서 다시 들어가 봅니다.
+      출발 질문은 소박합니다 — <b>"사인 곡선의 평균 높이는 얼마일까?"</b>
+      곡선 위엔 점이 무한히 많아서 <b>'다 더해서 개수로 나누는' 보통의 평균</b>은 못 씁니다.
+    </p>
+
+  </section>
+
+</div>
+
+<script src="../assets/viz.js?v=312b9476b0"></script>
+<script src="../assets/calc.js?v=c1137a5076"></script>
+<script src="../assets/pylab.js?v=cb27f20364"></script>
+<script src="../assets/pycell.js?v=6dacc4c6ce"></script>
+<script>
+(function () {
+  'use strict';
+  var num = CA.num, F = CA.F;
+
+  /* =======================================================
+     패널 ① 속도 아래 넓이 = 거리
+     ======================================================= */
+  var vt = 2, vn = 8, vk = 'const';
+
+  var VK = {
+    'const': { v: function () { return 2.5; }, yd: [0, 6], name: 'v(t) = 2.5' },
+    lin:     { v: function (t) { return 0.6 + 1.1 * t; }, yd: [0, 6], name: 'v(t) = 0.6 + 1.1t' },
+    wave:    { v: function (t) { return 2.6 + 1.6 * Math.sin(2.1 * t); }, yd: [0, 6], name: 'v(t) = 2.6 + 1.6 sin(2.1t)' }
+  };
+
+  var gVel = new CA.Graph(document.getElementById('cv-vel'), {
+    xDomain: [-0.1, 4.2],
+    height: function (w) { return Math.round(Math.max(240, Math.min(320, w * 0.44))); },
+    margin: { top: 20, right: 20, bottom: 42, left: 52 }
+  });
+
+  function drawVel() {
+    var S = VK[vk];
+    gVel.yDomain = S.yd;
+    gVel.begin();
+    gVel.axes({ xStep: 0.5, yStep: 1, xLabel: '시각 t (초) →' });
+
+    /* 정확한 넓이 */
+    gVel.area(S.v, 0, vt, { color: V.css('--pos-soft') });
+    /* 직사각형 근사 */
+    if (vt > 0.001) {
+      gVel.riemann(S.v, 0, vt, vn, {
+        mode: 'left',
+        fill: 'transparent',
+        stroke: V.css('--purple'),
+        lineWidth: vn <= 40 ? 1.4 : 0.7
+      });
+    }
+    gVel.curve(S.v, { color: V.css('--accent'), width: 2.6 });
+    gVel.vline(vt, { color: V.css('--text-dim'), dash: [5, 4], width: 1.4 });
+    gVel.dot(vt, S.v(vt), { r: 5.5, color: V.css('--accent'), stroke: V.css('--surface'), strokeWidth: 2 });
+
+    gVel.text(0.05, S.yd[1] * 0.9, S.name, {
+      color: V.css('--accent'), align: 'left', size: 12.5, bg: V.css('--surface')
+    });
+
+    gVel.legend([
+      { color: V.css('--pos'), text: '정확한 넓이 = 이동 거리' },
+      { color: V.css('--purple'), text: '직사각형 ' + vn + '개로 잰 근사' }
+    ], { corner: 'tr' });
+
+    var exact = F.integral(S.v, 0, Math.max(1e-9, vt), 2000);
+    var app = vt > 0 ? F.riemannSum(S.v, 0, vt, vn, 'left') : 0;
+    V.setText('#w-v', num(S.v(vt), 4) + ' m/s');
+    V.setText('#w-app', num(app, 4) + ' m');
+    V.setText('#w-exact', num(exact, 4) + ' m');
+    V.setText('#w-err', num(app - exact, 5) + ' m');
+  }
+
+  V.range('vt', function (v) { vt = v; drawVel(); }, function (v) { return num(v, 2); });
+  V.range('vn', function (v) { vn = v; drawVel(); });
+  V.radios('vk', function (v) { vk = v; drawVel(); });
+
+  /* =======================================================
+     패널 ② 리만 합
+     ======================================================= */
+  var rn = 6, rf = 'sq', rm = 'left';
+
+  var RF = {
+    sq:   { f: function (x) { return x * x; }, a: 0, b: 1, yd: [0, 1.15],
+            xd: [-0.06, 1.06], name: 'f(x) = x²', trueV: 1 / 3, xs: 0.25 },
+    sin:  { f: Math.sin, a: 0, b: Math.PI, yd: [0, 1.2],
+            xd: [-0.15, Math.PI + 0.15], name: 'f(x) = sin x', trueV: 2, xs: 0.5 },
+    exp:  { f: Math.exp, a: 0, b: 1, yd: [0, 3.1],
+            xd: [-0.06, 1.06], name: 'f(x) = eˣ', trueV: Math.E - 1, xs: 0.25 },
+    bell: { f: function (x) { return Math.exp(-x * x); }, a: -2, b: 2, yd: [0, 1.15],
+            xd: [-2.2, 2.2], name: 'f(x) = e^(−x²)', trueV: 1.7641627815, xs: 0.5 }
+  };
+
+  var gRiem = new CA.Graph(document.getElementById('cv-riem'), {
+    height: function (w) { return Math.round(Math.max(240, Math.min(330, w * 0.46))); },
+    margin: { top: 20, right: 20, bottom: 42, left: 52 }
+  });
+
+  function drawRiem() {
+    var S = RF[rf];
+    gRiem.xDomain = S.xd;
+    gRiem.yDomain = S.yd;
+    gRiem.begin();
+    gRiem.axes({ xStep: S.xs, yStep: CA.niceStep(S.yd[1] - S.yd[0], 4), xLabel: 'x →' });
+
+    gRiem.riemann(S.f, S.a, S.b, rn, {
+      mode: rm,
+      fill: V.css('--accent-soft'),
+      stroke: V.css('--accent'),
+      lineWidth: rn <= 60 ? 1.2 : 0.4
+    });
+    gRiem.curve(S.f, { color: V.css('--pos'), width: 2.8 });
+
+    gRiem.text(S.xd[0] + (S.xd[1] - S.xd[0]) * 0.03, S.yd[1] * 0.92, S.name, {
+      color: V.css('--pos'), align: 'left', size: 12.5, bg: V.css('--surface')
+    });
+
+    var sum = F.riemannSum(S.f, S.a, S.b, rn, rm);
+    var err = sum - S.trueV;
+    V.setText('#i-dx', num((S.b - S.a) / rn, 5));
+    V.setText('#i-sum', sum.toFixed(7));
+    V.setText('#i-true', S.trueV.toFixed(7));
+    V.setText('#i-err', (err >= 0 ? '+' : '') + err.toExponential(2));
+    V.setText('#i-rel', num(100 * Math.abs(err) / S.trueV, 4) + '%');
+  }
+
+  V.range('rn', function (v) { rn = v; drawRiem(); });
+  V.radios('rf', function (v) { rf = v; drawRiem(); });
+  V.radios('rm', function (v) { rm = v; drawRiem(); });
+
+  /* =======================================================
+     패널 ③ 면적 함수
+     ======================================================= */
+  var ax = 1.5, adx = 0.3, aReveal = false, af = 'lin';
+
+  var AF = {
+    lin:  { f: function (x) { return x / 2 + 1; }, A: function (x) { return x * x / 4 + x; },
+            yd: [0, 3.4], Ad: [0, 8.5], name: 'f(x) = x/2 + 1' },
+    sq:   { f: function (x) { return x * x / 4; }, A: function (x) { return x * x * x / 12; },
+            yd: [0, 4.4], Ad: [0, 6],   name: 'f(x) = x²/4' },
+    wave: { f: function (x) { return 1 + Math.sin(x); }, A: function (x) { return x - Math.cos(x) + 1; },
+            yd: [0, 2.3], Ad: [0, 6],   name: 'f(x) = 1 + sin x' }
+  };
+
+  function areaLayout(w) {
+    var top = Math.round(V.clamp(w * 0.27, 165, 220));
+    var bot = Math.round(V.clamp(w * 0.24, 150, 200));
+    return { top: top, H: top + bot + 14 };
+  }
+
+  var cvArea = document.getElementById('cv-area');
+  var frArea = new CA.Frame(cvArea, function (w) { return areaLayout(w).H; });
+  var gTop = new CA.Graph(cvArea, { frame: frArea, xDomain: [-0.15, 4.3], margin: { top: 16, right: 20, bottom: 24, left: 52 } });
+  var gBot = new CA.Graph(cvArea, { frame: frArea, xDomain: [-0.15, 4.3], margin: { top: 16, right: 20, bottom: 32, left: 52 } });
+
+  var aTrail = ax;
+
+  function drawArea() {
+    var S = AF[af];
+    frArea.begin();
+    var L = areaLayout(frArea.w);
+
+    /* --- 위: f 와 넓이 --- */
+    gTop.yDomain = S.yd;
+    gTop.plot.margin.top = 16;
+    gTop.plot.margin.bottom = L.H - L.top + 6;
+    gTop.begin();
+    gTop.axes({ xStep: 0.5, yStep: CA.niceStep(S.yd[1], 4) });
+
+    gTop.area(S.f, 0, ax, { color: V.css('--accent-soft') });
+    /* 새로 붙는 얇은 띠 */
+    gTop.rect(ax, 0, ax + adx, S.f(ax), {
+      fill: V.css('--purple-soft'), stroke: V.css('--purple'), lineWidth: 1.6
+    });
+    gTop.curve(S.f, { color: V.css('--accent'), width: 2.6 });
+    gTop.vline(ax, { color: V.css('--text-dim'), dash: [5, 4], width: 1.3 });
+    gTop.dot(ax, S.f(ax), { r: 5, color: V.css('--accent'), stroke: V.css('--surface'), strokeWidth: 2 });
+    gTop.text(ax + adx / 2, S.f(ax), 'dA ≈ f(x)·dx', {
+      color: V.css('--purple'), dy: -9, size: 11.5, bg: V.css('--surface')
+    });
+    gTop.text(0.08, S.yd[1] * 0.93, S.name, {
+      color: V.css('--accent'), align: 'left', size: 12.5, bg: V.css('--surface')
+    });
+
+    /* --- 아래: 면적 함수 --- */
+    gBot.yDomain = S.Ad;
+    gBot.plot.margin.top = L.top + 14;
+    gBot.plot.margin.bottom = 32;
+    gBot.begin();
+    gBot.axes({ xStep: 0.5, yStep: CA.niceStep(S.Ad[1], 4), xLabel: 'x →' });
+
+    if (aReveal) {
+      gBot.curve(S.A, { color: V.css('--pos'), width: 2.6, alpha: 0.45, from: 0 });
+    }
+    if (aTrail > 0.03) {
+      gBot.curve(S.A, { color: V.css('--pos'), width: 2.8, from: 0, to: aTrail });
+    }
+    /* A 의 접선 — 기울기가 f(x) 임을 보인다 */
+    gBot.lineAt(ax, S.A(ax), S.f(ax), { color: V.css('--accent'), width: 2, span: 0.7 });
+    gBot.dot(ax, S.A(ax), { r: 5, color: V.css('--pos'), stroke: V.css('--surface'), strokeWidth: 2 });
+    gBot.text(0.08, S.Ad[1] * 0.9,
+      aReveal ? 'A(x) = ∫₀ˣ f(t) dt   — 접선 기울기 = 위 곡선의 높이'
+              : 'A(x) — 지금까지 쌓인 넓이 (슬라이더를 밀어보세요)', {
+      color: V.css('--pos'), align: 'left', size: 12, bg: V.css('--surface')
+    });
+
+    var A0 = S.A(ax), A1 = S.A(ax + adx);
+    V.setText('#q-f', num(S.f(ax), 5));
+    V.setText('#q-a', num(A0, 5));
+    V.setText('#q-da', num(A1 - A0, 5));
+    V.setText('#q-rate', num((A1 - A0) / adx, 5));
+    V.setText('#q-gap', num((A1 - A0) / adx - S.f(ax), 5));
+  }
+
+  V.range('ax', function (v) {
+    ax = v;
+    aTrail = Math.max(aTrail, v);
+    drawArea();
+  }, function (v) { return num(v, 2); });
+  V.range('ad', function (v) { adx = v; drawArea(); }, function (v) { return num(v, 2); });
+  V.check('a-reveal', function (v) { aReveal = v; drawArea(); });
+  V.radios('af', function (v) { af = v; aTrail = ax; drawArea(); });
+
+  V.onRedraw(function () { drawVel(); drawRiem(); drawArea(); });
+  drawVel(); drawRiem(); drawArea();
+
+  var a = document.getElementById('colab-link');
+  if (a) a.href = 'https://colab.research.google.com/github/mioon1402/timeseriesdata/blob/main/notebooks/C09-integral.ipynb';
+})();
+</script>
+</body>
+</html>
